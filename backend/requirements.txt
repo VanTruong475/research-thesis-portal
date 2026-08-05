@@ -5,3 +5,6 @@ pytest
 pytest-asyncio
 httpx
 ruff
+sqlalchemy
+asyncpg
+alembic
