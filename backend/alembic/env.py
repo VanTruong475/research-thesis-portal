@@ -10,6 +10,7 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 from app.modules.academic_periods.model import AcademicPeriod  # noqa: F401
+from app.modules.auth.model import RefreshToken  # noqa: F401
 from app.modules.registrations.model import Registration  # noqa: F401
 from app.modules.topics.model import Topic  # noqa: F401
 from app.modules.users.model import User  # noqa: F401

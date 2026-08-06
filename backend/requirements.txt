@@ -8,3 +8,5 @@ ruff
 sqlalchemy
 asyncpg
 alembic
+argon2-cffi
+python-jose[cryptography]
