@@ -12,6 +12,7 @@ from app.db.enums import UserRole, UserStatus, enum_values
 
 if TYPE_CHECKING:
     from app.modules.academic_periods.model import AcademicPeriod
+    from app.modules.auth.model import RefreshToken
     from app.modules.registrations.model import Registration
     from app.modules.topics.model import Topic
 
@@ -82,4 +83,8 @@ class User(BaseModel):
     supervisor_assigned_registrations: Mapped[list[Registration]] = relationship(
         back_populates="supervisor_assigned_by",
         foreign_keys="Registration.supervisor_assigned_by_id",
+    )
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
+        "RefreshToken",
+        back_populates="user",
     )
