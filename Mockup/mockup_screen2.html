@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <!-- Cấu hình chuẩn giao diện responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Màn hình 2: Trang Chấm Điểm Bảo Vệ Hội Đồng (FR-20, FR-21)</title>
+    <!-- Import font chữ Inter hiện đại từ Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Thanh điều hướng dành cho Giảng viên/Thành viên Hội đồng -->
+    <header class="navbar">
+        <div class="logo">🎓 Portal NCKH & KLTN - Phân Hệ Chấm Điểm</div>
+        <div class="user-profile">
+            <span class="user-name">PGS.TS Nguyễn Văn C (Ủy viên HĐ)</span>
+            <span class="badge" style="background-color: #8b5cf6;">Giảng Viên / Hội Đồng</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- THÔNG TIN HỘI ĐỒNG BẢO VỆ (FR-19) -->
+        <section class="card topic-card">
+            <h2>🏛️ Thông Tin Hội Đồng Bảo Vệ Khóa Luận #HĐ01</h2>
+            <div class="topic-info">
+                <p><strong>Tên Hội Đồng:</strong> Hội đồng Bảo vệ KLTN Ngành Công Nghệ Thông Tin - K20</p>
+                <p><strong>Ngày bảo vệ:</strong> 15/08/2026 | <strong>Phòng:</strong> A2-501</p>
+                <p><strong>Vai trò của bạn:</strong> Ủy viên Hội Đồng</p>
+            </div>
+        </section>
+
+        <!-- BẢNG DANH SÁCH ĐỀ TÀI CẦN CHẤM ĐIỂM -->
+        <section class="card">
+            <h2>📋 Danh Sách Đề Tài Cần Chấm Điểm</h2>
+            
+            <!-- THÔNG TIN ĐỀ TÀI ĐANG CHỌN CHẤM -->
+            <div class="topic-info" style="background: #f1f5f9; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+                <h3>Đề tài: Xây dựng Hệ thống Quản lý Đề tài NCKH Sinh viên</h3>
+                <p><strong>Sinh viên thực hiện:</strong> Nguyễn Văn A (SV2026001)</p>
+                <p><strong>GV Hướng dẫn:</strong> TS. Trần Văn B</p>
+                <p><strong>File báo cáo hoàn chỉnh:</strong> <a href="#" style="color: #2563eb; font-weight: 600;">📁 Baocao_Nhom01_V2.pdf</a></p>
+            </div>
+
+            <!-- FORM CHẤM ĐIỂM CHI TIẾT (FR-20, FR-21) -->
+            <form id="scoringForm">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
+                    <thead>
+                        <tr style="background: #e2e8f0; text-align: left;">
+                            <th style="padding: 0.75rem;">Tiêu chí đánh giá</th>
+                            <th style="padding: 0.75rem; width: 120px;">Điểm tối đa</th>
+                            <th style="padding: 0.75rem; width: 150px;">Điểm nhập</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Tiêu chí 1 -->
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 0.75rem;">1. Thuyết minh & Báo cáo đề tài (Cấu trúc, trình bày)</td>
+                            <td style="padding: 0.75rem;">2.0</td>
+                            <td style="padding: 0.75rem;">
+                                <input type="number" step="0.1" min="0" max="2" placeholder="0.0" required style="width: 80px; padding: 0.4rem;">
+                            </td>
+                        </tr>
+                        <!-- Tiêu chí 2 -->
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 0.75rem;">2. Chất lượng sản phẩm / Demo ứng dụng</td>
+                            <td style="padding: 0.75rem;">5.0</td>
+                            <td style="padding: 0.75rem;">
+                                <input type="number" step="0.1" min="0" max="5" placeholder="0.0" required style="width: 80px; padding: 0.4rem;">
+                            </td>
+                        </tr>
+                        <!-- Tiêu chí 3 -->
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 0.75rem;">3. Kỹ năng thuyết trình & Trả lời câu hỏi phản biện</td>
+                            <td style="padding: 0.75rem;">3.0</td>
+                            <td style="padding: 0.75rem;">
+                                <input type="number" step="0.1" min="0" max="3" placeholder="0.0" required style="width: 80px; padding: 0.4rem;">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Nhận xét chi tiết của thành viên Hội đồng -->
+                <div class="form-group">
+                    <label for="councilComment">Nhận xét chi tiết & Gợi ý chỉnh sửa:</label>
+                    <textarea id="councilComment" rows="3" placeholder="Nhập nhận xét của bạn về đề tài..." required></textarea>
+                </div>
+
+                <!-- Nút Lưu / Xác nhận điểm -->
+                <button type="submit" class="btn-primary" style="background-color: #16a34a;">💾 Xác Nhận & Lưu Điểm</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
