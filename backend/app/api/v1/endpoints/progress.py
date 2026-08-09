@@ -1,59 +1,90 @@
-from datetime import datetime, timezone
-from uuid import UUID, uuid4
-from fastapi import APIRouter, status
+from uuid import UUID
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_db
 from app.common.responses import SuccessResponse
-from app.modules.progress.schemas import CreateProgressLogRequest, ProgressLogResponse
+from app.modules.progress.schemas import (
+    CreateProgressLogRequest, 
+    AddTeacherCommentRequest, 
+    ProgressLogResponse
+)
+from app.modules.progress.service import ProgressService
 
 router = APIRouter()
-
-
-@router.get(
-    "/progress",
-    response_model=SuccessResponse[list[ProgressLogResponse]],
-    status_code=status.HTTP_200_OK,
-    summary="[Stub] Lấy danh sách tiến độ",
-    description="Endpoint Stub trả về dữ liệu giả định (mock data) danh sách báo cáo tiến độ để không làm ngắt quãng công việc của Người A."
-)
-async def get_progress_logs_stub():
-    # Dữ liệu giả lập (Mock data)
-    mock_data = [
-        ProgressLogResponse(
-            id=uuid4(),
-            registration_id=uuid4(),
-            student_id=uuid4(),
-            milestone_id=None,
-            content="Đã hoàn thành khảo sát yêu cầu và viết xong Usecase Spec.",
-            submitted_at=datetime.now(timezone.utc),
-            teacher_comment="Tốt, tiếp tục triển khai thiết kế DB.",
-            commented_at=datetime.now(timezone.utc)
-        )
-    ]
-    return SuccessResponse(
-        data=mock_data,
-        message="Lấy danh sách nhật ký tiến độ (Mock Stub) thành công."
-    )
-
 
 @router.post(
     "/progress",
     response_model=SuccessResponse[ProgressLogResponse],
     status_code=status.HTTP_201_CREATED,
-    summary="[Stub] Nộp báo cáo tiến độ mới",
-    description="Endpoint Stub tiếp nhận dữ liệu nộp tiến độ và trả về bản ghi giả lập."
+    summary="[Sinh viên] Nộp báo cáo tiến độ mới (FR-13)",
+    description="Cho phép Sinh viên tạo bản ghi báo cáo tiến độ thực hiện đề tài."
 )
-async def create_progress_log_stub(payload: CreateProgressLogRequest):
-    # Dữ liệu giả lập sau khi nhận request
-    mock_response = ProgressLogResponse(
-        id=uuid4(),
-        registration_id=payload.registration_id,
-        student_id=uuid4(),
-        milestone_id=payload.milestone_id,
-        content=payload.content,
-        submitted_at=datetime.now(timezone.utc),
-        teacher_comment=None,
-        commented_at=None
+async def create_progress_log_endpoint(
+    payload: CreateProgressLogRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    # UUID giả lập cho Sinh viên đang đăng nhập (khi chưa ghép JWT auth)
+    mock_student_id = UUID("00000000-0000-0000-0000-000000000002")
+
+    # Gọi Service thực hiện lưu vào CSDL
+    new_log = await ProgressService.create_progress_log(
+        db=db,
+        student_id=mock_student_id,
+        payload=payload
     )
+
     return SuccessResponse(
-        data=mock_response,
-        message="Báo cáo tiến độ đã được cập nhật (Mock Stub)."
+        data=ProgressLogResponse.model_validate(new_log),
+        message="Nộp báo cáo tiến độ thành công."
     )
+
+@router.post(
+    "/progress/{id}/comments",
+    response_model=SuccessResponse[ProgressLogResponse],
+    status_code=status.HTTP_200_OK,
+    summary="[GVHD] Gửi nhận xét báo cáo tiến độ (FR-14)",
+    description="Cho phép Giảng viên hướng dẫn ghi góp ý/nhận xét cho báo cáo tiến độ của sinh viên."
+)
+async def add_teacher_comment_endpoint(
+    id: UUID,
+    payload: AddTeacherCommentRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    # Gọi Service cập nhật nhận xét của GVHD vào CSDL
+    updated_log = await ProgressService.add_teacher_comment(
+        db=db,
+        log_id=id,
+        payload=payload
+    )
+
+    return SuccessResponse(
+        data=ProgressLogResponse.model_validate(updated_log),
+        message="Gửi nhận xét báo cáo tiến độ thành công."
+    )
+
+@router.get(
+    "/registrations/{registration_id}/progress",
+    response_model=SuccessResponse[list[ProgressLogResponse]],
+    status_code=status.HTTP_200_OK,
+    summary="Lấy danh sách tiến độ theo Đơn đăng ký",
+    description="Trả về toàn bộ nhật ký báo cáo tiến độ của đơn đăng ký đề tài."
+)
+async def get_progress_logs_endpoint(
+    registration_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    # Gọi Service lấy danh sách từ CSDL
+    logs = await ProgressService.get_progress_logs_by_registration(
+        db=db,
+        registration_id=registration_id
+    )
+
+    # Chuyển đổi danh sách ORM objects thành danh sách Schema DTO
+    response_data = [ProgressLogResponse.model_validate(log) for log in logs]
+
+    return SuccessResponse(
+        data=response_data,
+        message="Lấy danh sách nhật ký tiến độ thành công."
+    )
+
