@@ -116,6 +116,11 @@ class ForbiddenException(AppException):
         )
 
 
+# Alias tương thích cho các module cũ
+ResourceNotFoundException = NotFoundException
+BusinessRuleException = AppException
+
+
 # --- BỘ HANDLER XỬ LÝ LỖI TẬP TRUNG (CENTERED EXCEPTION HANDLERS) ---
 
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
