@@ -6,12 +6,14 @@ from app.api.v1.endpoints.registrations import router as registrations_router
 from app.api.v1.endpoints.progress import router as progress_router
 from app.api.v1.endpoints.reports import router as reports_router
 from app.modules.users.router import router as users_router
+from app.modules.councils.router import router as councils_router
 
 router = APIRouter()
 
 router.include_router(health_router, tags=["Health"])
 router.include_router(auth_router)
 router.include_router(users_router)
+router.include_router(councils_router)
 # Đăng ký các API Phân công GVHD & Xem tải GV (FR-11, FR-12)
 router.include_router(registrations_router, tags=["Registrations & Lecturers"])
 # Đăng ký các API Module Tiến độ (Progress Logs - FR-13, FR-14)
