@@ -10,3 +10,6 @@ asyncpg
 alembic
 argon2-cffi
 python-jose[cryptography]
+python-multipart
+email-validator
+python-dotenv
