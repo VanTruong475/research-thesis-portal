@@ -48,3 +48,13 @@ class TimestampMixin:
 
 class BaseModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __abstract__ = True
+
+
+# Import toàn bộ ORM Models ở cuối file để đăng ký mapper với SQLAlchemy
+import app.modules.users.model  # noqa
+import app.modules.academic_periods.model  # noqa
+import app.modules.topics.model  # noqa
+import app.modules.registrations.model  # noqa
+import app.modules.progress.model  # noqa
+import app.modules.reports.model  # noqa
+import app.modules.auth.model  # noqa
