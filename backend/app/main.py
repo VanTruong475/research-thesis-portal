@@ -5,6 +5,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Nạp toàn bộ ORM Models đăng ký với SQLAlchemy
+import app.db.base  # noqa
+
 # Import router API v1
 from app.api.v1.router import router as v1_router
 # Import hàm tiện ích đăng ký Exception Handlers tập trung vừa gộp chuẩn ở common/exceptions.py
