@@ -73,3 +73,31 @@ class DefenseScheduleStatus(StrEnum):
     COMPLETED = "completed"        # Đã bảo vệ xong
     CANCELLED = "cancelled"        # Hủy lịch
     POSTPONED = "postponed"        # Hoãn lịch
+
+
+# Enums dành riêng cho Module Chấm điểm & Kết quả (Scoring & Final Results Module)
+class EvaluationType(StrEnum):
+    SUPERVISOR = "supervisor"      # Đánh giá từ Giảng viên hướng dẫn (Điểm quá trình)
+    COUNCIL = "council"            # Đánh giá từ Thành viên Hội đồng (Điểm bảo vệ)
+
+
+class ScoreStatus(StrEnum):
+    DRAFT = "draft"                # Điểm nháp
+    SUBMITTED = "submitted"        # Đã nộp điểm
+    LOCKED = "locked"              # Đã khóa điểm (sau khi công bố kết quả)
+
+
+class FinalResultStatus(StrEnum):
+    DRAFT = "draft"                # Nháp
+    CALCULATED = "calculated"      # Đã tính toán xong điểm tổng kết
+    PUBLISHED = "published"        # Đã công bố cho sinh viên
+    CANCELLED = "cancelled"        # Đã hủy
+
+
+class ResultClassification(StrEnum):
+    EXCELLENT = "excellent"        # Xuất sắc
+    GOOD = "good"                  # Giỏi
+    FAIR = "fair"                  # Khá
+    AVERAGE = "average"            # Trung bình
+    FAILED = "failed"              # Không đạt
+

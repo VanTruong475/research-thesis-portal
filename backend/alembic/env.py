@@ -14,6 +14,9 @@ from app.modules.auth.model import RefreshToken  # noqa: F401
 from app.modules.registrations.model import Registration  # noqa: F401
 from app.modules.topics.model import Topic  # noqa: F401
 from app.modules.users.model import User  # noqa: F401
+from app.modules.councils.model import Council, CouncilMember, DefenseSchedule  # noqa: F401
+from app.modules.evaluation.model import FinalResult, Score  # noqa: F401
+
 
 config = context.config
 

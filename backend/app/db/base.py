@@ -57,4 +57,7 @@ import app.modules.topics.model  # noqa
 import app.modules.registrations.model  # noqa
 import app.modules.progress.model  # noqa
 import app.modules.reports.model  # noqa
+import app.modules.councils.model  # noqa
+import app.modules.evaluation.model  # noqa
 import app.modules.auth.model  # noqa
+

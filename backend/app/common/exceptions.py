@@ -116,9 +116,27 @@ class ForbiddenException(AppException):
         )
 
 
+class BadRequestException(AppException):
+    """Ngoại lệ khi yêu cầu không hợp lệ (HTTP 400)"""
+
+    def __init__(
+        self,
+        message: str = "Yêu cầu không hợp lệ",
+        error_code: str = "BAD_REQUEST",
+        details: Any = None,
+    ) -> None:
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=details,
+        )
+
+
 # Alias tương thích cho các module cũ
 ResourceNotFoundException = NotFoundException
 BusinessRuleException = AppException
+
 
 
 # --- BỘ HANDLER XỬ LÝ LỖI TẬP TRUNG (CENTERED EXCEPTION HANDLERS) ---
