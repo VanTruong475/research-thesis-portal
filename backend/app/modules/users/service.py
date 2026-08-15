@@ -1,67 +1,100 @@
-# backend/app/modules/users/service.py
-# File này chứa Service xử lý logic nghiệp vụ Quản lý người dùng (User Management Service).
+import math
+from uuid import UUID
 
-from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.exceptions import AppException
+from app.common.exceptions import AppException, NotFoundException
 from app.core.security import hash_password
-from app.db.enums import UserStatus
+from app.db.enums import UserRole, UserStatus
 from app.modules.users.model import User
-from app.modules.users.schemas import UserCreateRequest, UserResponse
+from app.modules.users.repository import UserRepository
+from app.modules.users.schemas import (
+    PaginationResponse,
+    UserCreateRequest,
+    UserListResponse,
+    UserProfileUpdateRequest,
+    UserResponse,
+    UserStatusUpdateRequest,
+)
 
 
 class UserService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+        self.repository = UserRepository(db)
+
+    async def get_current_profile(self, current_user: User) -> UserResponse:
+        return UserResponse.model_validate(current_user)
+
+    async def update_current_profile(
+        self,
+        current_user: User,
+        payload: UserProfileUpdateRequest,
+    ) -> UserResponse:
+        update_data = payload.model_dump(exclude_unset=True)
+
+        for field, value in update_data.items():
+            setattr(current_user, field, value)
+
+        await self.repository.update_user(current_user)
+        await self.db.commit()
+        return UserResponse.model_validate(current_user)
+
+    async def list_users(self, *, page: int, page_size: int) -> UserListResponse:
+        users, total_items = await self.repository.list_users(page=page, page_size=page_size)
+        total_pages = math.ceil(total_items / page_size) if total_items else 0
+
+        return UserListResponse(
+            items=[UserResponse.model_validate(user) for user in users],
+            pagination=PaginationResponse(
+                page=page,
+                page_size=page_size,
+                total_items=total_items,
+                total_pages=total_pages,
+            ),
+        )
 
     async def create_user(self, payload: UserCreateRequest) -> UserResponse:
-        """
-        Hàm xử lý tạo tài khoản người dùng mới (Sinh viên hoặc Giảng viên).
-        Chỉ dành riêng cho Admin gọi.
-        """
-        # 1. Kiểm tra xem Mã định danh (institutional_code) hoặc Email đã tồn tại chưa
-        stmt = select(User).where(
-            or_(
-                User.institutional_code == payload.institutional_code,
-                User.email == payload.email,
-            )
+        existing_user = await self.repository.get_by_email_or_code(
+            email=str(payload.email),
+            institutional_code=payload.institutional_code,
         )
-        result = await self.db.execute(stmt)
-        existing_user = result.scalar_one_or_none()
 
         if existing_user:
             raise AppException(
-                status_code=400,
-                message="Mã người dùng (MSSV/MSGV) hoặc Email đã tồn tại trong hệ thống.",
+                status_code=409,
+                message="Institutional code or email already exists.",
                 code="USER_ALREADY_EXISTS",
             )
 
-        # 2. Tạo đối tượng User mới với mật khẩu được băm (Argon2)
         new_user = User(
             institutional_code=payload.institutional_code,
-            email=payload.email,
-            password_hash=hash_password(payload.password),  # Băm mật khẩu bằng Argon2
+            email=str(payload.email).lower(),
+            password_hash=hash_password(payload.password),
             full_name=payload.full_name,
             role=payload.role,
             status=UserStatus.ACTIVE,
-            class_name=payload.class_name if payload.role.value == "student" else None,
-            department=payload.department if payload.role.value == "lecturer" else None,
+            class_name=payload.class_name if payload.role == UserRole.STUDENT else None,
+            department=payload.department if payload.role in (UserRole.LECTURER, UserRole.ADMIN) else None,
         )
 
-        # 3. Lưu người dùng vào cơ sở dữ liệu PostgreSQL
-        self.db.add(new_user)
+        await self.repository.create_user(new_user)
         await self.db.commit()
-        await self.db.refresh(new_user)
+        return UserResponse.model_validate(new_user)
 
-        # 4. Trả về DTO UserResponse
-        return UserResponse(
-            id=new_user.id,
-            institutional_code=new_user.institutional_code,
-            email=new_user.email,
-            full_name=new_user.full_name,
-            role=new_user.role,
-            status=new_user.status,
-            class_name=new_user.class_name,
-            department=new_user.department,
-        )
+    async def update_status(
+        self,
+        user_id: UUID,
+        payload: UserStatusUpdateRequest,
+    ) -> UserResponse:
+        user = await self.repository.get_by_id(user_id)
+        if user is None:
+            raise NotFoundException(
+                message="User not found.",
+                error_code="USER_NOT_FOUND",
+            )
+
+        user.status = payload.status
+        await self.repository.update_user(user)
+        await self.db.commit()
+        return UserResponse.model_validate(user)
