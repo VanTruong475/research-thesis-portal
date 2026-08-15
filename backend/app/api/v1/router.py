@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.health import router as health_router
+from app.modules.academic_periods.router import router as academic_periods_router
 from app.modules.auth.router import router as auth_router
 from app.api.v1.endpoints.registrations import router as registrations_router
 from app.api.v1.endpoints.progress import router as progress_router
@@ -15,6 +16,7 @@ router = APIRouter()
 router.include_router(health_router, tags=["Health"])
 router.include_router(auth_router)
 router.include_router(users_router)
+router.include_router(academic_periods_router)
 router.include_router(councils_router)
 router.include_router(evaluation_router)
 # Đăng ký các API Phân công GVHD & Xem tải GV (FR-11, FR-12)
