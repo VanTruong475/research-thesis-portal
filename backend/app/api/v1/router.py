@@ -8,6 +8,7 @@ from app.api.v1.endpoints.reports import router as reports_router
 from app.modules.users.router import router as users_router
 from app.modules.councils.router import router as councils_router
 from app.modules.evaluation.router import router as evaluation_router
+from app.modules.topics.router import router as topics_router
 
 router = APIRouter()
 
@@ -22,6 +23,6 @@ router.include_router(registrations_router, tags=["Registrations & Lecturers"])
 router.include_router(progress_router, tags=["Progress"])
 # Đăng ký các API Module Nộp file Báo cáo & Lịch sử phiên bản (Reports - FR-16, FR-17, FR-18)
 router.include_router(reports_router, tags=["Reports & Submissions"])
-
+router.include_router(topics_router)
 
 
