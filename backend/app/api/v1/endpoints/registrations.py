@@ -1,67 +1,189 @@
+from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Depends, status
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.responses import create_success_response
+from app.db.enums import RegistrationStatus, UserRole
 from app.db.session import get_db
-from app.common.responses import SuccessResponse
-from app.modules.registrations.schemas import AssignSupervisorRequest, RegistrationResponse
-from app.modules.users.schemas import LecturerWorkloadResponse
-from app.modules.registrations.service import RegistrationService, LecturerService
+from app.modules.auth.dependencies import get_current_user, require_roles
+from app.modules.registrations.schemas import (
+    AssignSupervisorRequest,
+    RegistrationCreateRequest,
+    RegistrationRejectRequest,
+)
+from app.modules.registrations.service import LecturerService, RegistrationService
+from app.modules.users.model import User
 
-# Khởi tạo Router cho các API Đăng ký & Phân công
 router = APIRouter()
 
 
-@router.put(
-    "/registrations/{id}/assign-gvhd",
-    response_model=SuccessResponse[RegistrationResponse],
+@router.get(
+    "/registrations",
     status_code=status.HTTP_200_OK,
-    summary="[Admin] Phân công GVHD cho Đăng ký đề tài (FR-11)",
-    description="Cho phép Admin phân công thủ công hoặc thay đổi Giảng viên hướng dẫn cho một đơn đăng ký đề tài."
+    summary="List registrations",
 )
-async def assign_supervisor_endpoint(
-    id: UUID,
-    payload: AssignSupervisorRequest,
-    db: AsyncSession = Depends(get_db)
+async def list_registrations(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    status_filter: Annotated[RegistrationStatus | None, Query(alias="status")] = None,
+    student_id: UUID | None = None,
+    topic_id: UUID | None = None,
+    academic_period_id: UUID | None = None,
+    supervisor_id: UUID | None = None,
 ):
-    # TODO: Khi có middleware auth hoàn chỉnh từ Người A, lấy admin_id từ current_user token.
-    # Hiện tại mock admin_id giả lập để test endpoint độc lập.
-    mock_admin_id = UUID("00000000-0000-0000-0000-000000000001")
-
-    # Gọi Service thực hiện nghiệp vụ phân công GVHD
-    updated_registration = await RegistrationService.assign_supervisor(
-        db=db,
-        registration_id=id,
-        supervisor_id=payload.supervisor_id,
-        admin_id=mock_admin_id
+    registrations_data = await RegistrationService(db).list_registrations(
+        current_user=current_user,
+        page=page,
+        page_size=page_size,
+        status=status_filter,
+        student_id=student_id,
+        topic_id=topic_id,
+        academic_period_id=academic_period_id,
+        supervisor_id=supervisor_id,
+    )
+    return create_success_response(
+        data=registrations_data.model_dump(mode="json"),
+        message="Registrations retrieved successfully.",
     )
 
-    # Đóng gói dữ liệu phản hồi theo chuẩn SuccessResponse của dự án
-    return SuccessResponse(
-        data=RegistrationResponse.model_validate(updated_registration),
-        message="Phân công Giảng viên hướng dẫn thành công."
+
+@router.post(
+    "/registrations",
+    status_code=status.HTTP_201_CREATED,
+    summary="Student create a registration",
+)
+async def create_registration(
+    payload: RegistrationCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_student: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+):
+    registration_data = await RegistrationService(db).create_registration(payload, current_student)
+    return create_success_response(
+        data=registration_data.model_dump(mode="json"),
+        message="Registration created successfully.",
+        status_code=status.HTTP_201_CREATED,
+    )
+
+
+@router.get(
+    "/registrations/{registration_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get a registration",
+)
+async def get_registration(
+    registration_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    registration_data = await RegistrationService(db).get_registration(
+        registration_id,
+        current_user,
+    )
+    return create_success_response(
+        data=registration_data.model_dump(mode="json"),
+        message="Registration retrieved successfully.",
+    )
+
+
+@router.put(
+    "/registrations/{registration_id}/approve",
+    status_code=status.HTTP_200_OK,
+    summary="Approve a registration",
+)
+async def approve_registration(
+    registration_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    registration_data = await RegistrationService(db).approve_registration(
+        registration_id,
+        current_user,
+    )
+    return create_success_response(
+        data=registration_data.model_dump(mode="json"),
+        message="Registration approved successfully.",
+    )
+
+
+@router.put(
+    "/registrations/{registration_id}/reject",
+    status_code=status.HTTP_200_OK,
+    summary="Reject a registration",
+)
+async def reject_registration(
+    registration_id: UUID,
+    payload: RegistrationRejectRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    registration_data = await RegistrationService(db).reject_registration(
+        registration_id,
+        payload,
+        current_user,
+    )
+    return create_success_response(
+        data=registration_data.model_dump(mode="json"),
+        message="Registration rejected successfully.",
+    )
+
+
+@router.patch(
+    "/registrations/{registration_id}/cancel",
+    status_code=status.HTTP_200_OK,
+    summary="Student cancel own pending registration",
+)
+async def cancel_registration(
+    registration_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_student: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+):
+    registration_data = await RegistrationService(db).cancel_registration(
+        registration_id,
+        current_student,
+    )
+    return create_success_response(
+        data=registration_data.model_dump(mode="json"),
+        message="Registration cancelled successfully.",
+    )
+
+
+@router.put(
+    "/registrations/{registration_id}/assign-supervisor",
+    status_code=status.HTTP_200_OK,
+    summary="Admin assign supervisor to a registration",
+)
+async def assign_supervisor(
+    registration_id: UUID,
+    payload: AssignSupervisorRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    registration_data = await RegistrationService(db).assign_supervisor(
+        registration_id,
+        payload,
+        current_admin,
+    )
+    return create_success_response(
+        data=registration_data.model_dump(mode="json"),
+        message="Supervisor assigned successfully.",
     )
 
 
 @router.get(
     "/lecturers/{id}/workload",
-    response_model=SuccessResponse[LecturerWorkloadResponse],
     status_code=status.HTTP_200_OK,
-    summary="[Admin] Xem tải hướng dẫn của Giảng viên (FR-12)",
-    description="Trả về thông tin số lượng đề tài/sinh viên mà giảng viên đang hướng dẫn trong kỳ."
+    summary="Get lecturer workload",
 )
 async def get_lecturer_workload_endpoint(
     id: UUID,
-    db: AsyncSession = Depends(get_db)
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    # Gọi Service lấy dữ liệu khối lượng công việc của giảng viên
-    workload_data = await LecturerService.get_lecturer_workload(
-        db=db,
-        lecturer_id=id
-    )
-
-    # Đóng gói dữ liệu phản hồi theo chuẩn SuccessResponse
-    return SuccessResponse(
-        data=LecturerWorkloadResponse.model_validate(workload_data),
-        message="Lấy thông tin tải hướng dẫn thành công."
+    workload_data = await LecturerService(db).get_lecturer_workload(id)
+    return create_success_response(
+        data=workload_data.model_dump(mode="json"),
+        message="Lấy thông tin tải hướng dẫn thành công.",
     )
