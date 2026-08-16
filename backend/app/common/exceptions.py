@@ -1,8 +1,8 @@
 # backend/app/common/exceptions.py
-# File này định nghĩa các Custom Exception (Ngoại lệ tùy chỉnh) và Bộ xử lý lỗi tập trung (Exception Handlers).
-# Mục đích: Bắt tất cả các lỗi xảy ra trong ứng dụng và chuyển thành JSONResponse chuẩn theo docs/05_API_CONTRACT.md.
+# Custom exceptions and centralized handlers for API-contract error responses.
 
 from typing import Any
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -14,8 +14,7 @@ from app.core.config import settings
 
 class AppException(Exception):
     """
-    Class ngoại lệ cơ sở (Base Custom Exception) cho toàn bộ ứng dụng.
-    Tất cả các lỗi nghiệp vụ (Business logic errors) trong hệ thống sẽ kế thừa từ Class này.
+    Base custom exception for application and business-logic errors.
     """
 
     def __init__(
@@ -29,17 +28,14 @@ class AppException(Exception):
         error_code: str | None = None,
     ) -> None:
         """
-        Hàm khởi tạo thông minh hỗ trợ 100% các kiểu truyền tham số từ cả 2 thành viên:
-        - Kiểu 1: AppException(status_code=401, message="...", code="...")
-        - Kiểu 2: AppException(message="...", error_code="...", status_code=400)
-        - Truyền vị trí (Positional): AppException(401, "Message", "CODE") hoặc AppException("Message", "CODE", 401)
+        Support both members' existing constructor styles.
         """
-        # Trường hợp 1: Tham số thứ nhất là int (Truyền status_code làm tham số 1)
+        # Trường hợp 1: Tham số thứ nhất là int (status_code)
         if isinstance(arg1, int):
             self.status_code = arg1
             self.message = arg2 if isinstance(arg2, str) else (message or "Request failed.")
             resolved_code = code or error_code or "BAD_REQUEST"
-        # Trường hợp 2: Tham số thứ nhất là str (Truyền message làm tham số 1)
+        # Trường hợp 2: Tham số thứ nhất là str (message)
         elif isinstance(arg1, str):
             self.message = arg1
             if isinstance(arg2, int):
@@ -47,17 +43,23 @@ class AppException(Exception):
                 resolved_code = code or error_code or "BAD_REQUEST"
             elif isinstance(arg2, str):
                 resolved_code = arg2
-                self.status_code = status_code if status_code is not None else status.HTTP_400_BAD_REQUEST
+                self.status_code = (
+                    status_code if status_code is not None else status.HTTP_400_BAD_REQUEST
+                )
             else:
-                self.status_code = status_code if status_code is not None else status.HTTP_400_BAD_REQUEST
+                self.status_code = (
+                    status_code if status_code is not None else status.HTTP_400_BAD_REQUEST
+                )
                 resolved_code = code or error_code or "BAD_REQUEST"
         # Trường hợp 3: Sử dụng keyword arguments (named parameters)
         else:
-            self.status_code = status_code if status_code is not None else status.HTTP_400_BAD_REQUEST
+            self.status_code = (
+                status_code if status_code is not None else status.HTTP_400_BAD_REQUEST
+            )
             self.message = message or "Request failed."
             resolved_code = code or error_code or "BAD_REQUEST"
 
-        # Gán đồng thời cả .code và .error_code để tương thích 100% với code của cả 2 thành viên
+        # Gán cả .code và .error_code để tương thích code của cả 2 thành viên
         self.code = resolved_code
         self.error_code = resolved_code
         self.details = details
@@ -83,7 +85,7 @@ class NotFoundException(AppException):
 
 
 class UnauthorizedException(AppException):
-    """Ngoại lệ khi chưa đăng nhập hoặc Token hết hạn (HTTP 401)"""
+    """Ngoại lệ khi chưa đăng nhập hoặc token hết hạn (HTTP 401)"""
 
     def __init__(
         self,
@@ -138,12 +140,11 @@ ResourceNotFoundException = NotFoundException
 BusinessRuleException = AppException
 
 
-
 # --- BỘ HANDLER XỬ LÝ LỖI TẬP TRUNG (CENTERED EXCEPTION HANDLERS) ---
 
-async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+async def app_exception_handler(_request: Request, exc: AppException) -> JSONResponse:
     """
-    Bắt các lỗi AppException do lập trình viên chủ động raise trong logic nghiệp vụ.
+    Bắt các lỗi AppException do lập trình viên chủ động raise.
     """
     return create_error_response(
         message=exc.message,
@@ -154,11 +155,11 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
 
 async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
+    _request: Request,
+    exc: RequestValidationError,
 ) -> JSONResponse:
     """
-    Bắt lỗi Validate dữ liệu đầu vào của FastAPI (Pydantic ValidationError - HTTP 422).
-    Chuyển đổi lỗi mặc định của FastAPI thành chuẩn JSON Response quy định tại API Contract 3.4 & 4.2.
+    Chuyển lỗi validate mặc định của FastAPI sang chuẩn API Contract.
     """
     fields = []
     for error in exc.errors():
@@ -180,10 +181,11 @@ async def validation_exception_handler(
 
 
 async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException | HTTPException
+    _request: Request,
+    exc: StarletteHTTPException | HTTPException,
 ) -> JSONResponse:
     """
-    Bắt các lỗi HTTP chung (VD: FastAPI tự văng 404 Not Found hoặc 405 Method Not Allowed).
+    Bắt các lỗi HTTP chung như 404 Not Found hoặc 405 Method Not Allowed.
     """
     if isinstance(exc.detail, dict):
         message = exc.detail.get("message", "Request failed.")
@@ -202,10 +204,9 @@ async def http_exception_handler(
     )
 
 
-async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+async def generic_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
     """
-    Bắt tất cả các lỗi hệ thống không lường trước (Unhandled Errors - HTTP 500).
-    Nếu trong môi trường test (test env), re-raise lỗi để dễ dàng debug.
+    Bắt lỗi hệ thống không lường trước (Unhandled Errors - HTTP 500).
     """
     if settings.app_env == "test":
         raise exc
