@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.health import router as health_router
-from app.api.v1.endpoints.progress import router as progress_router
-from app.api.v1.endpoints.registrations import router as registrations_router
-from app.api.v1.endpoints.reports import router as reports_router
 from app.modules.academic_periods.router import router as academic_periods_router
 from app.modules.auth.router import router as auth_router
 from app.modules.councils.router import router as councils_router
 from app.modules.evaluation.router import router as evaluation_router
+from app.modules.progress.router import router as progress_router
+from app.modules.registrations.router import router as registrations_router
+from app.modules.reports.router import router as reports_router
 from app.modules.topics.router import router as topics_router
 from app.modules.users.router import router as users_router
 
