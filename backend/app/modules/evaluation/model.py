@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, Text, UniqueConstrai
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import BaseModel
+from app.db.base import BaseModel, utc_now
 from app.db.enums import (
     EvaluationType,
     FinalResultStatus,
@@ -23,11 +23,10 @@ if TYPE_CHECKING:
     from app.modules.users.model import User
 
 
-
 class Score(BaseModel):
     """
     Model đại diện cho bảng 'scores' trong CSDL.
-    Lưu trữ chi tiết điểm số do GVHD chấm (Điểm quá trình) hoặc do Giảng viên Hội đồng chấm (Điểm bảo vệ).
+    Lưu trữ chi tiết điểm số do GVHD chấm hoặc do Giảng viên Hội đồng chấm.
     """
 
     __tablename__ = "scores"
@@ -105,7 +104,7 @@ class Score(BaseModel):
 class FinalResult(BaseModel):
     """
     Model đại diện cho bảng 'final_results' trong CSDL.
-    Lưu trữ kết quả đánh giá tổng kết cuối cùng của sinh viên sau khi tổng hợp điểm GVHD và điểm Hội đồng.
+    Lưu trữ kết quả đánh giá tổng kết cuối cùng của sinh viên sau khi tổng hợp điểm.
     """
 
     __tablename__ = "final_results"
@@ -169,7 +168,7 @@ class FinalResult(BaseModel):
     # Thời điểm thực hiện tính toán điểm tổng kết
     calculated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
@@ -196,5 +195,11 @@ class FinalResult(BaseModel):
 
     # Relationships (Liên kết ORM)
     registration: Mapped["Registration"] = relationship("Registration")
-    calculated_by: Mapped["User | None"] = relationship("User", foreign_keys=[calculated_by_id])
-    published_by: Mapped["User | None"] = relationship("User", foreign_keys=[published_by_id])
+    calculated_by: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys=[calculated_by_id],
+    )
+    published_by: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys=[published_by_id],
+    )

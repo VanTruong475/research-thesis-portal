@@ -3,6 +3,7 @@
 
 from typing import Annotated
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,8 +17,10 @@ from app.modules.councils.schemas import (
     DefenseScheduleCreateRequest,
 )
 from app.modules.councils.service import CouncilService
+from app.modules.users.model import User
 
 router = APIRouter(prefix="/councils", tags=["Councils & Defense Schedules"])
+ADMIN_REQUIRED = require_roles(UserRole.ADMIN)
 
 
 @router.post(
@@ -28,12 +31,12 @@ router = APIRouter(prefix="/councils", tags=["Councils & Defense Schedules"])
 async def create_council(
     payload: CouncilCreateRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[dict, Depends(require_roles(UserRole.ADMIN))],
+    current_admin: Annotated[User, Depends(ADMIN_REQUIRED)],
 ):
     """
     Endpoint cho phép Admin tạo Hội đồng mới cho một Học kỳ/Đợt đăng ký.
     """
-    admin_id = UUID(current_admin["sub"])
+    admin_id = current_admin.id
     council_data = await CouncilService(db).create_council(payload, admin_id)
     return create_success_response(
         data=council_data.model_dump(mode="json"),
@@ -51,12 +54,12 @@ async def assign_council_member(
     council_id: UUID,
     payload: CouncilMemberAssignRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[dict, Depends(require_roles(UserRole.ADMIN))],
+    current_admin: Annotated[User, Depends(ADMIN_REQUIRED)],
 ):
     """
-    Endpoint cho phép Admin phân công Giảng viên vào Hội đồng với vai trò cụ thể (Chủ tịch, Thư ký, Phản biện, Ủy viên).
+    Endpoint cho phép Admin phân công Giảng viên vào Hội đồng với vai trò cụ thể.
     """
-    admin_id = UUID(current_admin["sub"])
+    admin_id = current_admin.id
     member_data = await CouncilService(db).assign_member(council_id, payload, admin_id)
     return create_success_response(
         data=member_data.model_dump(mode="json"),
@@ -74,13 +77,17 @@ async def create_defense_schedule(
     council_id: UUID,
     payload: DefenseScheduleCreateRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_admin: Annotated[dict, Depends(require_roles(UserRole.ADMIN))],
+    current_admin: Annotated[User, Depends(ADMIN_REQUIRED)],
 ):
     """
-    Endpoint cho phép Admin xếp ngày giờ, thời lượng và phòng bảo vệ đồ án cho một sinh viên.
+    Endpoint cho phép Admin xếp ngày giờ, thời lượng và phòng bảo vệ đồ án.
     """
-    admin_id = UUID(current_admin["sub"])
-    schedule_data = await CouncilService(db).create_defense_schedule(council_id, payload, admin_id)
+    admin_id = current_admin.id
+    schedule_data = await CouncilService(db).create_defense_schedule(
+        council_id,
+        payload,
+        admin_id,
+    )
     return create_success_response(
         data=schedule_data.model_dump(mode="json"),
         message="Xếp lịch bảo vệ đồ án thành công.",
@@ -95,10 +102,10 @@ async def create_defense_schedule(
 async def get_councils_by_period(
     period_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)],
+    _current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
-    Endpoint xem danh sách các Hội đồng kèm các thành viên và lịch bảo vệ thuộc một Học kỳ cụ thể.
+    Endpoint xem danh sách các Hội đồng kèm thành viên và lịch bảo vệ thuộc một Học kỳ cụ thể.
     """
     councils = await CouncilService(db).get_councils_by_period(period_id)
     return create_success_response(

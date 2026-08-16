@@ -2,12 +2,18 @@
 # File chứa Service xử lý logic nghiệp vụ Quản lý Hội đồng & Lịch bảo vệ (Council Service).
 
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.common.exceptions import AppException
-from app.db.enums import CouncilMemberStatus, CouncilStatus, DefenseScheduleStatus, UserRole
+from app.db.enums import (
+    CouncilMemberStatus,
+    CouncilStatus,
+    DefenseScheduleStatus,
+    UserRole,
+)
 from app.modules.councils.model import Council, CouncilMember, DefenseSchedule
 from app.modules.councils.schemas import (
     CouncilCreateRequest,
@@ -25,7 +31,9 @@ class CouncilService:
         self.db = db
 
     async def create_council(
-        self, payload: CouncilCreateRequest, admin_id: UUID
+        self,
+        payload: CouncilCreateRequest,
+        admin_id: UUID,
     ) -> CouncilResponse:
         """
         Hàm xử lý Tạo Hội đồng chấm mới do Admin gửi lên.
@@ -75,7 +83,10 @@ class CouncilService:
         )
 
     async def assign_member(
-        self, council_id: UUID, payload: CouncilMemberAssignRequest, admin_id: UUID
+        self,
+        council_id: UUID,
+        payload: CouncilMemberAssignRequest,
+        admin_id: UUID,
     ) -> CouncilMemberResponse:
         """
         Hàm xử lý Phân công Giảng viên vào Hội đồng với vai trò cụ thể.
@@ -130,7 +141,10 @@ class CouncilService:
         )
 
     async def create_defense_schedule(
-        self, council_id: UUID, payload: DefenseScheduleCreateRequest, admin_id: UUID
+        self,
+        council_id: UUID,
+        payload: DefenseScheduleCreateRequest,
+        admin_id: UUID,
     ) -> DefenseScheduleResponse:
         """
         Hàm xếp Lịch bảo vệ cho sinh viên đồ án vào Hội đồng.

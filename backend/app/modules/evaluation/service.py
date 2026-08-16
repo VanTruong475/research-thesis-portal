@@ -31,7 +31,7 @@ class EvaluationService:
     Service quản lý logic nghiệp vụ cho Chấm điểm và Kết quả đồ án/khóa luận.
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession | None):
         self.db = db
 
     # ==========================================
@@ -186,14 +186,16 @@ class EvaluationService:
             raise BadRequestException("Chưa có điểm đánh giá chính thức từ Thành viên Hội đồng.")
 
         # 4. Tính toán điểm trung bình Hội đồng và Điểm tổng kết
-        avg_council_score = float(sum(float(s.score) for s in council_scores) / len(council_scores))
+        avg_council_score = float(
+            sum(float(s.score) for s in council_scores) / len(council_scores),
+        )
         sup_score = float(supervisor_score_obj.score)
 
         final_score = round(
-            (sup_score * (supervisor_weight / 100.0)) + (avg_council_score * (council_weight / 100.0)),
+            (sup_score * (supervisor_weight / 100.0))
+            + (avg_council_score * (council_weight / 100.0)),
             2,
         )
-
 
         # 5. Phân loại xếp loại đồ án
         classification = self._determine_classification(final_score)
@@ -207,7 +209,9 @@ class EvaluationService:
 
         if existing_result:
             if existing_result.status == FinalResultStatus.PUBLISHED:
-                raise BadRequestException("Kết quả này đã được công bố, không thể tính toán lại nếu không có quyền Admin đặc biệt.")
+                raise BadRequestException(
+                    "Kết quả này đã được công bố, không thể tính toán lại nếu không có quyền Admin đặc biệt.",
+                )
 
             existing_result.supervisor_score = sup_score
             existing_result.council_average_score = avg_council_score
@@ -270,13 +274,12 @@ class EvaluationService:
         stmt_scores = select(Score).where(Score.registration_id == registration_id)
         res_scores = await self.db.execute(stmt_scores)
         scores = res_scores.scalars().all()
-        for s in scores:
-            s.status = ScoreStatus.LOCKED
+        for score in scores:
+            score.status = ScoreStatus.LOCKED
 
         await self.db.commit()
         await self.db.refresh(result_obj)
         return result_obj
-
 
     async def get_final_result(
         self,
@@ -306,11 +309,10 @@ class EvaluationService:
         """
         if score >= 9.0:
             return ResultClassification.EXCELLENT
-        elif score >= 8.0:
+        if score >= 8.0:
             return ResultClassification.GOOD
-        elif score >= 6.5:
+        if score >= 6.5:
             return ResultClassification.FAIR
-        elif score >= 5.0:
+        if score >= 5.0:
             return ResultClassification.AVERAGE
-        else:
-            return ResultClassification.FAILED
+        return ResultClassification.FAILED

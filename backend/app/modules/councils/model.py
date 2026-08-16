@@ -1,10 +1,21 @@
 # backend/app/modules/councils/model.py
 # File định nghĩa các SQLAlchemy ORM Models cho Module Hội đồng đánh giá & Lịch bảo vệ (Councils Module).
 
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,6 +26,10 @@ from app.db.enums import (
     CouncilStatus,
     DefenseScheduleStatus,
 )
+
+if TYPE_CHECKING:
+    from app.modules.registrations.model import Registration
+    from app.modules.users.model import User
 
 
 class Council(BaseModel):
@@ -66,14 +81,14 @@ class Council(BaseModel):
     )
 
     # Relationship với danh sách các thành viên hội đồng
-    members: Mapped[list["CouncilMember"]] = relationship(
+    members: Mapped[list[CouncilMember]] = relationship(
         "CouncilMember",
         back_populates="council",
         cascade="all, delete-orphan",
     )
 
     # Relationship với danh sách lịch bảo vệ của sinh viên
-    schedules: Mapped[list["DefenseSchedule"]] = relationship(
+    schedules: Mapped[list[DefenseSchedule]] = relationship(
         "DefenseSchedule",
         back_populates="council",
         cascade="all, delete-orphan",
@@ -128,14 +143,18 @@ class CouncilMember(BaseModel):
 
     # Constraint: Mỗi Giảng viên chỉ xuất hiện tối đa 1 lần trong 1 Hội đồng cụ thể
     __table_args__ = (
-        UniqueConstraint("council_id", "lecturer_id", name="uq_council_members_council_lecturer"),
+        UniqueConstraint(
+            "council_id",
+            "lecturer_id",
+            name="uq_council_members_council_lecturer",
+        ),
     )
 
     # Relationship tới Hội đồng
-    council: Mapped["Council"] = relationship("Council", back_populates="members")
+    council: Mapped[Council] = relationship("Council", back_populates="members")
 
     # Relationship tới Giảng viên (User)
-    lecturer: Mapped["User"] = relationship("User", foreign_keys=[lecturer_id])
+    lecturer: Mapped[User] = relationship("User", foreign_keys=[lecturer_id])
 
 
 class DefenseSchedule(BaseModel):
@@ -199,7 +218,7 @@ class DefenseSchedule(BaseModel):
     )
 
     # Relationship tới Hội đồng
-    council: Mapped["Council"] = relationship("Council", back_populates="schedules")
+    council: Mapped[Council] = relationship("Council", back_populates="schedules")
 
     # Relationship tới Đăng ký đồ án (Registration)
-    registration: Mapped["Registration"] = relationship("Registration")
+    registration: Mapped[Registration] = relationship("Registration")

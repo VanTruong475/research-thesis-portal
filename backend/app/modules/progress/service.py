@@ -1,20 +1,25 @@
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from uuid import UUID
-from typing import Sequence
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.common.exceptions import AppException, NotFoundException
 from app.modules.progress.model import ProgressLog
+from app.modules.progress.schemas import (
+    AddTeacherCommentRequest,
+    CreateProgressLogRequest,
+)
 from app.modules.registrations.model import Registration
-from app.modules.progress.schemas import CreateProgressLogRequest, AddTeacherCommentRequest
-from app.common.exceptions import ResourceNotFoundException, BusinessRuleException
+
 
 class ProgressService:
     @staticmethod
     async def create_progress_log(
         db: AsyncSession,
         student_id: UUID,
-        payload: CreateProgressLogRequest
+        payload: CreateProgressLogRequest,
     ) -> ProgressLog:
         """
         Xử lý nghiệp vụ cho Sinh viên nộp báo cáo tiến độ mới (FR-13).
@@ -26,11 +31,11 @@ class ProgressService:
 
         # Kiểm tra nếu đơn đăng ký không tồn tại
         if not registration:
-            raise ResourceNotFoundException("Đơn đăng ký đề tài không tồn tại.")
+            raise NotFoundException("Đơn đăng ký đề tài không tồn tại.")
 
         # 2. Kiểm tra xem đơn đăng ký này có đúng là của sinh viên đang nộp không
         if registration.student_id != student_id:
-            raise BusinessRuleException("Bạn không có quyền nộp báo cáo tiến độ cho đơn đăng ký này.")
+            raise AppException("Bạn không có quyền nộp báo cáo tiến độ cho đơn đăng ký này.")
 
         # 3. Tạo đối tượng ProgressLog mới để lưu vào CSDL
         new_log = ProgressLog(
@@ -38,7 +43,7 @@ class ProgressService:
             student_id=student_id,
             milestone_id=payload.milestone_id,
             content=payload.content,
-            submitted_at=datetime.now(timezone.utc)
+            submitted_at=datetime.now(timezone.utc),
         )
 
         # Ghi vào session và commit lưu CSDL
@@ -52,7 +57,7 @@ class ProgressService:
     async def add_teacher_comment(
         db: AsyncSession,
         log_id: UUID,
-        payload: AddTeacherCommentRequest
+        payload: AddTeacherCommentRequest,
     ) -> ProgressLog:
         """
         Xử lý nghiệp vụ cho Giảng viên hướng dẫn ghi nhận xét vào báo cáo tiến độ (FR-14).
@@ -64,7 +69,7 @@ class ProgressService:
 
         # Kiểm tra nếu nhật ký tiến độ không tồn tại
         if not progress_log:
-            raise ResourceNotFoundException("Bản ghi tiến độ không tồn tại.")
+            raise NotFoundException("Bản ghi tiến độ không tồn tại.")
 
         # 2. Cập nhật nhận xét và mốc thời gian nhận xét của GVHD
         progress_log.teacher_comment = payload.teacher_comment
@@ -79,7 +84,7 @@ class ProgressService:
     @staticmethod
     async def get_progress_logs_by_registration(
         db: AsyncSession,
-        registration_id: UUID
+        registration_id: UUID,
     ) -> Sequence[ProgressLog]:
         """
         Lấy danh sách tất cả nhật ký tiến độ của một đơn đăng ký đề tài.

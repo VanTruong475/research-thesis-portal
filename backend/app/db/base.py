@@ -51,13 +51,12 @@ class BaseModel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 # Import toàn bộ ORM Models ở cuối file để đăng ký mapper với SQLAlchemy
-import app.modules.users.model  # noqa
-import app.modules.academic_periods.model  # noqa
-import app.modules.topics.model  # noqa
-import app.modules.registrations.model  # noqa
-import app.modules.progress.model  # noqa
-import app.modules.reports.model  # noqa
-import app.modules.councils.model  # noqa
-import app.modules.evaluation.model  # noqa
-import app.modules.auth.model  # noqa
-
+import app.modules.academic_periods.model
+import app.modules.auth.model
+import app.modules.councils.model
+import app.modules.evaluation.model
+import app.modules.progress.model
+import app.modules.registrations.model
+import app.modules.reports.model
+import app.modules.topics.model
+import app.modules.users.model  # noqa: F401

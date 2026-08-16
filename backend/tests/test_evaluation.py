@@ -1,8 +1,12 @@
 # backend/tests/test_evaluation.py
 # File test kiểm thử cho Module Chấm điểm (Scoring) & Kết quả cuối cùng (Final Results)
 
+from uuid import uuid4
+
 import pytest
-from app.db.enums import EvaluationType, FinalResultStatus, ResultClassification, ScoreStatus
+from pydantic import ValidationError
+
+from app.db.enums import EvaluationType, ResultClassification
 from app.modules.evaluation.schemas import ScoreCreate
 from app.modules.evaluation.service import EvaluationService
 
@@ -23,10 +27,8 @@ def test_score_schema_validation():
     """
     Test kiểm tra validation dữ liệu đầu vào cho phiếu điểm chấm.
     """
-    import uuid
-    # Đảm bảo điểm số hợp lệ từ 0.0 đến 10.0
     valid_score = ScoreCreate(
-        registration_id=uuid.uuid4(),
+        registration_id=uuid4(),
         evaluation_type=EvaluationType.SUPERVISOR,
         score=8.5,
         comments="Đồ án làm tốt",
@@ -34,10 +36,9 @@ def test_score_schema_validation():
     )
     assert valid_score.score == 8.5
 
-    # Thử truyền điểm âm hoặc quá 10 sẽ ra lỗi validation
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ScoreCreate(
-            registration_id=uuid.uuid4(),
+            registration_id=uuid4(),
             evaluation_type=EvaluationType.SUPERVISOR,
             score=11.0,
         )

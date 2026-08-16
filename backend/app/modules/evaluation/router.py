@@ -1,6 +1,7 @@
 # backend/app/modules/evaluation/router.py
 # File định nghĩa các REST API Endpoints cho Module Chấm điểm (Scoring) và Kết quả cuối cùng (Final Results).
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -33,8 +34,8 @@ router = APIRouter(prefix="", tags=["Scoring & Final Results"])
 )
 async def submit_score(
     data: ScoreCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     API cho phép Giảng viên nhập điểm chấm:
@@ -56,8 +57,8 @@ async def submit_score(
 )
 async def get_scores_by_registration(
     registration_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     API xem toàn bộ phiếu điểm đã chấm cho 1 Đăng ký đồ án/khóa luận.
@@ -81,12 +82,12 @@ async def get_scores_by_registration(
 )
 async def calculate_final_result(
     registration_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
     req: FinalResultCalculateRequest | None = None,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
-    API tự động tổng hợp điểm quá trình (40%) và điểm trung bình Hội đồng (60%) để ra điểm tổng kết và xếp loại.
+    API tự động tổng hợp điểm quá trình (40%) và điểm trung bình Hội đồng (60%).
     """
     service = EvaluationService(db)
     sup_weight = req.supervisor_weight if req else 40.0
@@ -111,11 +112,11 @@ async def calculate_final_result(
 )
 async def publish_final_result(
     registration_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
-    API dành riêng cho Admin để công bố điểm chính thức cho Sinh viên xem và khóa toàn bộ phiếu điểm chấm.
+    API dành riêng cho Admin để công bố điểm chính thức cho Sinh viên xem.
     """
     service = EvaluationService(db)
     result_obj = await service.publish_final_result(current_user, registration_id)
@@ -132,11 +133,11 @@ async def publish_final_result(
 )
 async def get_final_result(
     registration_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
-    API xem Kết quả tổng kết đồ án. Sinh viên chỉ xem được khi kết quả đã được công bố (PUBLISHED).
+    API xem Kết quả tổng kết đồ án. Sinh viên chỉ xem được khi kết quả đã được công bố.
     """
     service = EvaluationService(db)
     result_obj = await service.get_final_result(current_user, registration_id)
@@ -144,4 +145,3 @@ async def get_final_result(
         message="Lấy thông tin kết quả tổng kết thành công.",
         data=FinalResultResponse.model_validate(result_obj),
     )
-
