@@ -1,0 +1,99 @@
+<main class="min-h-dvh bg-background text-foreground">
+  <section class="grid min-h-dvh lg:grid-cols-[1.05fr_0.95fr]">
+    <div class="flex items-center px-6 py-10 sm:px-10 lg:px-16">
+      <div class="mx-auto w-full max-w-md">
+        <a class="inline-flex min-h-11 items-center rounded-md text-sm font-semibold text-primary outline-offset-4" href="/login" aria-label="Research Thesis Portal login">
+          Research Thesis Portal
+        </a>
+
+        <div class="mt-10">
+          <p class="text-sm font-medium text-primary">Secure academic access</p>
+          <h1 class="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Sign in to continue</h1>
+          <p class="mt-4 text-base leading-7 text-muted-foreground">
+            Use your institutional email or account code to access thesis workflows.
+          </p>
+        </div>
+
+        <div
+          #errorSummary
+          *ngIf="apiErrorMessage || loginForm.invalid && (loginForm.dirty || loginForm.touched)"
+          class="mt-6 rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger"
+          tabindex="-1"
+          role="alert"
+        >
+          <p class="font-semibold">Sign-in needs attention</p>
+          <p class="mt-1" *ngIf="apiErrorMessage; else validationError">{{ apiErrorMessage }}</p>
+          <ng-template #validationError>
+            <p class="mt-1">Enter your account identifier and password before signing in.</p>
+          </ng-template>
+        </div>
+
+        <form class="mt-6 space-y-5" [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
+          <div>
+            <label class="block text-sm font-medium text-foreground" for="identifier">Email or institutional code <span class="text-danger">*</span></label>
+            <input
+              id="identifier"
+              class="mt-2 h-11 w-full rounded-md border border-border bg-surface px-3 text-base text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted-foreground"
+              type="text"
+              autocomplete="username"
+              formControlName="identifier"
+              aria-describedby="identifier-error"
+              [attr.aria-invalid]="hasFieldError('identifier')"
+              [disabled]="isSubmitting"
+            />
+            <p id="identifier-error" class="mt-2 text-sm text-danger" *ngIf="hasFieldError('identifier')">
+              Enter your institutional email or account code.
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-foreground" for="password">Password <span class="text-danger">*</span></label>
+            <input
+              id="password"
+              class="mt-2 h-11 w-full rounded-md border border-border bg-surface px-3 text-base text-foreground shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-muted-foreground"
+              type="password"
+              autocomplete="current-password"
+              formControlName="password"
+              aria-describedby="password-error"
+              [attr.aria-invalid]="hasFieldError('password')"
+              [disabled]="isSubmitting"
+            />
+            <p id="password-error" class="mt-2 text-sm text-danger" *ngIf="hasFieldError('password')">Enter your password.</p>
+          </div>
+
+          <button
+            class="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-5 text-base font-semibold text-text-inverse shadow-sm transition hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-primary"
+            type="submit"
+            [disabled]="isSubmitting"
+          >
+            <span *ngIf="!isSubmitting">Sign in</span>
+            <span *ngIf="isSubmitting" class="inline-flex items-center gap-2">
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true"></span>
+              Signing in
+            </span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <aside class="hidden border-l border-border-subtle bg-primary text-text-inverse lg:flex lg:items-center lg:px-16">
+      <div class="max-w-xl">
+        <p class="text-sm font-medium text-slate-200">For students, lecturers, and administrators</p>
+        <h2 class="mt-4 text-4xl font-semibold tracking-tight">Manage thesis work in one trusted portal.</h2>
+        <p class="mt-5 text-base leading-7 text-slate-200">
+          Access topics, registrations, progress, reports, councils, evaluation, and final results from a consistent academic workspace.
+        </p>
+        <div class="mt-8 grid gap-4">
+          <div class="rounded-lg border border-white/15 bg-white/10 p-4">
+            <p class="font-semibold">Role-aware workspace</p>
+            <p class="mt-1 text-sm leading-6 text-slate-200">Navigation adapts to the authenticated role while backend authorization remains authoritative.</p>
+          </div>
+          <div class="rounded-lg border border-white/15 bg-white/10 p-4">
+            <p class="font-semibold">Secure token session</p>
+            <p class="mt-1 text-sm leading-6 text-slate-200">Access tokens use the Authorization header, with refresh-token rotation handled by the API.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </section>
+</main>
