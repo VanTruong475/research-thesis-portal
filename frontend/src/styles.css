@@ -3,55 +3,56 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #1e3a5f;
-  --color-primary-hover: #172f4d;
-  --color-primary-soft: #e8eef5;
-  --color-secondary: #2563eb;
-  --color-accent: #a16207;
-  --color-background: #f8fafc;
-  --color-foreground: #0f172a;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f1f5f9;
-  --color-border: #cbd5e1;
-  --color-border-subtle: #e2e8f0;
-  --color-muted: #e9eef5;
-  --color-muted-foreground: #64748b;
-  --color-text-secondary: #334155;
-  --color-text-disabled: #94a3b8;
-  --color-text-inverse: #ffffff;
-  --color-success: #15803d;
-  --color-success-soft: #dcfce7;
-  --color-warning: #b45309;
-  --color-warning-soft: #fef3c7;
-  --color-danger: #dc2626;
-  --color-danger-soft: #fee2e2;
-  --color-info: #2563eb;
-  --color-info-soft: #dbeafe;
-  --color-neutral: #475569;
-  --color-neutral-soft: #e2e8f0;
+  /* Surfaces */
+  --color-lacquer: oklch(7% 0.006 95);
+  --color-lacquer-deep: oklch(4% 0.004 95);
+  --color-raised-lacquer: oklch(11% 0.006 95);
+  --color-graphite: oklch(15% 0.008 95);
+
+  /* Gold System (Primary) */
+  --color-kinpaku: oklch(84% 0.19 80.46);
+  --color-kinpaku-pale: oklch(86% 0.07 84);
+  --color-kinpaku-deep: oklch(61% 0.085 78);
+  --color-hairline: oklch(78% 0 0 / 0.16);
+
+  /* Patina (Secondary/State) */
+  --color-patina: oklch(70% 0.12 188);
+  
+  /* Typography */
+  --color-champagne: oklch(91% 0 0); /* Headings */
+  --color-body: oklch(88% 0 0);
+  --color-muted: oklch(72% 0 0);
+  --color-dark-ink: oklch(14% 0.018 95); /* Chữ trên nền gold */
+
+  /* States */
+  --color-danger: oklch(58% 0.15 35);
+  --color-success: oklch(45% 0.18 145);
+
+  --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --radius-xl: 12px;
-  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
-  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08);
-  --shadow-lg: 0 16px 32px rgb(15 23 42 / 0.14);
 }
 
 @layer base {
   html {
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: var(--color-foreground);
-    background: var(--color-background);
+    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif;
+    color: var(--color-body);
+    background: var(--color-lacquer);
   }
 
   body {
     min-height: 100vh;
     margin: 0;
-    background: var(--color-background);
-    color: var(--color-foreground);
+    background: var(--color-lacquer);
+    color: var(--color-body);
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.8;
+  }
+
+  h1, h2 {
+    font-family: 'Alumni Sans', 'Albert Sans', sans-serif;
+    color: var(--color-champagne);
   }
 
   *,
@@ -61,7 +62,58 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-kinpaku);
     outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* =======================================================================
+     BUTTONS 
+  ======================================================================= */
+  .ks-button {
+    @apply inline-flex items-center justify-center font-sans font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 48px;
+    border-radius: var(--radius-xs);
+  }
+
+  .ks-button-primary {
+    @apply bg-kinpaku text-dark-ink border border-transparent hover:bg-kinpaku-pale px-8;
+  }
+
+  .ks-button-secondary {
+    @apply bg-transparent text-kinpaku border border-hairline hover:border-kinpaku px-8;
+  }
+
+  .ks-button-ghost {
+    @apply bg-transparent text-body hover:text-kinpaku px-4;
+  }
+
+  /* =======================================================================
+     INPUTS & FORMS 
+  ======================================================================= */
+  .ks-input {
+    @apply w-full bg-lacquer-deep text-champagne border border-hairline px-4 py-3 font-sans transition-colors duration-200;
+    border-radius: var(--radius-sm);
+  }
+  .ks-input:focus {
+    @apply outline-none border-kinpaku;
+  }
+  .ks-label {
+    @apply block text-muted font-sans text-sm mb-2;
+  }
+
+  /* =======================================================================
+     CARDS & CONTAINERS 
+  ======================================================================= */
+  .ks-card {
+    @apply bg-raised-lacquer text-body border border-hairline p-6;
+    border-radius: var(--radius-sm);
+  }
+  .ks-card-header {
+    @apply mb-4 pb-4 border-b border-hairline;
+  }
+  .ks-card-title {
+    @apply text-champagne font-sans font-medium text-lg;
   }
 }
