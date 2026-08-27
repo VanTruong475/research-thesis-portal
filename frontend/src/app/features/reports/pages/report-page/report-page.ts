@@ -19,25 +19,37 @@ import { ReportService } from '../../services/report';
       <app-file-uploader (fileUpload)="onFileUpload($event)"></app-file-uploader>
 
       <!-- Lịch sử báo cáo -->
-      <div class="mt-8">
-        <app-report-history [reports]="reportService.reports()"></app-report-history>
+      <div class="mt-8 relative">
+        <div *ngIf="isLoading" class="text-primary py-4">Đang tải lịch sử báo cáo...</div>
+        
+        <app-report-history 
+          *ngIf="!isLoading"
+          [reports]="reportService.reports()">
+        </app-report-history>
       </div>
     </div>
   `
 })
 export class ReportPageComponent implements OnInit {
   reportService = inject(ReportService);
+  isLoading = false;
+
+  // Giả lập một UUID đề tài hợp lệ để hiển thị UI
+  // Trong thực tế, ID này sẽ được lấy từ Route Parameter (vd: /reports/:topicId)
+  private readonly DUMMY_TOPIC_ID = '123e4567-e89b-12d3-a456-426614174000';
 
   ngOnInit() {
-    // Lấy ID đăng ký từ URL (ví dụ: /reports/:id). Ở đây dùng mock reg-1.
-    this.reportService.getReportsByRegistration('reg-1');
+    this.isLoading = true;
+    this.reportService.getReportsByTopic(this.DUMMY_TOPIC_ID).subscribe({
+      next: () => this.isLoading = false,
+      error: () => this.isLoading = false
+    });
   }
 
   onFileUpload(file: File) {
-    // Gọi service để upload
     this.reportService.uploadReport({
-      registration_id: 'reg-1',
+      topic_id: this.DUMMY_TOPIC_ID,
       file: file
-    });
+    }).subscribe();
   }
 }

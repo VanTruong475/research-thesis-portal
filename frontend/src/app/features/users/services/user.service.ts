@@ -1,62 +1,37 @@
-import { Injectable, signal } from '@angular/core';
-import { UserProfile } from '../models/user.model';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { UserListResponse, UserProfile } from '../models/user.model';
+import { ApiResponse } from '../../../core/models/api.model';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
-  // Mock Data cho danh sách người dùng
-  users = signal<UserProfile[]>([
-    {
-      id: 'U01',
-      code: 'ADMIN-01',
-      fullName: 'Quản trị viên Hệ thống',
-      email: 'admin@portal.edu.vn',
-      role: 'admin',
-      status: 'active',
-      createdAt: '2026-01-01T00:00:00Z'
-    },
-    {
-      id: 'U02',
-      code: 'GV-001',
-      fullName: 'PGS. TS. Trần B',
-      email: 'tranb@portal.edu.vn',
-      role: 'lecturer',
-      department: 'Khoa Công nghệ Thông tin',
-      status: 'active',
-      createdAt: '2026-02-15T00:00:00Z'
-    },
-    {
-      id: 'U03',
-      code: 'ST-2021001',
-      fullName: 'Nguyễn Văn A',
-      email: 'vana@student.edu.vn',
-      role: 'student',
-      major: 'Kỹ thuật Phần mềm',
-      status: 'active',
-      createdAt: '2026-08-01T00:00:00Z'
-    },
-    {
-      id: 'U04',
-      code: 'ST-2021002',
-      fullName: 'Trần Thị B',
-      email: 'thib@student.edu.vn',
-      role: 'student',
-      major: 'Hệ thống Thông tin',
-      status: 'inactive',
-      createdAt: '2026-08-05T00:00:00Z'
-    }
-  ]);
+  private http = inject(HttpClient);
+  private readonly API_URL = environment.apiUrl;
+
+  // Signal để bind lên UI
+  users = signal<UserProfile[]>([]);
+  totalItems = signal<number>(0);
 
   constructor() {}
 
-  // Lấy toàn bộ người dùng
-  getAllUsers(): UserProfile[] {
-    return this.users();
-  }
+  // Lấy danh sách users từ Backend
+  fetchUsers(page: number = 1, pageSize: number = 50): Observable<ApiResponse<UserListResponse>> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('page_size', pageSize.toString());
 
-  // Lọc theo Role
-  getUsersByRole(role: string): UserProfile[] {
-    return this.users().filter(u => u.role === role);
+    return this.http.get<ApiResponse<UserListResponse>>(`${this.API_URL}/users`, { params }).pipe(
+      tap(res => {
+        if (res.data) {
+          this.users.set(res.data.items);
+          this.totalItems.set(res.data.pagination.total_items);
+        }
+      })
+    );
   }
 }

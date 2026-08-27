@@ -1,6 +1,6 @@
 export interface Report {
   id: string;
-  registration_id: string;
+  topic_id: string;
   file_url: string;
   file_name: string;
   version: number;
@@ -9,6 +9,6 @@ export interface Report {
 }
 
 export interface ReportUploadRequest {
-  registration_id: string;
+  topic_id: string;
   file: File;
 }

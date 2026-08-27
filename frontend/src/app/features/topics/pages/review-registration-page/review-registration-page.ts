@@ -1,7 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TopicService } from '../../services/topic.service';
-import { Registration } from '../../models/topic.model';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
@@ -20,7 +19,11 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         </div>
       </div>
 
-      <div class="ks-card flex-1 overflow-hidden flex flex-col p-0">
+      <div class="ks-card flex-1 overflow-hidden flex flex-col p-0 relative">
+        <div *ngIf="isLoading" class="absolute inset-0 bg-surface-deep/50 backdrop-blur-sm z-20 flex items-center justify-center">
+          <span class="text-primary font-medium">Đang tải dữ liệu...</span>
+        </div>
+
         <div class="overflow-y-auto custom-scrollbar">
           <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 bg-surface-deep z-10 shadow-sm">
@@ -33,13 +36,13 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr *ngFor="let reg of pendingRegistrations" class="hover:bg-surface-raised transition-colors">
-                <td class="p-4 text-sm font-mono text-muted">{{ reg.appliedAt | date:'dd/MM/yyyy' }}</td>
+              <tr *ngFor="let reg of topicService.registrations()" class="hover:bg-surface-raised transition-colors">
+                <td class="p-4 text-sm font-mono text-muted">{{ reg.created_at | date:'dd/MM/yyyy' }}</td>
                 <td class="p-4">
-                  <div class="font-medium text-body">{{ reg.studentName }}</div>
-                  <div class="text-xs text-muted font-mono mt-1">{{ reg.studentId }}</div>
+                  <div class="font-medium text-body">{{ reg.studentName || 'Chưa cập nhật' }}</div>
+                  <div class="text-xs text-muted font-mono mt-1">{{ reg.student_id }}</div>
                 </td>
-                <td class="p-4 text-sm text-body max-w-sm truncate">{{ reg.topicName }}</td>
+                <td class="p-4 text-sm text-body max-w-sm truncate">{{ reg.topicName || 'Chưa cập nhật' }}</td>
                 <td class="p-4">
                   <app-status-badge [type]="reg.status === 'pending' ? 'warning' : (reg.status === 'approved' ? 'success' : 'danger')">
                     {{ reg.status === 'pending' ? 'Đang chờ' : (reg.status === 'approved' ? 'Đã duyệt' : 'Từ chối') }}
@@ -56,7 +59,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                 </td>
               </tr>
               
-              <tr *ngIf="pendingRegistrations.length === 0">
+              <tr *ngIf="topicService.registrations().length === 0 && !isLoading">
                 <td colspan="5" class="p-8 text-center text-muted italic">
                   Không có yêu cầu đăng ký nào cần duyệt.
                 </td>
@@ -72,12 +75,16 @@ export class ReviewRegistrationPageComponent implements OnInit {
   topicService = inject(TopicService);
   authService = inject(AuthService);
   
-  pendingRegistrations: Registration[] = [];
+  isLoading = false;
 
   ngOnInit() {
     const user = this.authService.currentUser();
     if (user && user.role === 'lecturer') {
-      this.pendingRegistrations = this.topicService.getRegistrationsForLecturer(user.id);
+      this.isLoading = true;
+      this.topicService.fetchPendingRegistrations().subscribe({
+        next: () => this.isLoading = false,
+        error: () => this.isLoading = false
+      });
     }
   }
 }

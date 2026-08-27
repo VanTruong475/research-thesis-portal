@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Evaluation } from '../../models/evaluation.model';
+import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
 
 @Component({
   selector: 'app-evaluation-form',
@@ -14,24 +14,22 @@ import { Evaluation } from '../../models/evaluation.model';
           Phiếu Chấm Điểm
         </h3>
         <p class="text-sm text-muted">
-          Sinh viên: <span class="text-primary">{{ evaluation.studentName }}</span>
+          Sinh viên: <span class="text-primary">{{ evaluation.studentName || 'Chưa cập nhật' }}</span>
         </p>
       </div>
 
       <div class="space-y-6">
-        <!-- Lặp qua các tiêu chí chấm điểm -->
-        <div *ngFor="let criteria of evaluation.criterias" class="flex flex-col gap-2">
-          <label class="font-sans text-sm font-medium text-body">
-            {{ criteria.name }} (Tối đa: {{ criteria.maxScore }} điểm)
-          </label>
+        <!-- Tổng điểm (tự động tính) -->
+        <div class="p-4 bg-surface-raised border border-border-subtle rounded-sm flex justify-between items-center">
+          <span class="font-sans text-body">Điểm số (0.0 - 10.0):</span>
           <input
             type="number"
-            class="ks-input w-32"
-            [(ngModel)]="criteria.score"
+            class="ks-input w-24 text-right font-display text-xl font-bold text-primary"
+            [(ngModel)]="evaluation.score"
             [disabled]="evaluation.status === 'submitted'"
             min="0"
-            [max]="criteria.maxScore"
-            (change)="calculateTotal()"
+            max="10"
+            step="0.1"
           />
         </div>
 
@@ -48,15 +46,6 @@ import { Evaluation } from '../../models/evaluation.model';
           ></textarea>
         </div>
 
-        <!-- Tổng điểm (tự động tính) -->
-        <div class="p-4 bg-surface-raised border border-border-subtle rounded-sm flex justify-between items-center">
-          <span class="font-sans text-body">Tổng điểm:</span>
-          <span class="font-display text-2xl font-bold"
-                [ngClass]="totalScore >= 50 ? 'text-secondary' : 'text-danger'">
-            {{ totalScore }} / 100
-          </span>
-        </div>
-
         <!-- Các nút hành động -->
         <div class="flex gap-4 justify-end pt-4 border-t border-border-subtle" *ngIf="evaluation.status === 'draft'">
           <button class="ks-button outline text-body hover:text-primary" (click)="onSaveDraft()">
@@ -71,29 +60,27 @@ import { Evaluation } from '../../models/evaluation.model';
   `
 })
 export class EvaluationFormComponent {
-  @Input() evaluation!: Evaluation;
-  @Output() save = new EventEmitter<Evaluation>();
+  @Input() evaluation!: ScoreResponse;
+  @Output() save = new EventEmitter<ScoreCreate>();
 
-  get totalScore(): number {
-    return this.evaluation.criterias.reduce((sum, c) => sum + (c.score || 0), 0);
-  }
-
-  // Cập nhật lại tổng điểm (gọi khi có sự thay đổi từ input)
-  calculateTotal() {
-    this.evaluation.totalScore = this.totalScore;
+  private buildRequest(isSubmit: boolean): ScoreCreate {
+    return {
+      registration_id: this.evaluation.registration_id,
+      council_id: this.evaluation.council_id,
+      evaluation_type: this.evaluation.evaluation_type,
+      score: this.evaluation.score,
+      comments: this.evaluation.comments,
+      is_submit: isSubmit
+    };
   }
 
   onSaveDraft() {
-    this.calculateTotal();
-    this.evaluation.status = 'draft';
-    this.save.emit(this.evaluation);
+    this.save.emit(this.buildRequest(false));
   }
 
   onSubmit() {
     if (confirm('Bạn có chắc chắn muốn nộp bảng điểm này? Sau khi nộp sẽ không thể sửa lại.')) {
-      this.calculateTotal();
-      this.evaluation.status = 'submitted';
-      this.save.emit(this.evaluation);
+      this.save.emit(this.buildRequest(true));
     }
   }
 }

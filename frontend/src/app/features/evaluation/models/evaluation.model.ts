@@ -1,36 +1,50 @@
-// Định nghĩa cấu trúc cho một tiêu chí chấm điểm
-export interface EvaluationCriteria {
-  id: string;
-  name: string;
-  maxScore: number;
+export type EvaluationType = 'supervisor' | 'council';
+export type ScoreStatus = 'draft' | 'submitted';
+export type FinalResultStatus = 'draft' | 'calculated' | 'published';
+export type ResultClassification = 'excellent' | 'good' | 'fair' | 'pass' | 'fail';
+
+export interface ScoreCreate {
+  registration_id: string;
+  council_id?: string;
+  evaluation_type: EvaluationType;
   score: number;
+  comments?: string;
+  is_submit: boolean;
 }
 
-// Định nghĩa cấu trúc bài đánh giá của một giảng viên dành cho một sinh viên
-export interface Evaluation {
+export interface ScoreResponse {
   id: string;
-  studentId: string;
-  studentName: string;
-  topicName: string;
-  lecturerId: string;
-  lecturerName: string;
-  criterias: EvaluationCriteria[]; // Danh sách các tiêu chí
-  totalScore: number; // Tổng điểm
-  comments: string; // Nhận xét chung
-  status: 'draft' | 'submitted'; // Trạng thái: bản nháp hay đã nộp
-  createdAt: string;
-  updatedAt: string;
+  registration_id: string;
+  evaluator_id: string;
+  council_id?: string;
+  evaluation_type: EvaluationType;
+  score: number;
+  comments?: string;
+  status: ScoreStatus;
+  submitted_at?: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Custom properties for UI
+  studentName?: string;
+  topicName?: string;
+  lecturerName?: string;
 }
 
-// Định nghĩa cấu trúc kết quả cuối cùng (Final Result) của một sinh viên
-export interface FinalResult {
-  studentId: string;
-  studentName: string;
-  topicName: string;
-  supervisorScore: number; // Điểm GV hướng dẫn
-  reviewerScore: number; // Điểm phản biện (nếu có)
-  councilScore: number; // Điểm hội đồng (trung bình)
-  finalScore: number; // Điểm tổng kết
-  conclusion: 'passed' | 'failed' | 'excellent'; // Kết luận
-  comments: string; // Đánh giá chung
+export interface FinalResultResponse {
+  id: string;
+  registration_id: string;
+  supervisor_score: number;
+  council_average_score: number;
+  supervisor_weight: number;
+  council_weight: number;
+  final_score: number;
+  classification?: ResultClassification;
+  status: FinalResultStatus;
+  calculated_at: string;
+  published_at?: string;
+  
+  // Custom properties for UI
+  studentName?: string;
+  topicName?: string;
 }

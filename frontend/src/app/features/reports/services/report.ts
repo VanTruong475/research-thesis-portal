@@ -1,53 +1,43 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { Report, ReportUploadRequest } from '../models/report.model';
+import { ApiResponse } from '../../../core/models/api.model';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReportService {
-  // Mock data cho lịch sử báo cáo
-  private mockReports: Report[] = [
-    {
-      id: 'rep-2',
-      registration_id: 'reg-1',
-      file_name: 'BaoCao_TienDo_Lan2.pdf',
-      file_url: '#',
-      version: 2,
-      uploaded_by: 'Nguyễn Quốc Vũ',
-      uploaded_at: new Date().toISOString()
-    },
-    {
-      id: 'rep-1',
-      registration_id: 'reg-1',
-      file_name: 'BaoCao_TienDo_Lan1.docx',
-      file_url: '#',
-      version: 1,
-      uploaded_by: 'Nguyễn Quốc Vũ',
-      uploaded_at: new Date(Date.now() - 86400000 * 7).toISOString()
-    }
-  ];
+  private http = inject(HttpClient);
+  private readonly API_URL = environment.apiUrl;
 
-  reports = signal<Report[]>(this.mockReports);
+  reports = signal<Report[]>([]);
 
   constructor() { }
 
-  getReportsByRegistration(regId: string) {
-    return this.reports();
+  getReportsByTopic(topicId: string): Observable<ApiResponse<Report[]>> {
+    return this.http.get<ApiResponse<Report[]>>(`${this.API_URL}/topics/${topicId}/reports`).pipe(
+      tap(res => {
+        if (res.data) {
+          this.reports.set(res.data);
+        }
+      })
+    );
   }
 
-  uploadReport(req: ReportUploadRequest) {
-    // Giả lập upload file
-    const currentVersion = this.reports().length > 0 ? this.reports()[0].version : 0;
-    const newReport: Report = {
-      id: `rep-${Date.now()}`,
-      registration_id: req.registration_id,
-      file_name: req.file.name,
-      file_url: '#',
-      version: currentVersion + 1,
-      uploaded_by: 'Nguyễn Quốc Vũ', // Có thể lấy từ AuthService
-      uploaded_at: new Date().toISOString()
-    };
-    
-    this.reports.update(reps => [newReport, ...reps]);
+  uploadReport(req: ReportUploadRequest): Observable<ApiResponse<Report>> {
+    const formData = new FormData();
+    formData.append('topic_id', req.topic_id);
+    formData.append('file', req.file);
+
+    return this.http.post<ApiResponse<Report>>(`${this.API_URL}/reports`, formData).pipe(
+      tap(res => {
+        if (res.data) {
+          this.reports.update(reps => [res.data, ...reps]);
+        }
+      })
+    );
   }
 }

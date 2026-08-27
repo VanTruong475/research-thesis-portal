@@ -58,5 +58,9 @@ export const routes: Routes = [
       // Các tính năng của Member A/B sẽ được lazy load tiếp ở đây
     ]
   },
-  { path: '**', redirectTo: 'app' }
+  {
+    path: 'auth/login',
+    loadComponent: () => import('./features/auth/pages/login-page/login-page').then(m => m.LoginPageComponent)
+  },
+  { path: '**', redirectTo: 'auth/login' }
 ];

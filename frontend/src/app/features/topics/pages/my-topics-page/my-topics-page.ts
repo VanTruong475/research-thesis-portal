@@ -1,7 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TopicService } from '../../services/topic.service';
-import { Topic } from '../../models/topic.model';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
@@ -24,7 +23,11 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         </button>
       </div>
 
-      <div class="ks-card flex-1 overflow-hidden flex flex-col p-0">
+      <div class="ks-card flex-1 overflow-hidden flex flex-col p-0 relative">
+        <div *ngIf="isLoading" class="absolute inset-0 bg-surface-deep/50 backdrop-blur-sm z-20 flex items-center justify-center">
+          <span class="text-primary font-medium">Đang tải dữ liệu...</span>
+        </div>
+
         <div class="overflow-y-auto custom-scrollbar">
           <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 bg-surface-deep z-10 shadow-sm">
@@ -37,17 +40,17 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr *ngFor="let topic of myTopics" class="hover:bg-surface-raised transition-colors">
+              <tr *ngFor="let topic of topicService.topics()" class="hover:bg-surface-raised transition-colors">
                 <td class="p-4 font-mono text-sm">{{ topic.code }}</td>
-                <td class="p-4 font-sans font-medium text-body max-w-md truncate">{{ topic.name }}</td>
+                <td class="p-4 font-sans font-medium text-body max-w-md truncate">{{ topic.title }}</td>
                 <td class="p-4 text-sm font-medium">
-                  <span [class.text-danger]="topic.currentStudents >= topic.maxStudents" class="text-primary">
-                    {{ topic.currentStudents }} / {{ topic.maxStudents }}
+                  <span [class.text-danger]="(topic.currentStudents || 0) >= topic.max_students" class="text-primary">
+                    {{ topic.currentStudents || 0 }} / {{ topic.max_students }}
                   </span>
                 </td>
                 <td class="p-4">
-                  <app-status-badge [type]="topic.status === 'open' ? 'success' : 'neutral'">
-                    {{ topic.status === 'open' ? 'Đang mở' : 'Đã đóng' }}
+                  <app-status-badge [type]="topic.status === 'active' || topic.status === 'approved' ? 'success' : 'neutral'">
+                    {{ topic.status === 'active' || topic.status === 'approved' ? 'Đang mở' : 'Đã đóng' }}
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
@@ -56,7 +59,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                 </td>
               </tr>
               
-              <tr *ngIf="myTopics.length === 0">
+              <tr *ngIf="topicService.topics().length === 0 && !isLoading">
                 <td colspan="5" class="p-8 text-center text-muted italic">
                   Bạn chưa đăng ký hướng dẫn đề tài nào.
                 </td>
@@ -72,12 +75,16 @@ export class MyTopicsPageComponent implements OnInit {
   topicService = inject(TopicService);
   authService = inject(AuthService);
   
-  myTopics: Topic[] = [];
+  isLoading = false;
 
   ngOnInit() {
     const user = this.authService.currentUser();
     if (user && user.role === 'lecturer') {
-      this.myTopics = this.topicService.getTopicsByLecturer(user.id);
+      this.isLoading = true;
+      this.topicService.fetchMyTopics().subscribe({
+        next: () => this.isLoading = false,
+        error: () => this.isLoading = false
+      });
     }
   }
 }

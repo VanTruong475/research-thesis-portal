@@ -1,7 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TopicService } from '../../services/topic.service';
-import { Topic } from '../../models/topic.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { AuthService } from '../../../../core/services/auth';
 
@@ -20,37 +19,43 @@ import { AuthService } from '../../../../core/services/auth';
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div *ngFor="let topic of topics" class="ks-card flex flex-col">
+      <div *ngIf="isLoading" class="text-center py-12 text-primary">Đang tải dữ liệu...</div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" *ngIf="!isLoading">
+        <div *ngFor="let topic of topicService.topics()" class="ks-card flex flex-col">
           <div class="flex justify-between items-start mb-4">
             <div>
               <span class="text-xs font-mono text-muted mb-1 block">{{ topic.code }}</span>
-              <h2 class="text-xl font-display font-bold text-primary">{{ topic.name }}</h2>
+              <h2 class="text-xl font-display font-bold text-primary">{{ topic.title }}</h2>
             </div>
-            <app-status-badge [type]="topic.status === 'open' ? 'success' : 'neutral'">
-              {{ topic.status === 'open' ? 'Đang mở' : 'Đã đóng' }}
+            <app-status-badge [type]="topic.status === 'active' || topic.status === 'approved' ? 'success' : 'neutral'">
+              {{ (topic.status === 'active' || topic.status === 'approved') ? 'Đang mở' : 'Đã đóng' }}
             </app-status-badge>
           </div>
           
-          <p class="text-body text-sm mb-6 flex-1">{{ topic.description }}</p>
+          <p class="text-body text-sm mb-6 flex-1 line-clamp-3">{{ topic.description }}</p>
           
           <div class="space-y-3 bg-surface-deep p-4 rounded-sm border border-border-subtle mb-6">
             <div class="flex justify-between text-sm">
               <span class="text-muted">Giảng viên hướng dẫn:</span>
-              <span class="font-medium text-heading">{{ topic.lecturerName }}</span>
+              <span class="font-medium text-heading">{{ topic.lecturerName || 'Đang cập nhật' }}</span>
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-muted">Số lượng sinh viên:</span>
-              <span class="font-medium text-body">{{ topic.currentStudents }} / {{ topic.maxStudents }}</span>
+              <span class="font-medium text-body">{{ topic.currentStudents || 0 }} / {{ topic.max_students }}</span>
             </div>
           </div>
           
           <button 
             *ngIf="userRole === 'student'"
-            [disabled]="topic.status !== 'open' || topic.currentStudents >= topic.maxStudents"
-            class="ks-button ks-button-primary w-full">
-            {{ topic.status !== 'open' ? 'Không thể đăng ký' : 'Đăng ký đề tài này' }}
+            [disabled]="(topic.status !== 'active' && topic.status !== 'approved') || (topic.currentStudents || 0) >= topic.max_students"
+            class="ks-button ks-button-primary w-full disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ (topic.status !== 'active' && topic.status !== 'approved') ? 'Không thể đăng ký' : 'Đăng ký đề tài này' }}
           </button>
+        </div>
+        
+        <div *ngIf="topicService.topics().length === 0" class="col-span-1 lg:col-span-2 text-center py-12 text-muted italic ks-card">
+          Chưa có đề tài nào được mở đăng ký.
         </div>
       </div>
     </div>
@@ -60,14 +65,26 @@ export class TopicListPageComponent implements OnInit {
   topicService = inject(TopicService);
   authService = inject(AuthService);
   
-  topics: Topic[] = [];
   userRole: string = 'student';
+  isLoading = false;
 
   ngOnInit() {
-    this.topics = this.topicService.getAllTopics();
     const user = this.authService.currentUser();
     if (user) {
       this.userRole = user.role;
+    }
+    
+    this.isLoading = true;
+    if (this.userRole === 'student') {
+      this.topicService.fetchAvailableTopics().subscribe({
+        next: () => this.isLoading = false,
+        error: () => this.isLoading = false
+      });
+    } else {
+      this.topicService.fetchTopics().subscribe({
+        next: () => this.isLoading = false,
+        error: () => this.isLoading = false
+      });
     }
   }
 }

@@ -8,6 +8,9 @@ from app.common.responses import SuccessResponse
 from app.db.session import get_db
 from app.modules.reports.schemas import ReportResponse
 from app.modules.reports.service import ReportService
+from app.db.enums import UserRole
+from app.modules.auth.dependencies import require_roles
+from app.modules.users.model import User
 
 router = APIRouter()
 
@@ -26,15 +29,13 @@ async def upload_report_endpoint(
     topic_id: Annotated[UUID, Form(description="ID của đề tài cần nộp báo cáo")],
     file: Annotated[UploadFile, File(description="File báo cáo cần upload (tối đa 20MB)")],
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_student: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ):
-    # UUID giả lập Sinh viên đang đăng nhập (khi chưa đấu nối JWT authentication)
-    mock_student_id = UUID("00000000-0000-0000-0000-000000000002")
-
     # Gọi Service xử lý lưu trữ file và CSDL
     report_record = await ReportService.upload_report(
         db=db,
         topic_id=topic_id,
-        student_id=mock_student_id,
+        student_id=current_student.id,
         file=file,
     )
 

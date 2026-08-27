@@ -26,14 +26,12 @@ router = APIRouter()
 async def create_progress_log_endpoint(
     payload: CreateProgressLogRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_student: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ):
-    # UUID giả lập cho Sinh viên đang đăng nhập (khi chưa ghép JWT auth)
-    mock_student_id = UUID("00000000-0000-0000-0000-000000000002")
-
     # Gọi Service thực hiện lưu vào CSDL
     new_log = await ProgressService.create_progress_log(
         db=db,
-        student_id=mock_student_id,
+        student_id=current_student.id,
         payload=payload,
     )
 
@@ -54,6 +52,7 @@ async def add_teacher_comment_endpoint(
     id: UUID,
     payload: AddTeacherCommentRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_lecturer: Annotated[User, Depends(require_roles(UserRole.LECTURER))],
 ):
     # Gọi Service cập nhật nhận xét của GVHD vào CSDL
     updated_log = await ProgressService.add_teacher_comment(
