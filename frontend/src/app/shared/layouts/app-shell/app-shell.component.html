@@ -1,96 +1,106 @@
 <div class="min-h-dvh bg-background text-foreground">
-  <button
-    type="button"
-    class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
-    *ngIf="isMobileSidebarOpen"
-    aria-label="Close navigation overlay"
-    (click)="closeMobileSidebar()"
-  ></button>
-
-  <aside
-    class="fixed inset-y-0 left-0 z-40 flex w-64 transform flex-col border-r border-slate-800 bg-slate-900 text-slate-200 transition-transform duration-200 lg:translate-x-0"
-    [class.-translate-x-full]="!isMobileSidebarOpen"
-  >
-    <div class="flex h-16 items-center border-b border-slate-800 px-5">
-      <div>
-        <p class="text-base font-semibold text-white">Research Thesis Portal</p>
-        <p class="text-xs text-slate-400">Academic workspace</p>
-      </div>
+  <div *ngIf="isCurrentUserLoading" class="flex min-h-dvh items-center justify-center px-6">
+    <div class="w-full max-w-md rounded-lg border border-border-subtle bg-surface p-6 text-center shadow-sm" role="status" aria-live="polite">
+      <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary-soft border-t-primary" aria-hidden="true"></div>
+      <h1 class="mt-4 text-xl font-semibold text-foreground">Loading your workspace</h1>
+      <p class="mt-2 text-sm leading-6 text-muted-foreground">Verifying your current session with the authentication service.</p>
     </div>
+  </div>
 
-    <ng-container *ngIf="currentUser$ | async as user">
-      <div class="border-b border-slate-800 px-5 py-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Signed in as</p>
-        <p class="mt-1 truncate text-sm font-semibold text-white">{{ user.full_name }}</p>
-        <p class="mt-1 text-xs capitalize text-slate-400">{{ user.role }}</p>
+  <ng-container *ngIf="!isCurrentUserLoading">
+    <button
+      type="button"
+      class="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+      *ngIf="isMobileSidebarOpen"
+      aria-label="Close navigation overlay"
+      (click)="closeMobileSidebar()"
+    ></button>
+
+    <aside
+      class="fixed inset-y-0 left-0 z-40 flex w-64 transform flex-col border-r border-slate-800 bg-slate-900 text-slate-200 transition-transform duration-200 lg:translate-x-0"
+      [class.-translate-x-full]="!isMobileSidebarOpen"
+    >
+      <div class="flex h-16 items-center border-b border-slate-800 px-5">
+        <div>
+          <p class="text-base font-semibold text-white">Research Thesis Portal</p>
+          <p class="text-xs text-slate-400">Academic workspace</p>
+        </div>
       </div>
 
-      <nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Primary navigation">
-        <div class="space-y-6" *ngFor="let group of navigationGroups(user.role)">
-          <div>
-            <p class="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ group.label }}</p>
-            <div class="mt-2 space-y-1">
-              <a
-                *ngFor="let item of group.items"
-                class="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                routerLinkActive="bg-primary text-white"
-                [routerLinkActiveOptions]="{ exact: item.route === '/app/dashboard' }"
-                [routerLink]="item.route"
-                (click)="closeMobileSidebar()"
-              >
-                {{ item.label }}
-              </a>
+      <ng-container *ngIf="currentUser$ | async as user">
+        <div class="border-b border-slate-800 px-5 py-4">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Signed in as</p>
+          <p class="mt-1 truncate text-sm font-semibold text-white">{{ user.full_name }}</p>
+          <p class="mt-1 text-xs capitalize text-slate-400">{{ user.role }}</p>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Primary navigation">
+          <div class="space-y-6" *ngFor="let group of navigationGroups">
+            <div>
+              <p class="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ group.label }}</p>
+              <div class="mt-2 space-y-1">
+                <a
+                  *ngFor="let item of group.items"
+                  class="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  routerLinkActive="bg-primary text-white"
+                  [routerLinkActiveOptions]="item.route === '/app/dashboard' ? exactActiveOptions : nonExactActiveOptions"
+                  [routerLink]="item.route"
+                  (click)="closeMobileSidebar()"
+                >
+                  {{ item.label }}
+                </a>
+              </div>
             </div>
           </div>
+        </nav>
+
+        <div class="border-t border-slate-800 p-3">
+          <button
+            type="button"
+            class="flex min-h-11 w-full items-center justify-center rounded-md border border-slate-700 px-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:translate-y-px"
+            (click)="logout()"
+          >
+            Sign out
+          </button>
         </div>
-      </nav>
+      </ng-container>
+    </aside>
 
-      <div class="border-t border-slate-800 p-3">
-        <button
-          type="button"
-          class="flex min-h-11 w-full items-center justify-center rounded-md border border-slate-700 px-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:translate-y-px"
-          (click)="logout()"
-        >
-          Sign out
-        </button>
-      </div>
-    </ng-container>
-  </aside>
-
-  <div class="lg:pl-64">
-    <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border-subtle bg-surface/95 px-4 backdrop-blur sm:px-6 lg:px-8">
-      <div class="flex items-center gap-3">
-        <button
-          type="button"
-          class="inline-flex h-11 w-11 items-center justify-center rounded-md border border-border bg-surface text-foreground transition hover:bg-surface-muted lg:hidden"
-          aria-label="Open navigation menu"
-          (click)="toggleMobileSidebar()"
-        >
-          <span class="text-lg leading-none" aria-hidden="true">≡</span>
-        </button>
-        <div>
-          <p class="text-sm text-muted-foreground">Current module</p>
-          <h1 class="text-lg font-semibold text-foreground">{{ pageTitle$ | async }}</h1>
+    <div class="lg:pl-64">
+      <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border-subtle bg-surface/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="inline-flex h-11 w-11 items-center justify-center rounded-md border border-border bg-surface text-foreground transition hover:bg-surface-muted lg:hidden"
+            aria-label="Open navigation menu"
+            (click)="toggleMobileSidebar()"
+          >
+            <span class="text-lg leading-none" aria-hidden="true">≡</span>
+          </button>
+          <div>
+            <p class="text-sm text-muted-foreground">Current module</p>
+            <h1 class="text-lg font-semibold text-foreground">{{ pageTitle$ | async }}</h1>
+          </div>
         </div>
-      </div>
 
-      <div class="flex items-center gap-3" *ngIf="currentUser$ | async as user">
-        <div class="hidden text-right sm:block">
-          <p class="text-sm font-medium text-foreground">{{ user.full_name }}</p>
-          <p class="text-xs text-muted-foreground">{{ user.email }}</p>
+        <div class="flex items-center gap-3" *ngIf="currentUser$ | async as user">
+          <div class="hidden text-right sm:block">
+            <p class="text-sm font-medium text-foreground">{{ user.full_name }}</p>
+            <p class="text-xs text-muted-foreground">{{ user.email }}</p>
+          </div>
+          <button
+            type="button"
+            class="flex h-11 min-w-11 items-center justify-center rounded-md border border-border-subtle bg-surface px-3 text-sm font-semibold text-primary transition hover:bg-primary-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="User account menu"
+          >
+            {{ user.full_name.charAt(0) }}
+          </button>
         </div>
-        <button
-          type="button"
-          class="flex h-11 min-w-11 items-center justify-center rounded-md border border-border-subtle bg-surface px-3 text-sm font-semibold text-primary transition hover:bg-primary-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          aria-label="User account menu"
-        >
-          {{ user.full_name.charAt(0) }}
-        </button>
-      </div>
-    </header>
+      </header>
 
-    <main id="main-content" class="px-4 py-6 sm:px-6 lg:px-8">
-      <router-outlet />
-    </main>
-  </div>
+      <main id="main-content" class="px-4 py-6 sm:px-6 lg:px-8">
+        <router-outlet />
+      </main>
+    </div>
+  </ng-container>
 </div>

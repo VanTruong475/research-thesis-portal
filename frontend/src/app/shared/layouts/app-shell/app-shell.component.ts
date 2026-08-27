@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter, map, startWith } from 'rxjs';
+import { filter, finalize, map, startWith } from 'rxjs';
 
-import { navigationForRole } from '../../../core/constants/navigation.constants';
+import { NavigationGroup, navigationForRole } from '../../../core/constants/navigation.constants';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -12,7 +12,7 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './app-shell.component.html',
 })
-export class AppShellComponent {
+export class AppShellComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -24,10 +24,25 @@ export class AppShellComponent {
     map(() => this.currentPageTitle()),
   );
 
+  protected readonly exactActiveOptions = { exact: true };
+  protected readonly nonExactActiveOptions = { exact: false };
+  protected navigationGroups: readonly NavigationGroup[] = [];
+  protected isCurrentUserLoading = true;
   protected isMobileSidebarOpen = false;
 
-  protected navigationGroups(role: 'student' | 'lecturer' | 'admin' | undefined) {
-    return navigationForRole(role);
+  ngOnInit(): void {
+    this.authService
+      .loadCurrentUser()
+      .pipe(finalize(() => (this.isCurrentUserLoading = false)))
+      .subscribe({
+        next: (user) => {
+          this.navigationGroups = navigationForRole(user.role);
+        },
+        error: () => {
+          this.authService.clearSession();
+          void this.router.navigate(['/login']);
+        },
+      });
   }
 
   protected closeMobileSidebar(): void {
