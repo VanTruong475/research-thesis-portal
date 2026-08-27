@@ -15,7 +15,7 @@ import { Report } from '../../models/report.model';
       <!-- Bảng hiển thị (Table) -->
       <div class="overflow-x-auto">
         <table class="w-full text-left font-sans text-sm">
-          <thead class="text-xs text-muted uppercase bg-lacquer-deep border-b border-hairline">
+          <thead class="text-xs text-muted uppercase bg-surface-deep border-b border-border-subtle">
             <tr>
               <th scope="col" class="px-6 py-4 font-medium">Phiên bản</th>
               <th scope="col" class="px-6 py-4 font-medium">Tên file</th>
@@ -24,15 +24,15 @@ import { Report } from '../../models/report.model';
               <th scope="col" class="px-6 py-4 text-right font-medium">Hành động</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-hairline">
-            <tr *ngFor="let report of reports; let first = first" class="hover:bg-raised-lacquer/50 transition-colors">
+          <tbody class="divide-y divide-border-subtle">
+            <tr *ngFor="let report of reports; let first = first" class="hover:bg-raised-surface/50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2 py-1 rounded bg-lacquer-deep text-kinpaku text-xs font-mono border border-kinpaku/20">
+                <span class="inline-flex items-center px-2 py-1 rounded bg-surface-deep text-primary text-xs font-mono border border-primary/20">
                   v{{ report.version }}.0
                   <span *ngIf="first" class="ml-2 w-2 h-2 rounded-full bg-success"></span>
                 </span>
               </td>
-              <td class="px-6 py-4 font-medium text-champagne">
+              <td class="px-6 py-4 font-medium text-heading">
                 {{ report.file_name }}
               </td>
               <td class="px-6 py-4 text-body">
@@ -42,7 +42,7 @@ import { Report } from '../../models/report.model';
                 {{ report.uploaded_at | date:'dd/MM/yyyy HH:mm' }}
               </td>
               <td class="px-6 py-4 text-right">
-                <a [href]="report.file_url" class="text-kinpaku hover:text-kinpaku-pale hover:underline font-medium inline-flex items-center">
+                <a [href]="report.file_url" class="text-primary hover:text-primary-pale hover:underline font-medium inline-flex items-center">
                   <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>

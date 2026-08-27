@@ -5,24 +5,24 @@ module.exports = {
     extend: {
       colors: {
         /* Surfaces */
-        lacquer: {
-          DEFAULT: 'var(--color-lacquer)',
-          deep: 'var(--color-lacquer-deep)',
-          raised: 'var(--color-raised-lacquer)',
+        surface: {
+          DEFAULT: 'var(--color-surface)',
+          deep: 'var(--color-surface-deep)',
+          raised: 'var(--color-raised-surface)',
         },
         graphite: 'var(--color-graphite)',
 
         /* Accents */
-        kinpaku: {
-          DEFAULT: 'var(--color-kinpaku)',
-          pale: 'var(--color-kinpaku-pale)',
-          deep: 'var(--color-kinpaku-deep)',
+        primary: {
+          DEFAULT: 'var(--color-primary)',
+          pale: 'var(--color-primary-pale)',
+          deep: 'var(--color-primary-deep)',
         },
-        patina: 'var(--color-patina)',
-        hairline: 'var(--color-hairline)',
+        secondary: 'var(--color-secondary)',
+        'border-subtle': 'var(--color-border-subtle)',
 
         /* Text */
-        champagne: 'var(--color-champagne)',
+        heading: 'var(--color-heading)',
         body: 'var(--color-body)',
         muted: 'var(--color-muted)',
         'dark-ink': 'var(--color-dark-ink)',

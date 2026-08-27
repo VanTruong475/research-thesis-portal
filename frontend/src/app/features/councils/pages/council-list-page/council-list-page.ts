@@ -12,7 +12,7 @@ import { AuthService } from '../../../../core/services/auth';
     <div class="max-w-5xl mx-auto">
       <div class="mb-8 flex justify-between items-end">
         <div>
-          <h1 class="text-3xl font-display font-bold text-champagne mb-2">Quản lý Hội đồng</h1>
+          <h1 class="text-3xl font-display font-bold text-heading mb-2">Quản lý Hội đồng</h1>
           <p class="text-muted">Xem và quản lý lịch bảo vệ của các hội đồng đánh giá luận văn.</p>
         </div>
         

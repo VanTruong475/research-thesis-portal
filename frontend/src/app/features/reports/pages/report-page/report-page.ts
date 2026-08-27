@@ -11,7 +11,7 @@ import { ReportService } from '../../services/report';
   template: `
     <div class="max-w-4xl mx-auto">
       <div class="mb-8">
-        <h1 class="text-3xl font-display font-bold text-champagne mb-2">Báo cáo Tài liệu</h1>
+        <h1 class="text-3xl font-display font-bold text-heading mb-2">Báo cáo Tài liệu</h1>
         <p class="text-muted">Nộp và quản lý các phiên bản tài liệu báo cáo của đề tài (DOCX, PDF).</p>
       </div>
 

@@ -9,22 +9,22 @@ import { AuthService } from '../../../../core/services/auth';
   standalone: true,
   imports: [CommonModule, StatusBadge],
   template: `
-    <div class="relative pl-6 border-l border-kinpaku-deep space-y-10">
+    <div class="relative pl-6 border-l border-primary-deep space-y-10">
       <!-- Vòng lặp hiển thị từng báo cáo -->
       <div *ngFor="let log of logs" class="relative">
         
         <!-- Chấm tròn trên timeline -->
-        <div class="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-lacquer border-2 border-kinpaku z-10 shadow-[0_0_8px_rgba(212,175,55,0.4)]"></div>
+        <div class="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-surface border-2 border-primary z-10 shadow-[0_0_8px_rgba(212,175,55,0.4)]"></div>
         
         <!-- Nội dung chính của thẻ -->
         <div class="ks-card mb-4 relative overflow-hidden group">
           <!-- Hiệu ứng viền (Hover sheen) -->
-          <div class="absolute inset-0 border border-transparent group-hover:border-kinpaku-pale/20 pointer-events-none transition-colors rounded-sm"></div>
+          <div class="absolute inset-0 border border-transparent group-hover:border-primary-pale/20 pointer-events-none transition-colors rounded-sm"></div>
 
           <!-- Header thẻ (Thời gian, người nộp) -->
-          <div class="flex items-center justify-between mb-3 pb-3 border-b border-hairline">
+          <div class="flex items-center justify-between mb-3 pb-3 border-b border-border-subtle">
             <div>
-              <span class="text-sm font-medium text-champagne">{{ log.submitted_by }}</span>
+              <span class="text-sm font-medium text-heading">{{ log.submitted_by }}</span>
               <span class="text-xs text-muted ml-2">{{ log.submitted_at | date:'medium' }}</span>
             </div>
             <app-status-badge [type]="log.lecturer_comment ? 'success' : 'warning'">
@@ -38,16 +38,16 @@ import { AuthService } from '../../../../core/services/auth';
           </div>
 
           <!-- Khu vực Giảng viên Comment -->
-          <div *ngIf="log.lecturer_comment" class="mt-4 p-4 bg-lacquer-deep rounded border-l-2 border-patina">
+          <div *ngIf="log.lecturer_comment" class="mt-4 p-4 bg-surface-deep rounded border-l-2 border-secondary">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-mono uppercase tracking-wider text-patina">Nhận xét của Giảng viên</span>
+              <span class="text-xs font-mono uppercase tracking-wider text-secondary">Nhận xét của Giảng viên</span>
               <span class="text-xs text-muted">{{ log.commented_at | date:'short' }}</span>
             </div>
-            <p class="text-sm text-champagne italic">{{ log.lecturer_comment }}</p>
+            <p class="text-sm text-heading italic">{{ log.lecturer_comment }}</p>
           </div>
 
           <!-- Khung nhập Comment (Chỉ hiển thị cho Giảng viên & khi chưa có comment) -->
-          <div *ngIf="!log.lecturer_comment && canComment" class="mt-4 pt-4 border-t border-hairline">
+          <div *ngIf="!log.lecturer_comment && canComment" class="mt-4 pt-4 border-t border-border-subtle">
             <textarea 
               #commentInput
               class="ks-input mb-3 min-h-[80px]" 

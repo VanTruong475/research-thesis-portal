@@ -9,12 +9,12 @@ import { Evaluation } from '../../models/evaluation.model';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="ks-card mt-4">
-      <div class="border-b border-hairline pb-4 mb-4">
-        <h3 class="text-xl font-display font-medium text-champagne mb-1">
+      <div class="border-b border-border-subtle pb-4 mb-4">
+        <h3 class="text-xl font-display font-medium text-heading mb-1">
           Phiếu Chấm Điểm
         </h3>
         <p class="text-sm text-muted">
-          Sinh viên: <span class="text-kinpaku">{{ evaluation.studentName }}</span>
+          Sinh viên: <span class="text-primary">{{ evaluation.studentName }}</span>
         </p>
       </div>
 
@@ -49,20 +49,20 @@ import { Evaluation } from '../../models/evaluation.model';
         </div>
 
         <!-- Tổng điểm (tự động tính) -->
-        <div class="p-4 bg-lacquer-raised border border-hairline rounded-sm flex justify-between items-center">
+        <div class="p-4 bg-surface-raised border border-border-subtle rounded-sm flex justify-between items-center">
           <span class="font-sans text-body">Tổng điểm:</span>
           <span class="font-display text-2xl font-bold"
-                [ngClass]="totalScore >= 50 ? 'text-patina' : 'text-danger'">
+                [ngClass]="totalScore >= 50 ? 'text-secondary' : 'text-danger'">
             {{ totalScore }} / 100
           </span>
         </div>
 
         <!-- Các nút hành động -->
-        <div class="flex gap-4 justify-end pt-4 border-t border-hairline" *ngIf="evaluation.status === 'draft'">
-          <button class="ks-button outline text-body hover:text-kinpaku" (click)="onSaveDraft()">
+        <div class="flex gap-4 justify-end pt-4 border-t border-border-subtle" *ngIf="evaluation.status === 'draft'">
+          <button class="ks-button outline text-body hover:text-primary" (click)="onSaveDraft()">
             Lưu nháp
           </button>
-          <button class="ks-button bg-kinpaku text-lacquer hover:bg-champagne" (click)="onSubmit()">
+          <button class="ks-button bg-primary text-surface hover:bg-heading" (click)="onSubmit()">
             Chốt điểm & Nộp
           </button>
         </div>

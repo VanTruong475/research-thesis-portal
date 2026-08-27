@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type BadgeType = 'success' | 'warning' | 'danger' | 'patina' | 'neutral';
+export type BadgeType = 'success' | 'warning' | 'danger' | 'secondary' | 'neutral';
 
 @Component({
   selector: 'app-status-badge',
@@ -29,11 +29,11 @@ export class StatusBadge {
         return 'bg-warning/10 text-warning border-warning/20';
       case 'danger':
         return 'bg-danger/10 text-danger border-danger/20';
-      case 'patina':
-        return 'bg-patina/10 text-patina border-patina/20';
+      case 'secondary':
+        return 'bg-secondary/10 text-secondary border-secondary/20';
       case 'neutral':
       default:
-        return 'bg-graphite text-muted border-hairline';
+        return 'bg-graphite text-muted border-border-subtle';
     }
   }
 
@@ -45,8 +45,8 @@ export class StatusBadge {
         return 'bg-warning';
       case 'danger':
         return 'bg-danger';
-      case 'patina':
-        return 'bg-patina';
+      case 'secondary':
+        return 'bg-secondary';
       case 'neutral':
       default:
         return 'bg-muted';

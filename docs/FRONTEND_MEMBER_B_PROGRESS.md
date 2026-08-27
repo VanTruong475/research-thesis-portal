@@ -4,8 +4,8 @@ Tài liệu này tổng hợp các công việc đã hoàn thành, những phầ
 
 ## 1. Những Gì Đã Làm Được (Hoàn thành 6/7 bước)
 
-- **Bước 1: Cấu hình Design System (Neo Kinpaku / Impeccable)**
-  - Tích hợp bảng màu cao cấp (Lacquer Black, Kinpaku Gold, Verdigris Patina) vào `styles.css`.
+- **Bước 1: Cấu hình Design System (Neo Primary / Thesis Portal)**
+  - Tích hợp bảng màu cao cấp (Surface Black, Primary Gold, Verdigris Secondary) vào `styles.css`.
   - Cập nhật ánh xạ màu (mapping) trong `tailwind.config.js`.
   - Đổi Font chữ sang `Alumni Sans` (cho Tiêu đề) và `Albert Sans` (cho Văn bản).
 
@@ -55,8 +55,8 @@ Tài liệu này tổng hợp các công việc đã hoàn thành, những phầ
 
 1. **Tuân thủ Thiết kế (Design System)**: 
    - **Tuyệt đối không dùng mã màu generic của Tailwind** (như `bg-red-500`, `text-blue-600`).
-   - Phải bám sát bảng màu Neo Kinpaku (`bg-lacquer`, `text-kinpaku`, `text-champagne`, `text-patina`).
-   - Giữ viền mỏng (`border-hairline`) cho các thẻ (Cards) và sử dụng góc bo tròn nhỏ (`rounded-sm`).
+   - Phải bám sát bảng màu Neo Primary (`bg-surface`, `text-primary`, `text-heading`, `text-secondary`).
+   - Giữ viền mỏng (`border-border-subtle`) cho các thẻ (Cards) và sử dụng góc bo tròn nhỏ (`rounded-sm`).
 
 2. **Cách tiếp cận "Shared UI"**:
    - Đối với các phần tử giao diện cơ bản (Nút bấm, Ô nhập liệu), hãy dùng class CSS (`.ks-button`, `.ks-input`) trong file `styles.css`. **Không được tạo Component Angular cho Nút bấm** vì nó sẽ làm phình to mã nguồn một cách vô ích.

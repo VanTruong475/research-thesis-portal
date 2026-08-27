@@ -13,7 +13,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="mb-8">
-        <h1 class="text-3xl font-display font-bold text-kinpaku uppercase tracking-wider">
+        <h1 class="text-3xl font-display font-bold text-primary uppercase tracking-wider">
           Chấm Điểm Đề Tài
         </h1>
         <p class="text-muted mt-2">Danh sách sinh viên đang chờ đánh giá</p>
@@ -25,7 +25,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <div *ngFor="let ev of evaluations"
                (click)="selectEvaluation(ev)"
                class="ks-card cursor-pointer transition-colors"
-               [ngClass]="selectedEval?.id === ev.id ? 'border-kinpaku bg-lacquer-raised' : 'hover:border-hairline hover:bg-lacquer-raised'">
+               [ngClass]="selectedEval?.id === ev.id ? 'border-primary bg-surface-raised' : 'hover:border-border-subtle hover:bg-surface-raised'">
             
             <div class="flex justify-between items-start mb-2">
               <h4 class="font-sans font-medium text-body">{{ ev.studentName }}</h4>
@@ -56,7 +56,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           </div>
           
           <ng-template #noSelection>
-            <div class="h-full flex flex-col items-center justify-center text-muted border border-dashed border-hairline rounded-sm p-8">
+            <div class="h-full flex flex-col items-center justify-center text-muted border border-dashed border-border-subtle rounded-sm p-8">
               <span class="material-symbols-outlined text-4xl mb-4 opacity-50">edit_document</span>
               <p>Chọn một sinh viên từ danh sách để bắt đầu chấm điểm</p>
             </div>

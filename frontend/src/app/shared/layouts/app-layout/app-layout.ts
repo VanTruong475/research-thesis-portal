@@ -9,7 +9,7 @@ import { HeaderComponent } from '../../components/header/header';
   standalone: true,
   imports: [CommonModule, RouterModule, SidebarComponent, HeaderComponent],
   template: `
-    <div class="flex h-screen w-full bg-lacquer text-body overflow-hidden">
+    <div class="flex h-screen w-full bg-surface text-body overflow-hidden">
       <!-- Sidebar bên trái -->
       <app-sidebar></app-sidebar>
       

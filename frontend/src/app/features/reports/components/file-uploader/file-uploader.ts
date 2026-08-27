@@ -13,18 +13,18 @@ import { AuthService } from '../../../../core/services/auth';
       </div>
       
       <div 
-        class="border-2 border-dashed border-hairline rounded-sm p-8 text-center bg-lacquer-deep hover:border-kinpaku-pale/50 transition-colors"
+        class="border-2 border-dashed border-border-subtle rounded-sm p-8 text-center bg-surface-deep hover:border-primary-pale/50 transition-colors"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
-        [class.border-kinpaku]="isDragging"
+        [class.border-primary]="isDragging"
       >
         <svg class="mx-auto h-12 w-12 text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
         
-        <p class="text-sm text-champagne mb-2">
-          Kéo thả file vào đây hoặc <label class="text-kinpaku cursor-pointer hover:underline">
+        <p class="text-sm text-heading mb-2">
+          Kéo thả file vào đây hoặc <label class="text-primary cursor-pointer hover:underline">
             chọn file
             <input type="file" class="hidden" (change)="onFileSelected($event)">
           </label>
@@ -32,7 +32,7 @@ import { AuthService } from '../../../../core/services/auth';
         <p class="text-xs text-muted">Hỗ trợ định dạng: PDF, DOCX (Tối đa 10MB)</p>
 
         <!-- Hiển thị file đã chọn -->
-        <div *ngIf="selectedFile" class="mt-6 inline-flex items-center space-x-4 bg-lacquer px-4 py-2 border border-hairline rounded">
+        <div *ngIf="selectedFile" class="mt-6 inline-flex items-center space-x-4 bg-surface px-4 py-2 border border-border-subtle rounded">
           <span class="text-sm font-medium text-body">{{ selectedFile.name }}</span>
           <button (click)="upload()" class="ks-button ks-button-primary px-4 min-h-[36px] text-sm">
             Tải lên

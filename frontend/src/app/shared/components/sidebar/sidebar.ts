@@ -15,10 +15,10 @@ interface MenuItem {
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <aside class="w-64 h-full border-r border-hairline bg-lacquer flex flex-col">
+    <aside class="w-64 h-full border-r border-border-subtle bg-surface flex flex-col">
       <!-- Logo/Brand Area -->
-      <div class="h-16 flex items-center px-6 border-b border-hairline">
-        <span class="text-kinpaku font-display font-medium text-xl uppercase tracking-widest">Impeccable</span>
+      <div class="h-16 flex items-center px-6 border-b border-border-subtle">
+        <span class="text-primary font-display font-medium text-xl uppercase tracking-widest">Thesis Portal</span>
       </div>
 
       <!-- Navigation Links -->
@@ -26,8 +26,8 @@ interface MenuItem {
         <ng-container *ngFor="let item of visibleMenuItems()">
           <a
             [routerLink]="item.route"
-            routerLinkActive="bg-kinpaku/10 text-kinpaku border-kinpaku"
-            class="flex items-center px-4 py-2.5 rounded-sm font-sans text-sm text-body hover:text-kinpaku hover:bg-raised-lacquer transition-colors border border-transparent"
+            routerLinkActive="bg-primary/10 text-primary border-primary"
+            class="flex items-center px-4 py-2.5 rounded-sm font-sans text-sm text-body hover:text-primary hover:bg-raised-surface transition-colors border border-transparent"
           >
             {{ item.label }}
           </a>
@@ -35,7 +35,7 @@ interface MenuItem {
       </nav>
 
       <!-- Logout (Bottom) -->
-      <div class="p-4 border-t border-hairline">
+      <div class="p-4 border-t border-border-subtle">
         <button
           (click)="auth.logout()"
           class="w-full flex items-center px-4 py-2 rounded-sm font-sans text-sm text-muted hover:text-danger hover:bg-danger/10 transition-colors"
