@@ -18,7 +18,7 @@ export class AuthService {
   currentUser = signal<User | null>({
     id: 'mock-user-1',
     name: 'Nguyễn Quốc Vũ (Mock)',
-    role: 'lecturer', // Đổi thành 'student' hoặc 'admin' để test
+    role: 'student', // Đổi thành 'student' hoặc 'admin' để test
     email: 'vu.nq@example.com'
   });
 

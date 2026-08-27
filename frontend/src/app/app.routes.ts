@@ -18,6 +18,14 @@ export const routes: Routes = [
       {
         path: 'councils',
         loadComponent: () => import('./features/councils/pages/council-list-page/council-list-page').then(m => m.CouncilListPageComponent)
+      },
+      {
+        path: 'evaluation',
+        loadComponent: () => import('./features/evaluation/pages/evaluation-page/evaluation-page').then(m => m.EvaluationPageComponent)
+      },
+      {
+        path: 'final-results',
+        loadComponent: () => import('./features/evaluation/pages/final-results-page/final-results-page').then(m => m.FinalResultsPageComponent)
       }
       // Các tính năng của Member B sẽ được lazy load tiếp ở đây
     ]

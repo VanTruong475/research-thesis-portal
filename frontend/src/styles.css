@@ -107,7 +107,7 @@
      CARDS & CONTAINERS 
   ======================================================================= */
   .ks-card {
-    @apply bg-raised-lacquer text-body border border-hairline p-6;
+    @apply bg-lacquer-raised text-body border border-hairline p-6;
     border-radius: var(--radius-sm);
   }
   .ks-card-header {
