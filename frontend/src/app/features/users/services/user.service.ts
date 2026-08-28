@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { UserListResponse, UserProfile } from '../models/user.model';
+import { UserListResponse, UserProfile, CreateUserRequest } from '../models/user.model';
 import { ApiResponse } from '../../../core/models/api.model';
 import { environment } from '../../../../environments/environment';
 
@@ -18,6 +18,11 @@ export class UserService {
   totalItems = signal<number>(0);
 
   constructor() {}
+
+  // Hàm gọi API để tạo người dùng mới
+  createUser(payload: CreateUserRequest): Observable<ApiResponse<UserProfile>> {
+    return this.http.post<ApiResponse<UserProfile>>(`${this.API_URL}/users`, payload);
+  }
 
   // Lấy danh sách users từ Backend
   fetchUsers(page: number = 1, pageSize: number = 50): Observable<ApiResponse<UserListResponse>> {

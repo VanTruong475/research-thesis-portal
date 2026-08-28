@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.responses import SuccessResponse
+from app.db.enums import UserRole
 from app.db.session import get_db
+from app.modules.auth.dependencies import require_roles
+from app.modules.users.model import User
 from app.modules.progress.schemas import (
     AddTeacherCommentRequest,
     CreateProgressLogRequest,

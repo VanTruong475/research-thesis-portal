@@ -1,6 +1,17 @@
 export type UserRole = 'student' | 'lecturer' | 'admin';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 
+// Cấu trúc dữ liệu yêu cầu gửi lên API để tạo người dùng mới
+export interface CreateUserRequest {
+  institutional_code: string;
+  email: string;
+  password?: string; // Tùy chọn, nếu không gửi thì backend tự tạo mật khẩu mặc định
+  full_name: string;
+  role: UserRole;
+  class_name?: string; // Dành cho Sinh viên
+  department?: string; // Dành cho Giảng viên/Quản trị
+}
+
 export interface UserProfile {
   id: string;
   institutional_code: string;

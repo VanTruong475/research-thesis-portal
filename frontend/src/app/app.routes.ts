@@ -28,6 +28,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/evaluation/pages/final-results-page/final-results-page').then(m => m.FinalResultsPageComponent)
       },
       {
+        path: 'users/new',
+        loadComponent: () => import('./features/users/pages/user-form-page/user-form-page').then(m => m.UserFormPageComponent)
+      },
+      {
         path: 'users',
         loadComponent: () => import('./features/users/pages/user-list-page/user-list-page').then(m => m.UserListPageComponent)
       },

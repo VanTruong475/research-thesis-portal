@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { UserProfile } from '../../models/user.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
@@ -8,7 +9,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 @Component({
   selector: 'app-user-list-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusBadge],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadge],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <!-- Header Trang -->
@@ -31,7 +32,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
             <option value="student">Sinh viên</option>
           </select>
           
-          <button class="ks-button ks-button-primary">
+          <button routerLink="/app/users/new" class="ks-button ks-button-primary">
             + Thêm Mới
           </button>
         </div>
