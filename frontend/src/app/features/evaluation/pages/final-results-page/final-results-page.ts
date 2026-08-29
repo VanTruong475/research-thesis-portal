@@ -1,8 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
-import { FinalResultResponse } from '../../models/evaluation.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
 @Component({
@@ -11,11 +11,29 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
   imports: [CommonModule, StatusBadge],
   template: `
     <div class="p-8 max-w-4xl mx-auto h-full flex flex-col">
-      <div class="mb-8 text-center">
-        <h1 class="text-3xl font-display font-bold text-primary uppercase tracking-wider">
-          Kết Quả Tổng Kết
-        </h1>
-        <p class="text-muted mt-2">Bảng điểm và đánh giá cuối cùng dành cho Sinh viên</p>
+      <div class="mb-8 text-center flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-display font-bold text-primary uppercase tracking-wider text-left">
+            Kết Quả Tổng Kết
+          </h1>
+          <p class="text-muted mt-2 text-left">Bảng điểm và đánh giá cuối cùng dành cho Đồ án</p>
+        </div>
+        
+        <!-- Các nút chức năng dành cho Admin/Giảng viên -->
+        <div class="flex gap-4" *ngIf="isAdminOrLecturer">
+          <button class="ks-button ks-button-secondary" (click)="onCalculate()" [disabled]="isProcessing || !registrationId">
+            <span class="material-symbols-outlined text-sm mr-2">calculate</span>
+            Tính Điểm
+          </button>
+          <button 
+            *ngIf="isAdmin"
+            class="ks-button ks-button-primary" 
+            (click)="onPublish()" 
+            [disabled]="isProcessing || !registrationId || (result()?.status === 'published')">
+            <span class="material-symbols-outlined text-sm mr-2">campaign</span>
+            {{ result()?.status === 'published' ? 'Đã Công Bố' : 'Công Bố Kết Quả' }}
+          </button>
+        </div>
       </div>
 
       <div *ngIf="isLoading" class="text-center py-10">
@@ -63,8 +81,8 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
       <ng-template #noResult>
         <div *ngIf="!isLoading" class="mt-12 text-center text-muted p-12 border border-dashed border-border-subtle rounded-sm">
           <span class="material-symbols-outlined text-5xl mb-4 opacity-50">hourglass_empty</span>
-          <p class="text-lg">Chưa có kết quả tổng kết cho bạn.</p>
-          <p class="text-sm mt-2">Vui lòng quay lại sau khi Hội đồng hoàn tất việc chấm điểm.</p>
+          <p class="text-lg">Chưa có kết quả tổng kết cho đồ án này.</p>
+          <p class="text-sm mt-2">Vui lòng chờ hoặc thực hiện tính điểm (dành cho GV/Admin).</p>
         </div>
       </ng-template>
     </div>
@@ -73,23 +91,66 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 export class FinalResultsPageComponent implements OnInit {
   evaluationService = inject(EvaluationService);
   authService = inject(AuthService);
+  route = inject(ActivatedRoute);
 
   isLoading = false;
-  // Dùng Signal trực tiếp từ Service để render
+  isProcessing = false;
+  
   result = this.evaluationService.finalResult;
+  registrationId: string | null = null;
 
-  // Mock ID của registration
-  private readonly DUMMY_REG_ID = '123e4567-e89b-12d3-a456-426614174000';
+  get isAdmin(): boolean {
+    return this.authService.currentUser()?.role === 'admin';
+  }
+
+  get isAdminOrLecturer(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'admin' || role === 'lecturer';
+  }
 
   ngOnInit() {
+    this.registrationId = this.route.snapshot.paramMap.get('registrationId');
+    if (this.registrationId) {
+      this.loadResult();
+    }
+  }
+
+  loadResult() {
+    if (!this.registrationId) return;
     this.isLoading = true;
-    this.evaluationService.getFinalResult(this.DUMMY_REG_ID).subscribe({
+    this.evaluationService.getFinalResult(this.registrationId).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
   }
 
-  formatClassification(classification?: string): string {
+  onCalculate() {
+    if (!this.registrationId) return;
+    this.isProcessing = true;
+    this.evaluationService.calculateFinalResult(this.registrationId).subscribe({
+      next: () => this.isProcessing = false,
+      error: (err) => {
+        this.isProcessing = false;
+        alert(err.error?.message || 'Có lỗi xảy ra khi tính điểm.');
+      }
+    });
+  }
+
+  onPublish() {
+    if (!this.registrationId) return;
+    if (confirm('Bạn có chắc chắn muốn công bố điểm? Sau khi công bố, điểm số sẽ không thể thay đổi nữa.')) {
+      this.isProcessing = true;
+      this.evaluationService.publishFinalResult(this.registrationId).subscribe({
+        next: () => this.isProcessing = false,
+        error: (err) => {
+          this.isProcessing = false;
+          alert(err.error?.message || 'Có lỗi xảy ra khi công bố điểm.');
+        }
+      });
+    }
+  }
+
+  formatClassification(classification?: string | null): string {
     if (!classification) return 'Đang xử lý';
     const map: Record<string, string> = {
       'excellent': 'Xuất sắc',

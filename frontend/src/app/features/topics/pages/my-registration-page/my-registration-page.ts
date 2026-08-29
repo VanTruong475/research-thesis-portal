@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
@@ -7,7 +8,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 @Component({
   selector: 'app-my-registration-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge],
+  imports: [CommonModule, RouterModule, StatusBadge],
   template: `
     <div class="p-8 max-w-5xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-8">
@@ -44,12 +45,21 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
-                  <button *ngIf="reg.status === 'pending'" class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline">
-                    Hủy đăng ký
-                  </button>
-                  <span *ngIf="reg.status !== 'pending'" class="text-muted text-sm italic">
-                    Không thể hủy
-                  </span>
+                  <div class="flex items-center justify-end gap-3">
+                    <ng-container *ngIf="reg.status === 'approved'">
+                      <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Xem tiến độ">Tiến độ</a>
+                      <a [routerLink]="['/app/topics', reg.topic_id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Nộp báo cáo">Báo cáo</a>
+                      <a [routerLink]="['/app/registrations', reg.id, 'final-results']" class="text-sm font-medium text-primary hover:underline" title="Xem điểm">Điểm</a>
+                    </ng-container>
+
+                    <button 
+                      *ngIf="reg.status === 'pending'" 
+                      [disabled]="isCancelling === reg.id"
+                      (click)="cancelRegistration(reg.id)"
+                      class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline disabled:opacity-50 disabled:no-underline">
+                      {{ isCancelling === reg.id ? 'Đang hủy...' : 'Hủy đăng ký' }}
+                    </button>
+                  </div>
                 </td>
               </tr>
               
@@ -70,14 +80,35 @@ export class MyRegistrationPageComponent implements OnInit {
   authService = inject(AuthService);
   
   isLoading = false;
+  isCancelling: string | null = null;
 
   ngOnInit() {
+    this.loadRegistrations();
+  }
+
+  loadRegistrations() {
     const user = this.authService.currentUser();
     if (user && user.role === 'student') {
       this.isLoading = true;
       this.topicService.fetchMyRegistrations().subscribe({
         next: () => this.isLoading = false,
         error: () => this.isLoading = false
+      });
+    }
+  }
+
+  cancelRegistration(registrationId: string) {
+    if (confirm('Bạn có chắc chắn muốn hủy đăng ký đề tài này không? Hành động này không thể hoàn tác.')) {
+      this.isCancelling = registrationId;
+      this.topicService.cancelRegistration(registrationId).subscribe({
+        next: () => {
+          this.isCancelling = null;
+          this.loadRegistrations();
+        },
+        error: (err) => {
+          this.isCancelling = null;
+          alert(err.error?.message || 'Có lỗi xảy ra khi hủy đăng ký.');
+        }
       });
     }
   }

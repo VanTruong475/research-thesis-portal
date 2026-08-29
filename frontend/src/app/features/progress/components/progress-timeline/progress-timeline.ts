@@ -1,13 +1,13 @@
 import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ProgressLog, ProgressCommentRequest } from '../../models/progress.model';
+import { CommonModule, DatePipe } from '@angular/common';
+import { ProgressLog, AddTeacherCommentRequest } from '../../models/progress.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { AuthService } from '../../../../core/services/auth';
 
 @Component({
   selector: 'app-progress-timeline',
   standalone: true,
-  imports: [CommonModule, StatusBadge],
+  imports: [CommonModule, StatusBadge, DatePipe],
   template: `
     <div class="relative pl-6 border-l border-primary-deep space-y-10">
       <!-- Vòng lặp hiển thị từng báo cáo -->
@@ -24,11 +24,11 @@ import { AuthService } from '../../../../core/services/auth';
           <!-- Header thẻ (Thời gian, người nộp) -->
           <div class="flex items-center justify-between mb-3 pb-3 border-b border-border-subtle">
             <div>
-              <span class="text-sm font-medium text-heading">{{ log.submitted_by }}</span>
-              <span class="text-xs text-muted ml-2">{{ log.submitted_at | date:'medium' }}</span>
+              <span class="text-sm font-medium text-heading">Sinh viên nộp</span>
+              <span class="text-xs text-muted ml-2">{{ log.submitted_at | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
-            <app-status-badge [type]="log.lecturer_comment ? 'success' : 'warning'">
-              {{ log.lecturer_comment ? 'Đã phản hồi' : 'Chờ phản hồi' }}
+            <app-status-badge [type]="log.teacher_comment ? 'success' : 'warning'">
+              {{ log.teacher_comment ? 'Đã phản hồi' : 'Chờ phản hồi' }}
             </app-status-badge>
           </div>
           
@@ -38,16 +38,16 @@ import { AuthService } from '../../../../core/services/auth';
           </div>
 
           <!-- Khu vực Giảng viên Comment -->
-          <div *ngIf="log.lecturer_comment" class="mt-4 p-4 bg-surface-deep rounded border-l-2 border-secondary">
+          <div *ngIf="log.teacher_comment" class="mt-4 p-4 bg-surface-deep rounded border-l-2 border-secondary">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs font-mono uppercase tracking-wider text-secondary">Nhận xét của Giảng viên</span>
-              <span class="text-xs text-muted">{{ log.commented_at | date:'short' }}</span>
+              <span class="text-xs text-muted">{{ log.commented_at | date:'dd/MM/yyyy HH:mm' }}</span>
             </div>
-            <p class="text-sm text-heading italic">{{ log.lecturer_comment }}</p>
+            <p class="text-sm text-heading italic">{{ log.teacher_comment }}</p>
           </div>
 
           <!-- Khung nhập Comment (Chỉ hiển thị cho Giảng viên & khi chưa có comment) -->
-          <div *ngIf="!log.lecturer_comment && canComment" class="mt-4 pt-4 border-t border-border-subtle">
+          <div *ngIf="!log.teacher_comment && canComment" class="mt-4 pt-4 border-t border-border-subtle">
             <textarea 
               #commentInput
               class="ks-input mb-3 min-h-[80px]" 
@@ -75,11 +75,10 @@ import { AuthService } from '../../../../core/services/auth';
 })
 export class ProgressTimelineComponent {
   @Input() logs: ProgressLog[] = [];
-  @Output() commentSubmit = new EventEmitter<{logId: string, request: ProgressCommentRequest}>();
+  @Output() commentSubmit = new EventEmitter<{logId: string, request: AddTeacherCommentRequest}>();
 
   authService = inject(AuthService);
 
-  // Logic: Kiểm tra xem user hiện tại có phải giảng viên/admin không để cho phép comment
   get canComment(): boolean {
     const user = this.authService.currentUser();
     return !!user && (user.role === 'lecturer' || user.role === 'admin');
@@ -89,7 +88,7 @@ export class ProgressTimelineComponent {
     if (!comment.trim()) return;
     this.commentSubmit.emit({
       logId,
-      request: { comment: comment.trim() }
+      request: { teacher_comment: comment.trim() }
     });
   }
 }

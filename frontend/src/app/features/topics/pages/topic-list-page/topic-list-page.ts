@@ -48,9 +48,10 @@ import { AuthService } from '../../../../core/services/auth';
           
           <button 
             *ngIf="userRole === 'student'"
-            [disabled]="(topic.status !== 'active' && topic.status !== 'approved') || (topic.currentStudents || 0) >= topic.max_students"
+            [disabled]="(topic.status !== 'active' && topic.status !== 'approved') || (topic.currentStudents || 0) >= topic.max_students || isRegistering"
+            (click)="registerTopic(topic.id)"
             class="ks-button ks-button-primary w-full disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ (topic.status !== 'active' && topic.status !== 'approved') ? 'Không thể đăng ký' : 'Đăng ký đề tài này' }}
+            {{ (topic.status !== 'active' && topic.status !== 'approved') ? 'Không thể đăng ký' : (isRegistering ? 'Đang xử lý...' : 'Đăng ký đề tài này') }}
           </button>
         </div>
         
@@ -67,6 +68,7 @@ export class TopicListPageComponent implements OnInit {
   
   userRole: string = 'student';
   isLoading = false;
+  isRegistering = false;
 
   ngOnInit() {
     const user = this.authService.currentUser();
@@ -74,6 +76,10 @@ export class TopicListPageComponent implements OnInit {
       this.userRole = user.role;
     }
     
+    this.loadTopics();
+  }
+
+  loadTopics() {
     this.isLoading = true;
     if (this.userRole === 'student') {
       this.topicService.fetchAvailableTopics().subscribe({
@@ -84,6 +90,23 @@ export class TopicListPageComponent implements OnInit {
       this.topicService.fetchTopics().subscribe({
         next: () => this.isLoading = false,
         error: () => this.isLoading = false
+      });
+    }
+  }
+
+  registerTopic(topicId: string) {
+    if (confirm('Bạn có chắc chắn muốn đăng ký đề tài này?')) {
+      this.isRegistering = true;
+      this.topicService.createRegistration({ topic_id: topicId }).subscribe({
+        next: () => {
+          this.isRegistering = false;
+          alert('Đăng ký đề tài thành công! Vui lòng chờ Giảng viên duyệt.');
+          this.loadTopics();
+        },
+        error: (err) => {
+          this.isRegistering = false;
+          alert(err.error?.message || 'Có lỗi xảy ra khi đăng ký đề tài.');
+        }
       });
     }
   }

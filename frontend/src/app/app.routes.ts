@@ -2,17 +2,18 @@ import { Routes } from '@angular/router';
 import { AppLayoutComponent } from './shared/layouts/app-layout/app-layout';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'app', pathMatch: 'full' },
+  // Đổi đường dẫn mặc định từ 'app' sang 'auth/login' để khi người dùng vào localhost:4200 sẽ tự động chuyển hướng đến trang đăng nhập
+  { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
   {
     path: 'app',
     component: AppLayoutComponent,
     children: [
       {
-        path: 'progress',
+        path: 'registrations/:registrationId/progress',
         loadComponent: () => import('./features/progress/pages/progress-list-page/progress-list-page').then(m => m.ProgressListPageComponent)
       },
       {
-        path: 'reports',
+        path: 'topics/:topicId/reports',
         loadComponent: () => import('./features/reports/pages/report-page/report-page').then(m => m.ReportPageComponent)
       },
       {
@@ -20,11 +21,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/councils/pages/council-list-page/council-list-page').then(m => m.CouncilListPageComponent)
       },
       {
-        path: 'evaluation',
+        path: 'registrations/:registrationId/evaluation',
         loadComponent: () => import('./features/evaluation/pages/evaluation-page/evaluation-page').then(m => m.EvaluationPageComponent)
       },
       {
-        path: 'final-results',
+        path: 'registrations/:registrationId/final-results',
         loadComponent: () => import('./features/evaluation/pages/final-results-page/final-results-page').then(m => m.FinalResultsPageComponent)
       },
       {
@@ -58,6 +59,10 @@ export const routes: Routes = [
       {
         path: 'registrations/my',
         loadComponent: () => import('./features/topics/pages/my-registration-page/my-registration-page').then(m => m.MyRegistrationPageComponent)
+      },
+      {
+        path: 'progress/supervised',
+        loadComponent: () => import('./features/progress/pages/supervised-progress-page/supervised-progress-page').then(m => m.SupervisedProgressPageComponent)
       }
       // Các tính năng của Member A/B sẽ được lazy load tiếp ở đây
     ]

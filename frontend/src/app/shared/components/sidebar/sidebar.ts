@@ -58,17 +58,12 @@ export class SidebarComponent {
     // Lecturer
     { label: 'Đề tài của tôi', route: '/app/topics/my-topics', roles: ['lecturer'] },
     { label: 'Duyệt đăng ký', route: '/app/registrations/review', roles: ['lecturer'] },
-    { label: 'Tiến độ hướng dẫn', route: '/app/progress/supervised', roles: ['lecturer'] },
-    { label: 'Chấm điểm', route: '/app/evaluation', roles: ['lecturer', 'admin'] },
 
     // Student
     { label: 'Danh sách Đề tài', route: '/app/topics', roles: ['student', 'admin'] },
     { label: 'Đăng ký của tôi', route: '/app/registrations/my', roles: ['student'] },
-    { label: 'Tiến độ', route: '/app/progress', roles: ['student'] },
     
     // Shared
-    { label: 'Báo cáo', route: '/app/reports', roles: ['student', 'lecturer'] },
-    { label: 'Kết quả cuối cùng', route: '/app/final-results', roles: ['student', 'admin'] },
     { label: 'Hồ sơ cá nhân', route: '/app/profile', roles: ['student', 'lecturer', 'admin'] },
   ];
 

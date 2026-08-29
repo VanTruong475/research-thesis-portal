@@ -39,4 +39,9 @@ export class UserService {
       })
     );
   }
+
+  // Khóa hoặc mở khóa tài khoản
+  updateUserStatus(userId: string, status: 'active' | 'inactive'): Observable<ApiResponse<UserProfile>> {
+    return this.http.patch<ApiResponse<UserProfile>>(`${this.API_URL}/users/${userId}/status`, { status });
+  }
 }

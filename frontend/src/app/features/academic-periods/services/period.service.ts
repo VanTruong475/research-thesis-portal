@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { AcademicPeriod, AcademicPeriodListResponse } from '../models/period.model';
+import { AcademicPeriod, AcademicPeriodListResponse, CreatePeriodRequest, UpdatePeriodRequest, AcademicPeriodStatus } from '../models/period.model';
 import { ApiResponse } from '../../../core/models/api.model';
 import { environment } from '../../../../environments/environment';
 
@@ -31,5 +31,17 @@ export class PeriodService {
         }
       })
     );
+  }
+
+  createPeriod(payload: CreatePeriodRequest): Observable<ApiResponse<AcademicPeriod>> {
+    return this.http.post<ApiResponse<AcademicPeriod>>(`${this.API_URL}/academic-periods`, payload);
+  }
+
+  updatePeriod(id: string, payload: UpdatePeriodRequest): Observable<ApiResponse<AcademicPeriod>> {
+    return this.http.put<ApiResponse<AcademicPeriod>>(`${this.API_URL}/academic-periods/${id}`, payload);
+  }
+
+  updatePeriodStatus(id: string, status: AcademicPeriodStatus): Observable<ApiResponse<AcademicPeriod>> {
+    return this.http.patch<ApiResponse<AcademicPeriod>>(`${this.API_URL}/academic-periods/${id}/status`, { status });
   }
 }

@@ -1,14 +1,10 @@
-export interface Report {
+export interface ReportResponse {
   id: string;
   topic_id: string;
-  file_url: string;
+  student_id: string;
   file_name: string;
+  file_path: string;
+  file_size: number;
   version: number;
-  uploaded_by: string;
-  uploaded_at: string; // ISO String
-}
-
-export interface ReportUploadRequest {
-  topic_id: string;
-  file: File;
+  submitted_at: string;
 }

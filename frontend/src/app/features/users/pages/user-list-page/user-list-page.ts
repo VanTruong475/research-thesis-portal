@@ -75,7 +75,12 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
-                  <button class="text-muted hover:text-primary transition-colors text-sm underline">Sửa</button>
+                  <button 
+                    class="text-sm transition-colors underline"
+                    [ngClass]="user.status === 'active' ? 'text-danger hover:text-danger/80' : 'text-success hover:text-success/80'"
+                    (click)="toggleUserStatus(user.id, user.status)">
+                    {{ user.status === 'active' ? 'Khóa' : 'Mở khóa' }}
+                  </button>
                 </td>
               </tr>
               
@@ -105,10 +110,25 @@ export class UserListPageComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.loadUsers();
+  }
+
+  loadUsers() {
     this.isLoading = true;
     this.userService.fetchUsers(1, 50).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
+  }
+
+  toggleUserStatus(userId: string, currentStatus: string) {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const actionText = currentStatus === 'active' ? 'Khóa' : 'Mở khóa';
+    
+    if (confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản này không?`)) {
+      this.userService.updateUserStatus(userId, newStatus).subscribe({
+        next: () => this.loadUsers() // Load lại danh sách sau khi đổi trạng thái thành công
+      });
+    }
   }
 }

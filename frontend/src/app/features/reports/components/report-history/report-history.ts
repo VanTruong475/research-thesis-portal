@@ -1,11 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Report } from '../../models/report.model';
+import { CommonModule, DatePipe } from '@angular/common';
+import { ReportResponse } from '../../models/report.model';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-report-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DatePipe],
   template: `
     <div class="ks-card overflow-hidden">
       <div class="ks-card-header">
@@ -19,7 +20,7 @@ import { Report } from '../../models/report.model';
             <tr>
               <th scope="col" class="px-6 py-4 font-medium">Phiên bản</th>
               <th scope="col" class="px-6 py-4 font-medium">Tên file</th>
-              <th scope="col" class="px-6 py-4 font-medium">Người tải lên</th>
+              <th scope="col" class="px-6 py-4 font-medium">Dung lượng</th>
               <th scope="col" class="px-6 py-4 font-medium">Thời gian</th>
               <th scope="col" class="px-6 py-4 text-right font-medium">Hành động</th>
             </tr>
@@ -36,13 +37,13 @@ import { Report } from '../../models/report.model';
                 {{ report.file_name }}
               </td>
               <td class="px-6 py-4 text-body">
-                {{ report.uploaded_by }}
+                {{ formatBytes(report.file_size) }}
               </td>
               <td class="px-6 py-4 text-muted">
-                {{ report.uploaded_at | date:'dd/MM/yyyy HH:mm' }}
+                {{ report.submitted_at | date:'dd/MM/yyyy HH:mm' }}
               </td>
               <td class="px-6 py-4 text-right">
-                <a [href]="report.file_url" class="text-primary hover:text-primary-pale hover:underline font-medium inline-flex items-center">
+                <a [href]="getFileUrl(report.file_path)" target="_blank" class="text-primary hover:text-primary-pale hover:underline font-medium inline-flex items-center">
                   <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -63,5 +64,18 @@ import { Report } from '../../models/report.model';
   `
 })
 export class ReportHistoryComponent {
-  @Input() reports: Report[] = [];
+  @Input() reports: ReportResponse[] = [];
+
+  getFileUrl(path: string): string {
+    return `${environment.apiUrl}/${path}`;
+  }
+
+  formatBytes(bytes: number, decimals = 2) {
+    if (!+bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  }
 }

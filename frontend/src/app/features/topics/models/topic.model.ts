@@ -46,3 +46,26 @@ export interface RegistrationListResponse {
   items: Registration[];
   pagination: PaginationResponse;
 }
+
+export interface TopicCreateRequest {
+  academic_period_id: string;
+  code: string;
+  title: string;
+  description: string;
+  requirements?: string;
+  max_students?: number;
+}
+
+export type TopicUpdateRequest = Partial<TopicCreateRequest>;
+
+export interface RegistrationCreateRequest {
+  topic_id: string;
+  student_note?: string;
+}
+
+export interface RegistrationRejectRequest {
+  review_reason: string;
+}
+
+
+

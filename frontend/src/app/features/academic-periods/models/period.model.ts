@@ -32,3 +32,21 @@ export interface AcademicPeriodListResponse {
   items: AcademicPeriod[];
   pagination: PaginationResponse;
 }
+
+export interface CreatePeriodRequest {
+  code: string;
+  name: string;
+  academic_year: string;
+  semester?: number;
+  proposal_start_at: string;
+  proposal_end_at: string;
+  registration_start_at: string;
+  registration_end_at: string;
+  execution_start_at?: string;
+  execution_end_at?: string;
+  report_deadline_at?: string;
+  defense_start_at?: string;
+  defense_end_at?: string;
+}
+
+export type UpdatePeriodRequest = Partial<CreatePeriodRequest>;

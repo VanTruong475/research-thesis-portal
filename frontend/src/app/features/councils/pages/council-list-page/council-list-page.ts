@@ -1,15 +1,16 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CouncilService } from '../../services/council';
-import { Council, CouncilMemberRole } from '../../models/council.model';
+import { Council, CouncilMemberRole, CreateCouncilRequest, CouncilMemberAssignRequest, DefenseScheduleCreateRequest } from '../../models/council.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
 @Component({
   selector: 'app-council-list-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge, DatePipe],
+  imports: [CommonModule, StatusBadge, DatePipe, ReactiveFormsModule],
   template: `
-    <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
+    <div class="p-8 max-w-7xl mx-auto h-full flex flex-col relative">
       <!-- Header -->
       <div class="flex justify-between items-end mb-8">
         <div>
@@ -19,7 +20,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <p class="text-muted mt-2">Thành lập hội đồng, phân công giảng viên và xếp lịch bảo vệ</p>
         </div>
         
-        <button class="ks-button ks-button-primary">
+        <button class="ks-button ks-button-primary" (click)="openCreateCouncilDialog()">
           + Thành lập Hội đồng
         </button>
       </div>
@@ -52,7 +53,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                 </li>
                 <li *ngIf="council.members.length === 0" class="text-sm text-muted italic">Chưa phân công thành viên</li>
               </ul>
-              <button class="mt-3 text-sm text-primary hover:underline font-medium">+ Thêm thành viên</button>
+              <button class="mt-3 text-sm text-primary hover:underline font-medium" (click)="openAddMemberDialog(council.id)">+ Thêm thành viên</button>
             </div>
 
             <!-- Lịch bảo vệ -->
@@ -77,25 +78,224 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <!-- Card Footer -->
           <div class="p-4 border-t border-border-subtle bg-surface-deep flex justify-end gap-3">
             <button class="text-sm font-medium text-muted hover:text-primary transition-colors underline">Chỉnh sửa</button>
-            <button class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline">Xếp lịch</button>
+            <button class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="openAddScheduleDialog(council.id)">Xếp lịch</button>
           </div>
         </div>
       </div>
+
+      <!-- Modal Thêm Hội Đồng -->
+      <div *ngIf="activeDialog === 'council'" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-deep/80 backdrop-blur-sm">
+        <div class="ks-card w-full max-w-lg p-6 relative">
+          <h2 class="text-2xl font-display font-bold text-heading mb-6">Thành Lập Hội Đồng</h2>
+          <form [formGroup]="councilForm" (ngSubmit)="onSubmitCouncil()" class="space-y-4">
+            <div>
+              <label class="ks-label">Mã Hội đồng *</label>
+              <input type="text" formControlName="code" class="ks-input" placeholder="VD: HD-01">
+            </div>
+            <div>
+              <label class="ks-label">Tên Hội đồng *</label>
+              <input type="text" formControlName="name" class="ks-input" placeholder="VD: Hội đồng CNTT 1">
+            </div>
+            <div>
+              <label class="ks-label">Phòng bảo vệ mặc định</label>
+              <input type="text" formControlName="default_room" class="ks-input" placeholder="VD: Phòng A101">
+            </div>
+            <div>
+              <label class="ks-label">Mô tả thêm</label>
+              <textarea formControlName="description" class="ks-input h-20"></textarea>
+            </div>
+            <div class="pt-4 flex justify-end gap-3">
+              <button type="button" class="ks-button ks-button-secondary" (click)="closeDialog()">Hủy</button>
+              <button type="submit" class="ks-button ks-button-primary" [disabled]="councilForm.invalid || isSubmitting">Lưu</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Thêm Thành Viên -->
+      <div *ngIf="activeDialog === 'member'" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-deep/80 backdrop-blur-sm">
+        <div class="ks-card w-full max-w-md p-6 relative">
+          <h2 class="text-2xl font-display font-bold text-heading mb-6">Thêm Thành Viên</h2>
+          <form [formGroup]="memberForm" (ngSubmit)="onSubmitMember()" class="space-y-4">
+            <div>
+              <label class="ks-label">ID Giảng viên (Tạm thời) *</label>
+              <input type="text" formControlName="lecturer_id" class="ks-input" placeholder="Nhập UUID giảng viên">
+            </div>
+            <div>
+              <label class="ks-label">Vai trò trong Hội đồng *</label>
+              <select formControlName="member_role" class="ks-input">
+                <option value="chairperson">Chủ tịch</option>
+                <option value="secretary">Thư ký</option>
+                <option value="reviewer">Phản biện</option>
+                <option value="member">Ủy viên</option>
+              </select>
+            </div>
+            <div class="pt-4 flex justify-end gap-3">
+              <button type="button" class="ks-button ks-button-secondary" (click)="closeDialog()">Hủy</button>
+              <button type="submit" class="ks-button ks-button-primary" [disabled]="memberForm.invalid || isSubmitting">Lưu</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Xếp Lịch -->
+      <div *ngIf="activeDialog === 'schedule'" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-deep/80 backdrop-blur-sm">
+        <div class="ks-card w-full max-w-md p-6 relative">
+          <h2 class="text-2xl font-display font-bold text-heading mb-6">Xếp Lịch Bảo Vệ</h2>
+          <form [formGroup]="scheduleForm" (ngSubmit)="onSubmitSchedule()" class="space-y-4">
+            <div>
+              <label class="ks-label">ID Đăng ký đề tài (Tạm thời) *</label>
+              <input type="text" formControlName="registration_id" class="ks-input" placeholder="Nhập UUID registration">
+            </div>
+            <div>
+              <label class="ks-label">Ngày giờ bảo vệ *</label>
+              <input type="datetime-local" formControlName="scheduled_at" class="ks-input">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="ks-label">Thời lượng (phút) *</label>
+                <input type="number" formControlName="duration_minutes" class="ks-input">
+              </div>
+              <div>
+                <label class="ks-label">Phòng bảo vệ *</label>
+                <input type="text" formControlName="room" class="ks-input">
+              </div>
+            </div>
+            <div class="pt-4 flex justify-end gap-3">
+              <button type="button" class="ks-button ks-button-secondary" (click)="closeDialog()">Hủy</button>
+              <button type="submit" class="ks-button ks-button-primary" [disabled]="scheduleForm.invalid || isSubmitting">Lưu</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   `
 })
 export class CouncilListPageComponent implements OnInit {
   councilService = inject(CouncilService);
+  private fb = inject(FormBuilder);
+  
   isLoading = false;
+  isSubmitting = false;
+  
+  // Trạng thái Dialog: 'none' | 'council' | 'member' | 'schedule'
+  activeDialog: 'none' | 'council' | 'member' | 'schedule' = 'none';
+  selectedCouncilId: string | null = null;
+
+  councilForm!: FormGroup;
+  memberForm!: FormGroup;
+  scheduleForm!: FormGroup;
 
   // Giả lập ID học kỳ
   private readonly DUMMY_PERIOD_ID = '123e4567-e89b-12d3-a456-426614174000';
 
   ngOnInit() {
+    this.initForms();
+    this.loadCouncils();
+  }
+
+  loadCouncils() {
     this.isLoading = true;
     this.councilService.getCouncilsByPeriod(this.DUMMY_PERIOD_ID).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
+    });
+  }
+
+  initForms() {
+    this.councilForm = this.fb.group({
+      code: ['', Validators.required],
+      name: ['', Validators.required],
+      description: [''],
+      default_room: ['']
+    });
+
+    this.memberForm = this.fb.group({
+      lecturer_id: ['', Validators.required],
+      member_role: ['member', Validators.required]
+    });
+
+    this.scheduleForm = this.fb.group({
+      registration_id: ['', Validators.required],
+      scheduled_at: ['', Validators.required],
+      duration_minutes: [45, Validators.required],
+      room: ['', Validators.required]
+    });
+  }
+
+  openCreateCouncilDialog() {
+    this.councilForm.reset();
+    this.activeDialog = 'council';
+  }
+
+  openAddMemberDialog(councilId: string) {
+    this.selectedCouncilId = councilId;
+    this.memberForm.reset({ member_role: 'member' });
+    this.activeDialog = 'member';
+  }
+
+  openAddScheduleDialog(councilId: string) {
+    this.selectedCouncilId = councilId;
+    this.scheduleForm.reset({ duration_minutes: 45 });
+    this.activeDialog = 'schedule';
+  }
+
+  closeDialog() {
+    this.activeDialog = 'none';
+    this.selectedCouncilId = null;
+  }
+
+  onSubmitCouncil() {
+    if (this.councilForm.invalid) return;
+    this.isSubmitting = true;
+    const payload: CreateCouncilRequest = {
+      ...this.councilForm.value,
+      academic_period_id: this.DUMMY_PERIOD_ID
+    };
+
+    this.councilService.createCouncil(payload).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.closeDialog();
+        this.loadCouncils();
+      },
+      error: () => this.isSubmitting = false
+    });
+  }
+
+  onSubmitMember() {
+    if (this.memberForm.invalid || !this.selectedCouncilId) return;
+    this.isSubmitting = true;
+    const payload = this.memberForm.value as CouncilMemberAssignRequest;
+
+    this.councilService.assignMember(this.selectedCouncilId, payload).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.closeDialog();
+        this.loadCouncils();
+      },
+      error: () => this.isSubmitting = false
+    });
+  }
+
+  onSubmitSchedule() {
+    if (this.scheduleForm.invalid || !this.selectedCouncilId) return;
+    this.isSubmitting = true;
+    const payload = this.scheduleForm.value as DefenseScheduleCreateRequest;
+    
+    // Format to ISO
+    if (payload.scheduled_at) {
+      payload.scheduled_at = new Date(payload.scheduled_at).toISOString();
+    }
+
+    this.councilService.createDefenseSchedule(this.selectedCouncilId, payload).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.closeDialog();
+        this.loadCouncils();
+      },
+      error: () => this.isSubmitting = false
     });
   }
 

@@ -1,15 +1,18 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { Topic, TopicCreateRequest } from '../../models/topic.model';
 
 @Component({
   selector: 'app-my-topics-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge],
+  imports: [CommonModule, RouterModule, StatusBadge, ReactiveFormsModule],
   template: `
-    <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
+    <div class="p-8 max-w-7xl mx-auto h-full flex flex-col relative">
       <div class="flex justify-between items-end mb-8">
         <div>
           <h1 class="text-3xl font-display font-bold text-heading uppercase tracking-wider">
@@ -18,7 +21,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <p class="text-muted mt-2">Quản lý các đề tài do bạn hướng dẫn</p>
         </div>
         
-        <button class="ks-button ks-button-primary">
+        <button class="ks-button ks-button-primary" (click)="openDialog()">
           + Thêm Đề Tài Mới
         </button>
       </div>
@@ -54,8 +57,9 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
-                  <button class="text-muted hover:text-primary transition-colors text-sm underline mr-3">Sửa</button>
-                  <button class="text-muted hover:text-primary transition-colors text-sm underline">Xem DS</button>
+                  <button class="text-muted hover:text-primary transition-colors text-sm underline mr-3" (click)="openDialog(topic)">Sửa</button>
+                  <a [routerLink]="['/app/topics', topic.id, 'reports']" class="text-muted hover:text-primary transition-colors text-sm underline mr-3" title="Xem Báo cáo">Báo cáo</a>
+                  <a routerLink="/app/registrations/review" class="text-muted hover:text-primary transition-colors text-sm underline" title="Danh sách Sinh viên">DS Sinh viên</a>
                 </td>
               </tr>
               
@@ -68,22 +72,142 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           </table>
         </div>
       </div>
+
+      <!-- Modal Thêm/Sửa Đề Tài -->
+      <div *ngIf="isDialogOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-deep/80 backdrop-blur-sm">
+        <div class="ks-card w-full max-w-2xl p-6 relative">
+          <h2 class="text-2xl font-display font-bold text-heading mb-6">
+            {{ editingTopicId ? 'Chỉnh Sửa Đề Tài' : 'Đề Xuất Đề Tài Mới' }}
+          </h2>
+          <form [formGroup]="topicForm" (ngSubmit)="onSubmit()" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="ks-label">Mã Đề Tài *</label>
+                <input type="text" formControlName="code" class="ks-input" placeholder="VD: DT-001">
+              </div>
+              <div>
+                <label class="ks-label">Số Sinh Viên Tối Đa *</label>
+                <input type="number" formControlName="max_students" class="ks-input" placeholder="VD: 3">
+              </div>
+            </div>
+            
+            <div>
+              <label class="ks-label">Tên Đề Tài *</label>
+              <input type="text" formControlName="title" class="ks-input" placeholder="Nhập tên đề tài nghiên cứu">
+            </div>
+
+            <div>
+              <label class="ks-label">Mô tả (Mục tiêu, nội dung) *</label>
+              <textarea formControlName="description" class="ks-input h-24" placeholder="Mô tả chi tiết về đề tài"></textarea>
+            </div>
+
+            <div>
+              <label class="ks-label">Yêu cầu đầu vào đối với sinh viên</label>
+              <textarea formControlName="requirements" class="ks-input h-16" placeholder="Các kỹ năng, kiến thức cần có"></textarea>
+            </div>
+
+            <div class="pt-6 mt-6 border-t border-border-subtle flex justify-end gap-3">
+              <button type="button" class="ks-button ks-button-secondary" (click)="closeDialog()">Hủy</button>
+              <button type="submit" class="ks-button ks-button-primary" [disabled]="topicForm.invalid || isSubmitting">
+                {{ isSubmitting ? 'Đang lưu...' : 'Lưu Lại' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div>
   `
 })
 export class MyTopicsPageComponent implements OnInit {
   topicService = inject(TopicService);
   authService = inject(AuthService);
+  private fb = inject(FormBuilder);
   
   isLoading = false;
+  isSubmitting = false;
+  isDialogOpen = false;
+  editingTopicId: string | null = null;
+  topicForm!: FormGroup;
+
+  // Giả lập ID học kỳ
+  private readonly DUMMY_PERIOD_ID = '123e4567-e89b-12d3-a456-426614174000';
 
   ngOnInit() {
+    this.initForm();
+    this.loadTopics();
+  }
+
+  loadTopics() {
     const user = this.authService.currentUser();
     if (user && user.role === 'lecturer') {
       this.isLoading = true;
       this.topicService.fetchMyTopics().subscribe({
         next: () => this.isLoading = false,
         error: () => this.isLoading = false
+      });
+    }
+  }
+
+  initForm() {
+    this.topicForm = this.fb.group({
+      code: ['', Validators.required],
+      title: ['', Validators.required],
+      description: ['', Validators.required],
+      requirements: [''],
+      max_students: [1, [Validators.required, Validators.min(1)]]
+    });
+  }
+
+  openDialog(topic?: Topic) {
+    this.isDialogOpen = true;
+    if (topic) {
+      this.editingTopicId = topic.id;
+      this.topicForm.patchValue({
+        code: topic.code,
+        title: topic.title,
+        description: topic.description,
+        requirements: topic.requirements,
+        max_students: topic.max_students
+      });
+    } else {
+      this.editingTopicId = null;
+      this.topicForm.reset({ max_students: 1 });
+    }
+  }
+
+  closeDialog() {
+    this.isDialogOpen = false;
+    this.editingTopicId = null;
+    this.topicForm.reset();
+  }
+
+  onSubmit() {
+    if (this.topicForm.invalid) return;
+    
+    this.isSubmitting = true;
+    const payload: TopicCreateRequest = {
+      ...this.topicForm.value,
+      academic_period_id: this.DUMMY_PERIOD_ID
+    };
+
+    if (this.editingTopicId) {
+      this.topicService.updateTopic(this.editingTopicId, payload).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.closeDialog();
+          this.loadTopics();
+        },
+        error: () => this.isSubmitting = false
+      });
+    } else {
+      this.topicService.createTopic(payload).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.closeDialog();
+          this.loadTopics();
+        },
+        error: () => this.isSubmitting = false
       });
     }
   }

@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Topic, Registration, TopicListResponse, RegistrationListResponse } from '../models/topic.model';
+import { Topic, Registration, TopicListResponse, RegistrationListResponse, TopicCreateRequest, TopicUpdateRequest, RegistrationCreateRequest, RegistrationRejectRequest } from '../models/topic.model';
 import { ApiResponse } from '../../../core/models/api.model';
 import { environment } from '../../../../environments/environment';
 
@@ -64,5 +64,35 @@ export class TopicService {
         if (res.data) this.registrations.set(res.data.items);
       })
     );
+  }
+
+  // Giảng viên đề xuất đề tài mới
+  createTopic(payload: TopicCreateRequest): Observable<ApiResponse<Topic>> {
+    return this.http.post<ApiResponse<Topic>>(`${this.API_URL}/topics`, payload);
+  }
+
+  // Giảng viên chỉnh sửa đề tài
+  updateTopic(topicId: string, payload: TopicUpdateRequest): Observable<ApiResponse<Topic>> {
+    return this.http.put<ApiResponse<Topic>>(`${this.API_URL}/topics/${topicId}`, payload);
+  }
+
+  // Sinh viên đăng ký đề tài
+  createRegistration(payload: RegistrationCreateRequest): Observable<ApiResponse<Registration>> {
+    return this.http.post<ApiResponse<Registration>>(`${this.API_URL}/registrations`, payload);
+  }
+
+  // Sinh viên hủy đăng ký
+  cancelRegistration(registrationId: string): Observable<ApiResponse<Registration>> {
+    return this.http.patch<ApiResponse<Registration>>(`${this.API_URL}/registrations/${registrationId}/cancel`, {});
+  }
+
+  // Giảng viên duyệt đăng ký
+  approveRegistration(registrationId: string): Observable<ApiResponse<Registration>> {
+    return this.http.put<ApiResponse<Registration>>(`${this.API_URL}/registrations/${registrationId}/approve`, {});
+  }
+
+  // Giảng viên từ chối đăng ký
+  rejectRegistration(registrationId: string, payload: RegistrationRejectRequest): Observable<ApiResponse<Registration>> {
+    return this.http.put<ApiResponse<Registration>>(`${this.API_URL}/registrations/${registrationId}/reject`, payload);
   }
 }

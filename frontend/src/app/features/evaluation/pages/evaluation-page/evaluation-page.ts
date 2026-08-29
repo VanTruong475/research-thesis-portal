@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
 import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
@@ -16,7 +17,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         <h1 class="text-3xl font-display font-bold text-primary uppercase tracking-wider">
           Chấm Điểm Đề Tài
         </h1>
-        <p class="text-muted mt-2">Danh sách sinh viên đang chờ đánh giá</p>
+        <p class="text-muted mt-2">Danh sách phiếu điểm liên quan đến đồ án này</p>
       </div>
 
       <div class="flex gap-8 flex-1 min-h-0 relative">
@@ -24,7 +25,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <span class="text-primary font-medium">Đang tải dữ liệu...</span>
         </div>
 
-        <!-- Danh sách sinh viên (Cột trái) -->
+        <!-- Danh sách phiếu điểm (Cột trái) -->
         <div class="w-1/3 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
           <div *ngFor="let ev of evaluationService.evaluations()"
                (click)="selectEvaluation(ev)"
@@ -45,7 +46,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           </div>
           
           <div *ngIf="evaluationService.evaluations().length === 0 && !isLoading" class="text-muted text-sm italic">
-            Không có đồ án nào cần chấm điểm.
+            Chưa có thông tin phiếu điểm.
           </div>
         </div>
 
@@ -61,7 +62,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <ng-template #noSelection>
             <div class="h-full flex flex-col items-center justify-center text-muted border border-dashed border-border-subtle rounded-sm p-8">
               <span class="material-symbols-outlined text-4xl mb-4 opacity-50">edit_document</span>
-              <p>Chọn một sinh viên từ danh sách để bắt đầu chấm điểm</p>
+              <p>Chọn một phiếu điểm từ danh sách để bắt đầu chấm</p>
             </div>
           </ng-template>
         </div>
@@ -72,21 +73,24 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 export class EvaluationPageComponent implements OnInit {
   evaluationService = inject(EvaluationService);
   authService = inject(AuthService);
+  route = inject(ActivatedRoute);
 
   selectedEval: ScoreResponse | null = null;
   selectedEvalCopy: ScoreResponse | null = null;
   isLoading = false;
-
-  // UUID giả lập để lấy các phiếu điểm liên quan
-  private readonly DUMMY_REG_ID = '123e4567-e89b-12d3-a456-426614174000';
+  registrationId: string | null = null;
 
   ngOnInit() {
-    this.loadEvaluations();
+    this.registrationId = this.route.snapshot.paramMap.get('registrationId');
+    if (this.registrationId) {
+      this.loadEvaluations();
+    }
   }
 
   loadEvaluations() {
+    if (!this.registrationId) return;
     this.isLoading = true;
-    this.evaluationService.getScoresByRegistration(this.DUMMY_REG_ID).subscribe({
+    this.evaluationService.getScoresByRegistration(this.registrationId).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
@@ -103,6 +107,7 @@ export class EvaluationPageComponent implements OnInit {
         // Sau khi lưu xong, bỏ chọn để force click lại lấy data mới nhất nếu cần
         this.selectedEval = null;
         this.selectedEvalCopy = null;
+        this.loadEvaluations(); // Reload sau khi nộp
       }
     });
   }

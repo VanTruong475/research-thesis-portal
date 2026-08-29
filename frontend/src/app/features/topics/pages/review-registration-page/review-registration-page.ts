@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
@@ -7,7 +8,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 @Component({
   selector: 'app-review-registration-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge],
+  imports: [CommonModule, RouterModule, StatusBadge],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-8">
@@ -50,11 +51,27 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                 </td>
                 <td class="p-4 text-right">
                   <div *ngIf="reg.status === 'pending'" class="flex justify-end gap-3">
-                    <button class="px-4 py-1.5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-dark-ink transition-colors rounded-sm text-sm font-medium">Duyệt</button>
-                    <button class="px-4 py-1.5 bg-transparent text-danger border border-border-subtle hover:border-danger transition-colors rounded-sm text-sm font-medium">Từ chối</button>
+                    <button 
+                      [disabled]="isProcessing === reg.id"
+                      (click)="approveRegistration(reg.id)"
+                      class="px-4 py-1.5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-dark-ink transition-colors rounded-sm text-sm font-medium disabled:opacity-50">
+                      Duyệt
+                    </button>
+                    <button 
+                      [disabled]="isProcessing === reg.id"
+                      (click)="rejectRegistration(reg.id)"
+                      class="px-4 py-1.5 bg-transparent text-danger border border-border-subtle hover:border-danger transition-colors rounded-sm text-sm font-medium disabled:opacity-50">
+                      Từ chối
+                    </button>
                   </div>
-                  <div *ngIf="reg.status !== 'pending'" class="text-muted text-sm italic">
-                    Đã xử lý
+                  
+                  <div *ngIf="reg.status === 'approved'" class="flex justify-end gap-3">
+                    <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Theo dõi tiến độ">Tiến độ</a>
+                    <a [routerLink]="['/app/registrations', reg.id, 'evaluation']" class="text-sm font-medium text-primary hover:underline" title="Chấm điểm">Chấm điểm</a>
+                  </div>
+                  
+                  <div *ngIf="reg.status === 'rejected'" class="text-muted text-sm italic">
+                    Đã từ chối
                   </div>
                 </td>
               </tr>
@@ -76,14 +93,56 @@ export class ReviewRegistrationPageComponent implements OnInit {
   authService = inject(AuthService);
   
   isLoading = false;
+  isProcessing: string | null = null;
 
   ngOnInit() {
+    this.loadRegistrations();
+  }
+
+  loadRegistrations() {
     const user = this.authService.currentUser();
     if (user && user.role === 'lecturer') {
       this.isLoading = true;
       this.topicService.fetchPendingRegistrations().subscribe({
         next: () => this.isLoading = false,
         error: () => this.isLoading = false
+      });
+    }
+  }
+
+  approveRegistration(registrationId: string) {
+    if (confirm('Bạn có chắc chắn muốn duyệt cho sinh viên này thực hiện đề tài?')) {
+      this.isProcessing = registrationId;
+      this.topicService.approveRegistration(registrationId).subscribe({
+        next: () => {
+          this.isProcessing = null;
+          this.loadRegistrations();
+        },
+        error: (err) => {
+          this.isProcessing = null;
+          alert(err.error?.message || 'Có lỗi xảy ra khi duyệt.');
+        }
+      });
+    }
+  }
+
+  rejectRegistration(registrationId: string) {
+    const reason = prompt('Vui lòng nhập lý do từ chối (bắt buộc):');
+    if (reason !== null) {
+      if (!reason.trim()) {
+        alert('Lý do từ chối không được để trống.');
+        return;
+      }
+      this.isProcessing = registrationId;
+      this.topicService.rejectRegistration(registrationId, { review_reason: reason }).subscribe({
+        next: () => {
+          this.isProcessing = null;
+          this.loadRegistrations();
+        },
+        error: (err) => {
+          this.isProcessing = null;
+          alert(err.error?.message || 'Có lỗi xảy ra khi từ chối.');
+        }
       });
     }
   }

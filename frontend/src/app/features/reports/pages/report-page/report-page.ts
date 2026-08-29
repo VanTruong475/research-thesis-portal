@@ -1,15 +1,16 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { FileUploaderComponent } from '../../components/file-uploader/file-uploader';
 import { ReportHistoryComponent } from '../../components/report-history/report-history';
-import { ReportService } from '../../services/report';
+import { ReportService } from '../../services/report.service';
 
 @Component({
   selector: 'app-report-page',
   standalone: true,
   imports: [CommonModule, FileUploaderComponent, ReportHistoryComponent],
   template: `
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-4xl mx-auto p-8">
       <div class="mb-8">
         <h1 class="text-3xl font-display font-bold text-heading mb-2">Báo cáo Tài liệu</h1>
         <p class="text-muted">Nộp và quản lý các phiên bản tài liệu báo cáo của đề tài (DOCX, PDF).</p>
@@ -32,24 +33,30 @@ import { ReportService } from '../../services/report';
 })
 export class ReportPageComponent implements OnInit {
   reportService = inject(ReportService);
+  route = inject(ActivatedRoute);
   isLoading = false;
-
-  // Giả lập một UUID đề tài hợp lệ để hiển thị UI
-  // Trong thực tế, ID này sẽ được lấy từ Route Parameter (vd: /reports/:topicId)
-  private readonly DUMMY_TOPIC_ID = '123e4567-e89b-12d3-a456-426614174000';
+  topicId: string | null = null;
 
   ngOnInit() {
+    this.topicId = this.route.snapshot.paramMap.get('topicId');
+    if (this.topicId) {
+      this.loadReports();
+    }
+  }
+
+  loadReports() {
+    if (!this.topicId) return;
     this.isLoading = true;
-    this.reportService.getReportsByTopic(this.DUMMY_TOPIC_ID).subscribe({
+    this.reportService.getReportsByTopic(this.topicId).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
   }
 
   onFileUpload(file: File) {
-    this.reportService.uploadReport({
-      topic_id: this.DUMMY_TOPIC_ID,
-      file: file
-    }).subscribe();
+    if (!this.topicId) return;
+    this.reportService.uploadReport(this.topicId, file).subscribe(() => {
+      this.loadReports(); // Tải lại lịch sử sau khi upload thành công
+    });
   }
 }

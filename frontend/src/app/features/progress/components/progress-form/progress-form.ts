@@ -1,7 +1,7 @@
 import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProgressSubmitRequest } from '../../models/progress.model';
+import { CreateProgressLogRequest } from '../../models/progress.model';
 import { AuthService } from '../../../../core/services/auth';
 
 @Component({
@@ -43,7 +43,7 @@ import { AuthService } from '../../../../core/services/auth';
   `
 })
 export class ProgressFormComponent {
-  @Output() submitProgress = new EventEmitter<ProgressSubmitRequest>();
+  @Output() submitProgress = new EventEmitter<CreateProgressLogRequest>();
   
   content: string = '';
   authService = inject(AuthService);

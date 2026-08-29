@@ -1,32 +1,33 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { ProgressTimelineComponent } from '../../components/progress-timeline/progress-timeline';
 import { ProgressFormComponent } from '../../components/progress-form/progress-form';
-import { ProgressService } from '../../services/progress';
-import { ProgressSubmitRequest, ProgressCommentRequest } from '../../models/progress.model';
+import { ProgressService } from '../../services/progress.service';
+import { AuthService } from '../../../../core/services/auth';
+import { CreateProgressLogRequest, AddTeacherCommentRequest } from '../../models/progress.model';
 
 @Component({
   selector: 'app-progress-list-page',
   standalone: true,
   imports: [CommonModule, ProgressTimelineComponent, ProgressFormComponent],
   template: `
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-4xl mx-auto p-8">
       <div class="mb-8">
-        <h1 class="text-3xl font-display font-bold text-heading mb-2">Tiến độ Hướng dẫn</h1>
-        <p class="text-muted">Theo dõi và báo cáo tiến độ thực hiện đề tài nghiên cứu.</p>
+        <h1 class="text-3xl font-display font-bold text-heading mb-2">Báo Cáo Tiến Độ</h1>
+        <p class="text-muted">Ghi nhận và theo dõi tiến trình thực hiện đồ án của bạn.</p>
       </div>
 
-      <!-- Form nộp báo cáo -->
+      <!-- Form nộp báo cáo (chỉ sinh viên thấy) -->
       <app-progress-form 
-        (submitProgress)="onProgressSubmit($event)">
+        *ngIf="isStudent" 
+        (submitReport)="onSubmitReport($event)">
       </app-progress-form>
 
-      <!-- Danh sách dòng thời gian tiến độ -->
-      <div class="mt-12 relative">
-        <h2 class="text-xl font-display font-medium text-heading mb-6">Lịch sử Báo cáo</h2>
-        
+      <!-- Dòng thời gian -->
+      <div class="mt-8 relative">
         <div *ngIf="isLoading" class="text-primary py-4">Đang tải dữ liệu tiến độ...</div>
-
+        
         <app-progress-timeline 
           *ngIf="!isLoading"
           [logs]="progressService.progressLogs()"
@@ -38,27 +39,43 @@ import { ProgressSubmitRequest, ProgressCommentRequest } from '../../models/prog
 })
 export class ProgressListPageComponent implements OnInit {
   progressService = inject(ProgressService);
+  authService = inject(AuthService);
+  route = inject(ActivatedRoute);
+  
   isLoading = false;
+  registrationId: string | null = null;
 
-  // Giả lập một UUID đăng ký hợp lệ để hiển thị UI
-  // Trong thực tế, ID này sẽ được lấy từ Route Parameter (vd: /progress/:id)
-  private readonly DUMMY_REG_ID = '123e4567-e89b-12d3-a456-426614174000';
+  get isStudent(): boolean {
+    return this.authService.currentUser()?.role === 'student';
+  }
 
   ngOnInit() {
+    this.registrationId = this.route.snapshot.paramMap.get('registrationId');
+    if (this.registrationId) {
+      this.loadProgress();
+    }
+  }
+
+  loadProgress() {
+    if (!this.registrationId) return;
     this.isLoading = true;
-    this.progressService.getLogsByRegistration(this.DUMMY_REG_ID).subscribe({
+    this.progressService.getLogsByRegistration(this.registrationId).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
   }
 
-  onProgressSubmit(req: ProgressSubmitRequest) {
-    // Override reg_id bằng dummy ID cho test
-    const requestWithId = { ...req, registration_id: this.DUMMY_REG_ID };
-    this.progressService.submitProgress(requestWithId).subscribe();
+  onSubmitReport(req: Omit<CreateProgressLogRequest, 'registration_id'>) {
+    if (!this.registrationId) return;
+    // Gắn ID đăng ký vào payload trước khi gọi API
+    const requestWithId = { ...req, registration_id: this.registrationId };
+    
+    this.progressService.createLog(requestWithId).subscribe(() => {
+      this.loadProgress(); // Reload sau khi tạo thành công
+    });
   }
 
-  onCommentSubmit(logId: string, req: ProgressCommentRequest) {
-    this.progressService.commentOnProgress(logId, req).subscribe();
+  onCommentSubmit(logId: string, req: AddTeacherCommentRequest) {
+    this.progressService.addComment(logId, req).subscribe(() => this.loadProgress());
   }
 }

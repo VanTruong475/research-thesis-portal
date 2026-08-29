@@ -37,3 +37,24 @@ export interface Council {
   members: CouncilMember[];
   schedules: DefenseSchedule[];
 }
+
+export interface CreateCouncilRequest {
+  academic_period_id: string;
+  code: string;
+  name: string;
+  description?: string;
+  default_room?: string;
+}
+
+export interface CouncilMemberAssignRequest {
+  lecturer_id: string;
+  member_role: CouncilMemberRole;
+}
+
+export interface DefenseScheduleCreateRequest {
+  registration_id: string;
+  scheduled_at: string; // ISO string
+  duration_minutes: number;
+  room: string;
+}
+
