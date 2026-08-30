@@ -43,7 +43,7 @@ import { AuthService } from '../../../../core/services/auth';
   `
 })
 export class ProgressFormComponent {
-  @Output() submitProgress = new EventEmitter<CreateProgressLogRequest>();
+  @Output() submitProgress = new EventEmitter<Omit<CreateProgressLogRequest, 'registration_id'>>();
   
   content: string = '';
   authService = inject(AuthService);
@@ -57,7 +57,6 @@ export class ProgressFormComponent {
     if (!this.content.trim()) return;
     
     this.submitProgress.emit({
-      registration_id: 'reg-1', // Tạm thời hardcode, thực tế sẽ lấy từ Router Params hoặc Input
       content: this.content.trim()
     });
     

@@ -4,7 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
-import { PeriodService } from '../../academic-periods/services/period.service';
+import { PeriodService } from '../../../academic-periods/services/period.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { Topic, TopicCreateRequest } from '../../models/topic.model';
 

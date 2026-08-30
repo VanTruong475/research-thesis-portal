@@ -21,7 +21,7 @@ import { CreateProgressLogRequest, AddTeacherCommentRequest } from '../../models
       <!-- Form nộp báo cáo (chỉ sinh viên thấy) -->
       <app-progress-form 
         *ngIf="isStudent" 
-        (submitReport)="onSubmitReport($event)">
+        (submitProgress)="onSubmitReport($event)">
       </app-progress-form>
 
       <!-- Dòng thời gian -->
