@@ -50,7 +50,9 @@ export class TopicService {
 
   // Lấy danh sách đăng ký của một giảng viên (để duyệt)
   fetchPendingRegistrations(): Observable<ApiResponse<RegistrationListResponse>> {
-    return this.http.get<ApiResponse<RegistrationListResponse>>(`${this.API_URL}/registrations/my-approvals`).pipe(
+    // Sửa API: Gọi đến endpoint chung /registrations.
+    // Logic Backend đã tự động lọc các đăng ký thuộc về đề tài do Giảng viên này quản lý (Role-based access control).
+    return this.http.get<ApiResponse<RegistrationListResponse>>(`${this.API_URL}/registrations`).pipe(
       tap(res => {
         if (res.data) this.registrations.set(res.data.items);
       })

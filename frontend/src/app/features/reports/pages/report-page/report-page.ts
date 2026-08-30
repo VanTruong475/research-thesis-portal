@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FileUploaderComponent } from '../../components/file-uploader/file-uploader';
 import { ReportHistoryComponent } from '../../components/report-history/report-history';
 import { ReportService } from '../../services/report.service';
+import { AuthService } from '../../../../core/services/auth';
 
 @Component({
   selector: 'app-report-page',
@@ -16,8 +17,8 @@ import { ReportService } from '../../services/report.service';
         <p class="text-muted">Nộp và quản lý các phiên bản tài liệu báo cáo của đề tài (DOCX, PDF).</p>
       </div>
 
-      <!-- File Uploader -->
-      <app-file-uploader (fileUpload)="onFileUpload($event)"></app-file-uploader>
+      <!-- File Uploader (chỉ sinh viên mới được nộp báo cáo) -->
+      <app-file-uploader *ngIf="isStudent" (fileUpload)="onFileUpload($event)"></app-file-uploader>
 
       <!-- Lịch sử báo cáo -->
       <div class="mt-8 relative">
@@ -33,9 +34,15 @@ import { ReportService } from '../../services/report.service';
 })
 export class ReportPageComponent implements OnInit {
   reportService = inject(ReportService);
+  authService = inject(AuthService); // Inject AuthService để lấy thông tin user
   route = inject(ActivatedRoute);
   isLoading = false;
   topicId: string | null = null;
+
+  // Getter kiểm tra xem người dùng có phải là sinh viên không
+  get isStudent(): boolean {
+    return this.authService.currentUser()?.role === 'student';
+  }
 
   ngOnInit() {
     this.topicId = this.route.snapshot.paramMap.get('topicId');

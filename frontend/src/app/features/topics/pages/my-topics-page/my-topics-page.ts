@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
+import { PeriodService } from '../../academic-periods/services/period.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { Topic, TopicCreateRequest } from '../../models/topic.model';
 
@@ -21,7 +22,7 @@ import { Topic, TopicCreateRequest } from '../../models/topic.model';
           <p class="text-muted mt-2">Quản lý các đề tài do bạn hướng dẫn</p>
         </div>
         
-        <button class="ks-button ks-button-primary" (click)="openDialog()">
+        <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="!activePeriodId ? 'Hệ thống chưa mở học kỳ nào' : ''">
           + Thêm Đề Tài Mới
         </button>
       </div>
@@ -122,6 +123,7 @@ import { Topic, TopicCreateRequest } from '../../models/topic.model';
 export class MyTopicsPageComponent implements OnInit {
   topicService = inject(TopicService);
   authService = inject(AuthService);
+  periodService = inject(PeriodService); // Thêm PeriodService để giao tiếp API
   private fb = inject(FormBuilder);
   
   isLoading = false;
@@ -130,12 +132,24 @@ export class MyTopicsPageComponent implements OnInit {
   editingTopicId: string | null = null;
   topicForm!: FormGroup;
 
-  // Giả lập ID học kỳ
-  private readonly DUMMY_PERIOD_ID = '123e4567-e89b-12d3-a456-426614174000';
+  // Biến lưu ID thật của học kỳ thay vì dùng DUMMY
+  activePeriodId: string | null = null;
 
   ngOnInit() {
     this.initForm();
     this.loadTopics();
+    this.loadActivePeriod(); // Gọi hàm lấy học kỳ khi khởi tạo trang
+  }
+
+  loadActivePeriod() {
+    // Lấy 1 học kỳ mới nhất từ hệ thống
+    this.periodService.fetchPeriods(1, 1).subscribe({
+      next: (res) => {
+        if (res.data && res.data.items.length > 0) {
+          this.activePeriodId = res.data.items[0].id;
+        }
+      }
+    });
   }
 
   loadTopics() {
@@ -183,12 +197,13 @@ export class MyTopicsPageComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.topicForm.invalid) return;
+    // Không cho phép lưu nếu form không hợp lệ hoặc chưa có học kỳ
+    if (this.topicForm.invalid || !this.activePeriodId) return;
     
     this.isSubmitting = true;
     const payload: TopicCreateRequest = {
       ...this.topicForm.value,
-      academic_period_id: this.DUMMY_PERIOD_ID
+      academic_period_id: this.activePeriodId // Truyền ID học kỳ thật vào payload gửi lên backend
     };
 
     if (this.editingTopicId) {

@@ -59,10 +59,6 @@ export const routes: Routes = [
       {
         path: 'registrations/my',
         loadComponent: () => import('./features/topics/pages/my-registration-page/my-registration-page').then(m => m.MyRegistrationPageComponent)
-      },
-      {
-        path: 'progress/supervised',
-        loadComponent: () => import('./features/progress/pages/supervised-progress-page/supervised-progress-page').then(m => m.SupervisedProgressPageComponent)
       }
       // Các tính năng của Member A/B sẽ được lazy load tiếp ở đây
     ]
