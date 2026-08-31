@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CouncilService } from '../../services/council';
+import { PeriodService } from '../../../academic-periods/services/period.service';
 import { Council, CouncilMemberRole, CreateCouncilRequest, CouncilMemberAssignRequest, DefenseScheduleCreateRequest } from '../../models/council.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
@@ -174,12 +175,12 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 })
 export class CouncilListPageComponent implements OnInit {
   councilService = inject(CouncilService);
+  periodService = inject(PeriodService);
   private fb = inject(FormBuilder);
   
   isLoading = false;
   isSubmitting = false;
   
-  // Trạng thái Dialog: 'none' | 'council' | 'member' | 'schedule'
   activeDialog: 'none' | 'council' | 'member' | 'schedule' = 'none';
   selectedCouncilId: string | null = null;
 
@@ -187,17 +188,32 @@ export class CouncilListPageComponent implements OnInit {
   memberForm!: FormGroup;
   scheduleForm!: FormGroup;
 
-  // Giả lập ID học kỳ
-  private readonly DUMMY_PERIOD_ID = '123e4567-e89b-12d3-a456-426614174000';
+  activePeriodId: string | null = null;
 
   ngOnInit() {
     this.initForms();
-    this.loadCouncils();
+    this.loadActivePeriod();
+  }
+
+  loadActivePeriod() {
+    this.isLoading = true;
+    this.periodService.fetchPeriods(1, 1).subscribe({
+      next: (res) => {
+        if (res.data && res.data.items.length > 0) {
+          this.activePeriodId = res.data.items[0].id;
+          this.loadCouncils();
+        } else {
+          this.isLoading = false;
+        }
+      },
+      error: () => this.isLoading = false
+    });
   }
 
   loadCouncils() {
+    if (!this.activePeriodId) return;
     this.isLoading = true;
-    this.councilService.getCouncilsByPeriod(this.DUMMY_PERIOD_ID).subscribe({
+    this.councilService.getCouncilsByPeriod(this.activePeriodId).subscribe({
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
@@ -247,11 +263,11 @@ export class CouncilListPageComponent implements OnInit {
   }
 
   onSubmitCouncil() {
-    if (this.councilForm.invalid) return;
+    if (this.councilForm.invalid || !this.activePeriodId) return;
     this.isSubmitting = true;
     const payload: CreateCouncilRequest = {
       ...this.councilForm.value,
-      academic_period_id: this.DUMMY_PERIOD_ID
+      academic_period_id: this.activePeriodId
     };
 
     this.councilService.createCouncil(payload).subscribe({

@@ -40,6 +40,24 @@ class UserService:
         await self.db.commit()
         return UserResponse.model_validate(current_user)
 
+    async def change_password(
+        self,
+        current_user: User,
+        payload: UserPasswordUpdateRequest,
+    ) -> UserResponse:
+        from app.core.security import verify_password, hash_password
+        if not verify_password(payload.current_password, current_user.password_hash):
+            raise AppException(
+                status_code=400,
+                message="Mật khẩu hiện tại không chính xác.",
+                code="INVALID_PASSWORD",
+            )
+        
+        current_user.password_hash = hash_password(payload.new_password)
+        await self.repository.update_user(current_user)
+        await self.db.commit()
+        return UserResponse.model_validate(current_user)
+
     async def list_users(self, *, page: int, page_size: int) -> UserListResponse:
         users, total_items = await self.repository.list_users(page=page, page_size=page_size)
         total_pages = math.ceil(total_items / page_size) if total_items else 0

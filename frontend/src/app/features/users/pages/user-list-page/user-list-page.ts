@@ -31,6 +31,15 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
             <option value="lecturer">Giảng viên</option>
             <option value="student">Sinh viên</option>
           </select>
+
+          <!-- Bộ lọc Status -->
+          <select 
+            class="ks-input w-48"
+            [(ngModel)]="filterStatus">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Hoạt động</option>
+            <option value="inactive">Đã khóa</option>
+          </select>
           
           <button routerLink="/app/users/new" class="ks-button ks-button-primary">
             + Thêm Mới
@@ -100,13 +109,22 @@ export class UserListPageComponent implements OnInit {
   userService = inject(UserService);
   
   filterRole = 'all';
+  filterStatus = 'all';
   isLoading = false;
 
   // Signal phụ thuộc vào danh sách gốc và bộ lọc
   displayedUsers = computed(() => {
-    const all = this.userService.users();
-    if (this.filterRole === 'all') return all;
-    return all.filter(u => u.role === this.filterRole);
+    let all = this.userService.users();
+    
+    if (this.filterRole !== 'all') {
+      all = all.filter(u => u.role === this.filterRole);
+    }
+    
+    if (this.filterStatus !== 'all') {
+      all = all.filter(u => u.status === this.filterStatus);
+    }
+    
+    return all;
   });
 
   ngOnInit() {

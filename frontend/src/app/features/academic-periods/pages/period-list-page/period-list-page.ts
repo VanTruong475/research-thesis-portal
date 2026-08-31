@@ -32,8 +32,8 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <div class="flex justify-between items-start mb-6">
             <h2 class="text-xl font-display font-bold text-primary">{{ period.name }} ({{ period.academic_year }})</h2>
             <app-status-badge 
-              [type]="period.status === 'active' ? 'success' : (period.status === 'closed' ? 'neutral' : 'warning')">
-              {{ period.status === 'active' ? 'Đang diễn ra' : (period.status === 'closed' ? 'Đã kết thúc' : 'Nháp') }}
+              [type]="period.status === 'proposal_open' || period.status === 'registration_open' || period.status === 'in_progress' ? 'success' : (period.status === 'completed' ? 'neutral' : (period.status === 'draft' ? 'warning' : 'danger'))">
+              {{ formatStatus(period.status) }}
             </app-status-badge>
           </div>
           
@@ -53,8 +53,12 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <!-- Các nút thao tác hiển thị khi hover -->
           <div class="mt-6 pt-4 border-t border-border-subtle flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
             <!-- Nút đổi trạng thái -->
-            <button *ngIf="period.status === 'draft'" class="text-sm font-medium text-success hover:text-success/80 transition-colors underline" (click)="changeStatus(period.id, 'active')">Mở kỳ học</button>
-            <button *ngIf="period.status === 'active'" class="text-sm font-medium text-warning hover:text-warning/80 transition-colors underline" (click)="changeStatus(period.id, 'closed')">Kết thúc</button>
+            <button *ngIf="period.status === 'draft'" class="text-sm font-medium text-success hover:text-success/80 transition-colors underline" (click)="changeStatus(period.id, 'proposal_open')">Mở đề xuất ĐT</button>
+            <button *ngIf="period.status === 'proposal_open'" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="changeStatus(period.id, 'registration_open')">Mở đăng ký SV</button>
+            <button *ngIf="period.status === 'registration_open'" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="changeStatus(period.id, 'in_progress')">Bắt đầu thực hiện</button>
+            <button *ngIf="period.status === 'in_progress'" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="changeStatus(period.id, 'defense')">Mở bảo vệ</button>
+            <button *ngIf="period.status === 'defense'" class="text-sm font-medium text-warning hover:text-warning/80 transition-colors underline" (click)="changeStatus(period.id, 'completed')">Kết thúc</button>
+            <button *ngIf="period.status !== 'completed' && period.status !== 'cancelled'" class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline" (click)="changeStatus(period.id, 'cancelled')">Hủy</button>
             
             <button class="text-sm font-medium text-muted hover:text-primary transition-colors underline" (click)="openDialog(period)">Sửa</button>
           </div>
@@ -137,6 +141,19 @@ export class PeriodListPageComponent implements OnInit {
   ngOnInit() {
     this.initForm();
     this.loadPeriods();
+  }
+
+  formatStatus(status: AcademicPeriodStatus): string {
+    const statusMap: Record<AcademicPeriodStatus, string> = {
+      'draft': 'Nháp',
+      'proposal_open': 'Mở Đề xuất ĐT',
+      'registration_open': 'Mở Đăng ký SV',
+      'in_progress': 'Đang thực hiện',
+      'defense': 'Bảo vệ',
+      'completed': 'Hoàn thành',
+      'cancelled': 'Đã hủy'
+    };
+    return statusMap[status] || status;
   }
 
   loadPeriods() {

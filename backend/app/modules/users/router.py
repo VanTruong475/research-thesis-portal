@@ -12,6 +12,7 @@ from app.modules.users.model import User
 from app.modules.users.schemas import (
     UserCreateRequest,
     UserProfileUpdateRequest,
+    UserPasswordUpdateRequest,
     UserStatusUpdateRequest,
 )
 from app.modules.users.service import UserService
@@ -49,6 +50,23 @@ async def update_my_profile(
     return create_success_response(
         data=user_data.model_dump(mode="json"),
         message="Profile updated successfully.",
+    )
+
+
+@router.put(
+    "/me/password",
+    status_code=status.HTTP_200_OK,
+    summary="Update current user's password",
+)
+async def update_my_password(
+    payload: UserPasswordUpdateRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    user_data = await UserService(db).change_password(current_user, payload)
+    return create_success_response(
+        data=user_data.model_dump(mode="json"),
+        message="Password updated successfully.",
     )
 
 

@@ -1,4 +1,4 @@
-export type AcademicPeriodStatus = 'draft' | 'active' | 'closed';
+export type AcademicPeriodStatus = 'draft' | 'proposal_open' | 'registration_open' | 'in_progress' | 'defense' | 'completed' | 'cancelled';
 
 export interface AcademicPeriod {
   id: string;

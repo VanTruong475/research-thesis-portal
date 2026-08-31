@@ -38,6 +38,14 @@ class UserStatusUpdateRequest(BaseModel):
     status: UserStatus
 
 
+class UserPasswordUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    current_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=6)
+
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

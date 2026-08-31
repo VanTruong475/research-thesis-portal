@@ -44,4 +44,9 @@ export class UserService {
   updateUserStatus(userId: string, status: 'active' | 'inactive'): Observable<ApiResponse<UserProfile>> {
     return this.http.patch<ApiResponse<UserProfile>>(`${this.API_URL}/users/${userId}/status`, { status });
   }
+
+  // Đổi mật khẩu
+  changePassword(payload: any): Observable<ApiResponse<any>> {
+    return this.http.put<ApiResponse<any>>(`${this.API_URL}/users/me/password`, payload);
+  }
 }

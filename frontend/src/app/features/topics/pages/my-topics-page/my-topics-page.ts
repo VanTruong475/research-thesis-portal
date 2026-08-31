@@ -22,7 +22,7 @@ import { Topic, TopicCreateRequest } from '../../models/topic.model';
           <p class="text-muted mt-2">Quản lý các đề tài do bạn hướng dẫn</p>
         </div>
         
-        <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="!activePeriodId ? 'Hệ thống chưa mở học kỳ nào' : ''">
+        <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="!activePeriodId ? 'Hiện không có đợt mở đề xuất đề tài nào' : ''">
           + Thêm Đề Tài Mới
         </button>
       </div>
@@ -142,11 +142,12 @@ export class MyTopicsPageComponent implements OnInit {
   }
 
   loadActivePeriod() {
-    // Lấy 1 học kỳ mới nhất từ hệ thống
-    this.periodService.fetchPeriods(1, 1).subscribe({
+    // Lấy danh sách học kỳ và tìm học kỳ đang mở đề xuất đề tài
+    this.periodService.fetchPeriods(1, 10).subscribe({
       next: (res) => {
         if (res.data && res.data.items.length > 0) {
-          this.activePeriodId = res.data.items[0].id;
+          const active = res.data.items.find(p => p.status === 'proposal_open');
+          this.activePeriodId = active ? active.id : null;
         }
       }
     });
