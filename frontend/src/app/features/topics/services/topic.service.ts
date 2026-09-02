@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Topic, Registration, TopicListResponse, RegistrationListResponse, TopicCreateRequest, TopicUpdateRequest, RegistrationCreateRequest, RegistrationRejectRequest } from '../models/topic.model';
+import { Topic, Registration, TopicListResponse, RegistrationListResponse, TopicCreateRequest, TopicUpdateRequest, RegistrationCreateRequest, RegistrationRejectRequest, TopicRejectRequest } from '../models/topic.model';
 import { ApiResponse } from '../../../core/models/api.model';
 import { environment } from '../../../../environments/environment';
 
@@ -30,8 +30,12 @@ export class TopicService {
 
   // Lấy danh sách topic dành cho sinh viên đăng ký (available topics)
   fetchAvailableTopics(page: number = 1, pageSize: number = 50): Observable<ApiResponse<TopicListResponse>> {
-    const params = new HttpParams().set('page', page.toString()).set('page_size', pageSize.toString());
-    return this.http.get<ApiResponse<TopicListResponse>>(`${this.API_URL}/topics/available`, { params }).pipe(
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('page_size', pageSize.toString())
+      .set('availability', 'available');
+
+    return this.http.get<ApiResponse<TopicListResponse>>(`${this.API_URL}/topics`, { params }).pipe(
       tap(res => {
         if (res.data) this.topics.set(res.data.items);
       })
@@ -41,17 +45,16 @@ export class TopicService {
   // Giảng viên lấy danh sách đề tài của mình
   fetchMyTopics(page: number = 1, pageSize: number = 50): Observable<ApiResponse<TopicListResponse>> {
     const params = new HttpParams().set('page', page.toString()).set('page_size', pageSize.toString());
-    return this.http.get<ApiResponse<TopicListResponse>>(`${this.API_URL}/topics/my`, { params }).pipe(
+    return this.http.get<ApiResponse<TopicListResponse>>(`${this.API_URL}/topics`, { params }).pipe(
       tap(res => {
         if (res.data) this.topics.set(res.data.items);
       })
     );
   }
 
-  // Lấy danh sách đăng ký của một giảng viên (để duyệt)
-  fetchPendingRegistrations(): Observable<ApiResponse<RegistrationListResponse>> {
-    // Sửa API: Gọi đến endpoint chung /registrations.
-    // Logic Backend đã tự động lọc các đăng ký thuộc về đề tài do Giảng viên này quản lý (Role-based access control).
+  // Lấy danh sách đăng ký mà giảng viên được phép xem/duyệt
+  fetchLecturerRegistrations(): Observable<ApiResponse<RegistrationListResponse>> {
+    // Backend tự lọc theo quyền: đề tài giảng viên đề xuất hoặc đăng ký giảng viên đang hướng dẫn.
     return this.http.get<ApiResponse<RegistrationListResponse>>(`${this.API_URL}/registrations`).pipe(
       tap(res => {
         if (res.data) this.registrations.set(res.data.items);
@@ -76,6 +79,16 @@ export class TopicService {
   // Giảng viên chỉnh sửa đề tài
   updateTopic(topicId: string, payload: TopicUpdateRequest): Observable<ApiResponse<Topic>> {
     return this.http.put<ApiResponse<Topic>>(`${this.API_URL}/topics/${topicId}`, payload);
+  }
+
+  // Admin duyệt đề tài
+  approveTopic(topicId: string): Observable<ApiResponse<Topic>> {
+    return this.http.put<ApiResponse<Topic>>(`${this.API_URL}/topics/${topicId}/approve`, {});
+  }
+
+  // Admin từ chối đề tài
+  rejectTopic(topicId: string, payload: TopicRejectRequest): Observable<ApiResponse<Topic>> {
+    return this.http.put<ApiResponse<Topic>>(`${this.API_URL}/topics/${topicId}/reject`, payload);
   }
 
   // Sinh viên đăng ký đề tài
