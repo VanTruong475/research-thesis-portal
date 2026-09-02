@@ -1,7 +1,7 @@
 export type EvaluationType = 'supervisor' | 'council';
 export type ScoreStatus = 'draft' | 'submitted' | 'locked';
-export type FinalResultStatus = 'draft' | 'published';
-export type ResultClassification = 'excellent' | 'good' | 'fair' | 'pass' | 'fail';
+export type FinalResultStatus = 'draft' | 'calculated' | 'published' | 'cancelled';
+export type ResultClassification = 'excellent' | 'good' | 'fair' | 'average' | 'failed';
 
 export interface ScoreCreate {
   registration_id: string;

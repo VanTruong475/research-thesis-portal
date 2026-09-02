@@ -3,7 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CouncilService } from '../../services/council';
 import { PeriodService } from '../../../academic-periods/services/period.service';
-import { Council, CouncilMemberRole, CreateCouncilRequest, CouncilMemberAssignRequest, DefenseScheduleCreateRequest } from '../../models/council.model';
+import { Council, CouncilMemberRole, CouncilStatus, CreateCouncilRequest, CouncilMemberAssignRequest, DefenseScheduleCreateRequest } from '../../models/council.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
 @Component({
@@ -38,8 +38,8 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <div class="text-sm font-mono text-muted mb-1">{{ council.code }}</div>
               <h2 class="text-xl font-display font-bold text-primary">{{ council.name }}</h2>
             </div>
-            <app-status-badge [type]="council.status === 'published' ? 'success' : (council.status === 'draft' ? 'warning' : 'neutral')">
-              {{ council.status === 'published' ? 'Đã chốt' : (council.status === 'draft' ? 'Bản nháp' : 'Hoàn thành') }}
+            <app-status-badge [type]="getCouncilStatusBadgeType(council.status)">
+              {{ formatCouncilStatus(council.status) }}
             </app-status-badge>
           </div>
 
@@ -313,6 +313,24 @@ export class CouncilListPageComponent implements OnInit {
       },
       error: () => this.isSubmitting = false
     });
+  }
+
+  formatCouncilStatus(status: CouncilStatus): string {
+    const statusMap: Record<CouncilStatus, string> = {
+      draft: 'Bản nháp',
+      scheduled: 'Đã lên lịch',
+      in_progress: 'Đang diễn ra (cũ)',
+      completed: 'Hoàn thành',
+      cancelled: 'Đã hủy'
+    };
+    return statusMap[status] || status;
+  }
+
+  getCouncilStatusBadgeType(status: CouncilStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'scheduled') return 'success';
+    if (status === 'draft') return 'warning';
+    if (status === 'cancelled') return 'danger';
+    return 'neutral';
   }
 
   formatRole(role: CouncilMemberRole): string {

@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { FinalResultStatus, ResultClassification } from '../../models/evaluation.model';
 
 @Component({
   selector: 'app-final-results-page',
@@ -49,6 +50,11 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
             <p class="text-body font-sans">
               Sinh viên thực hiện: <span class="font-medium text-primary">{{ res.studentName || 'Chưa cập nhật' }}</span>
             </p>
+            <div class="mt-3">
+              <app-status-badge [type]="getFinalResultStatusBadgeType(res.status)">
+                {{ formatFinalResultStatus(res.status) }}
+              </app-status-badge>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-6 mb-8 text-center">
@@ -70,7 +76,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
             
             <div class="text-right">
               <p class="text-sm text-heading mb-2 uppercase tracking-wider">Xếp Loại</p>
-              <app-status-badge [type]="res.classification === 'excellent' ? 'success' : (res.classification === 'pass' || res.classification === 'good' || res.classification === 'fair' ? 'warning' : 'danger')">
+              <app-status-badge [type]="getClassificationBadgeType(res.classification)">
                 {{ formatClassification(res.classification) }}
               </app-status-badge>
             </div>
@@ -150,15 +156,39 @@ export class FinalResultsPageComponent implements OnInit {
     }
   }
 
-  formatClassification(classification?: string | null): string {
+  formatFinalResultStatus(status: FinalResultStatus): string {
+    const statusMap: Record<FinalResultStatus, string> = {
+      draft: 'Nháp',
+      calculated: 'Đã tính, chưa công bố',
+      published: 'Đã công bố',
+      cancelled: 'Đã hủy'
+    };
+    return statusMap[status] || status;
+  }
+
+  getFinalResultStatusBadgeType(status: FinalResultStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'published') return 'success';
+    if (status === 'calculated' || status === 'draft') return 'warning';
+    if (status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  formatClassification(classification?: ResultClassification | null): string {
     if (!classification) return 'Đang xử lý';
-    const map: Record<string, string> = {
-      'excellent': 'Xuất sắc',
-      'good': 'Giỏi',
-      'fair': 'Khá',
-      'pass': 'Trung bình (Đạt)',
-      'fail': 'Không Đạt'
+    const map: Record<ResultClassification, string> = {
+      excellent: 'Xuất sắc',
+      good: 'Giỏi',
+      fair: 'Khá',
+      average: 'Trung bình',
+      failed: 'Không đạt'
     };
     return map[classification] || classification;
+  }
+
+  getClassificationBadgeType(classification?: ResultClassification | null): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (classification === 'excellent') return 'success';
+    if (classification === 'good' || classification === 'fair' || classification === 'average') return 'warning';
+    if (classification === 'failed') return 'danger';
+    return 'neutral';
   }
 }

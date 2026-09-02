@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
-import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
+import { ScoreResponse, ScoreCreate, ScoreStatus } from '../../models/evaluation.model';
 import { EvaluationFormComponent } from '../../components/evaluation-form/evaluation-form';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
@@ -34,8 +34,8 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
             
             <div class="flex justify-between items-start mb-2">
               <h4 class="font-sans font-medium text-body">{{ ev.studentName || 'Chưa cập nhật' }}</h4>
-              <app-status-badge [type]="ev.status === 'submitted' ? 'success' : 'warning'">
-                {{ ev.status === 'submitted' ? 'Đã nộp' : 'Chưa nộp' }}
+              <app-status-badge [type]="getScoreStatusBadgeType(ev.status)">
+                {{ formatScoreStatus(ev.status) }}
               </app-status-badge>
             </div>
             <p class="text-xs text-muted truncate">{{ ev.topicName || ev.registration_id }}</p>
@@ -94,6 +94,21 @@ export class EvaluationPageComponent implements OnInit {
       next: () => this.isLoading = false,
       error: () => this.isLoading = false
     });
+  }
+
+  formatScoreStatus(status: ScoreStatus): string {
+    const statusMap: Record<ScoreStatus, string> = {
+      draft: 'Nháp',
+      submitted: 'Đã nộp',
+      locked: 'Đã khóa'
+    };
+    return statusMap[status] || status;
+  }
+
+  getScoreStatusBadgeType(status: ScoreStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'submitted') return 'success';
+    if (status === 'draft') return 'warning';
+    return 'neutral';
   }
 
   selectEvaluation(ev: ScoreResponse) {

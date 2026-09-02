@@ -1,15 +1,18 @@
 export type CouncilMemberRole = 'chairperson' | 'secretary' | 'reviewer' | 'member';
-export type CouncilStatus = 'draft' | 'published' | 'completed';
+export type CouncilMemberStatus = 'active' | 'inactive' | 'removed';
+export type CouncilStatus = 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type DefenseScheduleStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed';
 
 export interface CouncilMember {
   id: string;
   council_id: string;
   lecturer_id: string;
   member_role: CouncilMemberRole;
-  status: string;
+  status: CouncilMemberStatus;
   assigned_at: string;
   // UI extended
-  name?: string; 
+  name?: string;
+  role_in_council?: string;
 }
 
 export interface DefenseSchedule {
@@ -19,10 +22,14 @@ export interface DefenseSchedule {
   scheduled_at: string;
   duration_minutes: number;
   room: string;
-  status: string;
+  presentation_order?: number | null;
+  status: DefenseScheduleStatus;
+  note?: string | null;
   // UI extended
   topic_name?: string;
   student_name?: string;
+  defense_date?: string;
+  location?: string;
 }
 
 export interface Council {

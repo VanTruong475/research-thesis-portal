@@ -26,7 +26,7 @@ import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
             type="number"
             class="ks-input w-24 text-right font-display text-xl font-bold text-primary"
             [(ngModel)]="evaluation.score"
-            [disabled]="evaluation.status === 'submitted'"
+            [disabled]="evaluation.status === 'locked'"
             min="0"
             max="10"
             step="0.1"
@@ -41,13 +41,13 @@ import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
           <textarea
             class="ks-input h-32 resize-none"
             [(ngModel)]="evaluation.comments"
-            [disabled]="evaluation.status === 'submitted'"
+            [disabled]="evaluation.status === 'locked'"
             placeholder="Nhập nhận xét đánh giá..."
           ></textarea>
         </div>
 
         <!-- Các nút hành động -->
-        <div class="flex gap-4 justify-end pt-4 border-t border-border-subtle" *ngIf="evaluation.status === 'draft'">
+        <div class="flex gap-4 justify-end pt-4 border-t border-border-subtle" *ngIf="evaluation.status !== 'locked'">
           <button class="ks-button outline text-body hover:text-primary" (click)="onSaveDraft()">
             Lưu nháp
           </button>
@@ -79,7 +79,7 @@ export class EvaluationFormComponent {
   }
 
   onSubmit() {
-    if (confirm('Bạn có chắc chắn muốn nộp bảng điểm này? Sau khi nộp sẽ không thể sửa lại.')) {
+    if (confirm('Bạn có chắc chắn muốn nộp bảng điểm này? Điểm vẫn có thể chỉnh sửa cho đến khi kết quả cuối cùng được công bố và khóa.')) {
       this.save.emit(this.buildRequest(true));
     }
   }

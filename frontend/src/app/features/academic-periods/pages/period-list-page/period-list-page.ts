@@ -52,14 +52,20 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           
           <!-- Các nút thao tác hiển thị khi hover -->
           <div class="mt-6 pt-4 border-t border-border-subtle flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <!-- Nút đổi trạng thái -->
-            <button *ngIf="period.status === 'draft'" class="text-sm font-medium text-success hover:text-success/80 transition-colors underline" (click)="changeStatus(period.id, 'proposal_open')">Mở đề xuất ĐT</button>
-            <button *ngIf="period.status === 'proposal_open'" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="changeStatus(period.id, 'registration_open')">Mở đăng ký SV</button>
-            <button *ngIf="period.status === 'registration_open'" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="changeStatus(period.id, 'in_progress')">Bắt đầu thực hiện</button>
-            <button *ngIf="period.status === 'in_progress'" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline" (click)="changeStatus(period.id, 'defense')">Mở bảo vệ</button>
-            <button *ngIf="period.status === 'defense'" class="text-sm font-medium text-warning hover:text-warning/80 transition-colors underline" (click)="changeStatus(period.id, 'completed')">Kết thúc</button>
-            <button *ngIf="period.status !== 'completed' && period.status !== 'cancelled'" class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline" (click)="changeStatus(period.id, 'cancelled')">Hủy</button>
-            
+            <!-- Chỉ hiển thị bước chuyển trạng thái tiếp theo mà Backend cho phép -->
+            <button
+              *ngIf="getNextStatus(period.status) as nextStatus"
+              class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline"
+              (click)="changeStatus(period.id, nextStatus)">
+              {{ getNextStatusLabel(period.status) }}
+            </button>
+            <button
+              *ngIf="canCancel(period.status)"
+              class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline"
+              (click)="changeStatus(period.id, 'cancelled')">
+              Hủy
+            </button>
+
             <button class="text-sm font-medium text-muted hover:text-primary transition-colors underline" (click)="openDialog(period)">Sửa</button>
           </div>
         </div>
@@ -242,11 +248,59 @@ export class PeriodListPageComponent implements OnInit {
     }
   }
 
+  getNextStatus(status: AcademicPeriodStatus): AcademicPeriodStatus | null {
+    const transitions: Partial<Record<AcademicPeriodStatus, AcademicPeriodStatus>> = {
+      draft: 'proposal_open',
+      proposal_open: 'registration_open',
+      registration_open: 'in_progress',
+      in_progress: 'defense',
+      defense: 'completed'
+    };
+    return transitions[status] || null;
+  }
+
+  getNextStatusLabel(status: AcademicPeriodStatus): string {
+    const nextStatus = this.getNextStatus(status);
+    if (!nextStatus) return '';
+
+    const labelMap: Record<AcademicPeriodStatus, string> = {
+      draft: 'Mở đề xuất ĐT',
+      proposal_open: 'Mở đăng ký SV',
+      registration_open: 'Bắt đầu thực hiện',
+      in_progress: 'Mở bảo vệ',
+      defense: 'Kết thúc',
+      completed: '',
+      cancelled: ''
+    };
+    return labelMap[status];
+  }
+
+  canCancel(status: AcademicPeriodStatus): boolean {
+    return ['draft', 'proposal_open', 'registration_open', 'in_progress', 'defense'].includes(status);
+  }
+
   changeStatus(id: string, status: AcademicPeriodStatus) {
-    if (confirm(`Bạn có chắc chắn muốn chuyển trạng thái kỳ học này?`)) {
+    const statusLabel = this.formatStatus(status);
+    if (confirm(`Bạn có chắc chắn muốn chuyển trạng thái kỳ học sang "${statusLabel}"?`)) {
       this.periodService.updatePeriodStatus(id, status).subscribe({
-        next: () => this.loadPeriods()
+        next: () => {
+          alert(`Chuyển trạng thái kỳ học sang "${statusLabel}" thành công.`);
+          this.loadPeriods();
+        },
+        error: (err) => {
+          alert(this.getStatusChangeErrorMessage(err));
+        }
       });
     }
+  }
+
+  private getStatusChangeErrorMessage(err: any): string {
+    const code = err.error?.error?.code;
+    if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền chuyển trạng thái kỳ học.';
+    if (code === 'ACADEMIC_PERIOD_INVALID_STATUS_TRANSITION') return 'Backend không cho phép chuyển trạng thái kỳ học theo hướng này.';
+    if (code === 'ACADEMIC_PERIOD_NOT_FOUND') return 'Không tìm thấy kỳ học cần cập nhật.';
+    if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu trạng thái gửi lên không hợp lệ.';
+    return err.error?.message || 'Có lỗi xảy ra khi chuyển trạng thái kỳ học.';
   }
 }

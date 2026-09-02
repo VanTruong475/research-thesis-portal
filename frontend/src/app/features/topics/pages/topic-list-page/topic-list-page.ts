@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TopicStatus } from '../../models/topic.model';
 import { TopicService } from '../../services/topic.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { AuthService } from '../../../../core/services/auth';
@@ -28,8 +29,8 @@ import { AuthService } from '../../../../core/services/auth';
               <span class="text-xs font-mono text-muted mb-1 block">{{ topic.code }}</span>
               <h2 class="text-xl font-display font-bold text-primary">{{ topic.title }}</h2>
             </div>
-            <app-status-badge [type]="topic.status === 'active' || topic.status === 'approved' ? 'success' : 'neutral'">
-              {{ (topic.status === 'active' || topic.status === 'approved') ? 'Đang mở' : 'Đã đóng' }}
+            <app-status-badge [type]="getStatusBadgeType(topic.status)">
+              {{ formatTopicStatus(topic.status) }}
             </app-status-badge>
           </div>
           
@@ -48,11 +49,26 @@ import { AuthService } from '../../../../core/services/auth';
           
           <button 
             *ngIf="userRole === 'student'"
-            [disabled]="(topic.status !== 'active' && topic.status !== 'approved') || (topic.currentStudents || 0) >= topic.max_students || isRegistering"
+            [disabled]="topic.status !== 'approved' || (topic.currentStudents || 0) >= topic.max_students || isRegistering"
             (click)="registerTopic(topic.id)"
             class="ks-button ks-button-primary w-full disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ (topic.status !== 'active' && topic.status !== 'approved') ? 'Không thể đăng ký' : (isRegistering ? 'Đang xử lý...' : 'Đăng ký đề tài này') }}
+            {{ topic.status !== 'approved' ? 'Không thể đăng ký' : (isRegistering ? 'Đang xử lý...' : 'Đăng ký đề tài này') }}
           </button>
+
+          <div *ngIf="userRole === 'admin' && topic.status === 'pending_approval'" class="flex gap-3 mt-3">
+            <button
+              [disabled]="isProcessingTopic === topic.id"
+              (click)="approveTopic(topic.id)"
+              class="ks-button ks-button-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ isProcessingTopic === topic.id ? 'Đang duyệt...' : 'Duyệt' }}
+            </button>
+            <button
+              [disabled]="isProcessingTopic === topic.id"
+              (click)="rejectTopic(topic.id)"
+              class="ks-button ks-button-secondary flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
+              Từ chối
+            </button>
+          </div>
         </div>
         
         <div *ngIf="topicService.topics().length === 0" class="col-span-1 lg:col-span-2 text-center py-12 text-muted italic ks-card">
@@ -69,6 +85,7 @@ export class TopicListPageComponent implements OnInit {
   userRole: string = 'student';
   isLoading = false;
   isRegistering = false;
+  isProcessingTopic: string | null = null;
 
   ngOnInit() {
     const user = this.authService.currentUser();
@@ -109,5 +126,73 @@ export class TopicListPageComponent implements OnInit {
         }
       });
     }
+  }
+
+  approveTopic(topicId: string) {
+    if (!confirm('Bạn có chắc chắn muốn duyệt đề tài này?')) return;
+
+    this.isProcessingTopic = topicId;
+    this.topicService.approveTopic(topicId).subscribe({
+      next: () => {
+        this.isProcessingTopic = null;
+        alert('Duyệt đề tài thành công.');
+        this.loadTopics();
+      },
+      error: (err) => {
+        this.isProcessingTopic = null;
+        alert(this.getTopicActionErrorMessage(err));
+      }
+    });
+  }
+
+  rejectTopic(topicId: string) {
+    const reason = prompt('Vui lòng nhập lý do từ chối đề tài:');
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert('Lý do từ chối không được để trống.');
+      return;
+    }
+
+    this.isProcessingTopic = topicId;
+    this.topicService.rejectTopic(topicId, { rejection_reason: reason.trim() }).subscribe({
+      next: () => {
+        this.isProcessingTopic = null;
+        alert('Từ chối đề tài thành công.');
+        this.loadTopics();
+      },
+      error: (err) => {
+        this.isProcessingTopic = null;
+        alert(this.getTopicActionErrorMessage(err));
+      }
+    });
+  }
+
+  formatTopicStatus(status: TopicStatus): string {
+    const statusMap: Record<TopicStatus, string> = {
+      pending_approval: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
+      closed: 'Đã đóng',
+      cancelled: 'Đã hủy',
+      completed: 'Không dùng (cũ)'
+    };
+    return statusMap[status] || status;
+  }
+
+  getStatusBadgeType(status: TopicStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'approved') return 'success';
+    if (status === 'pending_approval') return 'warning';
+    if (status === 'rejected' || status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  private getTopicActionErrorMessage(err: any): string {
+    const code = err.error?.error?.code;
+    if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền thực hiện thao tác này.';
+    if (code === 'TOPIC_INVALID_STATUS_TRANSITION') return 'Trạng thái đề tài hiện tại không cho phép thao tác này.';
+    if (code === 'TOPIC_REJECTION_REASON_REQUIRED') return 'Vui lòng nhập lý do từ chối đề tài.';
+    if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
+    return err.error?.message || 'Có lỗi xảy ra khi xử lý đề tài.';
   }
 }
