@@ -15,6 +15,7 @@ from app.modules.users.schemas import (
     UserProfileUpdateRequest,
     UserResponse,
     UserStatusUpdateRequest,
+    UserPasswordUpdateRequest,
 )
 
 
