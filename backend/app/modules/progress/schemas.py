@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # DTO Nộp báo cáo tiến độ mới (Dành cho Sinh viên - FR-13)
 class CreateProgressLogRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     # ID của đơn đăng ký đề tài mà sinh viên đang thực hiện
     registration_id: UUID = Field(..., description="ID của đơn đăng ký đề tài")
     # ID của cột mốc deadline (nếu báo cáo theo mốc cụ thể)
@@ -23,6 +25,8 @@ class CreateProgressLogRequest(BaseModel):
 
 # DTO Thêm/Cập nhật nhận xét của Giảng viên hướng dẫn (Dành cho GVHD - FR-14)
 class AddTeacherCommentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     # Nội dung nhận xét, góp ý của giảng viên dành cho báo cáo tiến độ này
     teacher_comment: str = Field(
         ...,

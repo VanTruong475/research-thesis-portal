@@ -18,17 +18,21 @@ import { CreateProgressLogRequest, AddTeacherCommentRequest } from '../../models
         <p class="text-muted">Ghi nhận và theo dõi tiến trình thực hiện đồ án của bạn.</p>
       </div>
 
+      <div *ngIf="errorMessage" class="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+        {{ errorMessage }}
+      </div>
+
       <!-- Form nộp báo cáo (chỉ sinh viên thấy) -->
-      <app-progress-form 
-        *ngIf="isStudent" 
+      <app-progress-form
+        *ngIf="isStudent"
         (submitProgress)="onSubmitReport($event)">
       </app-progress-form>
 
       <!-- Dòng thời gian -->
       <div class="mt-8 relative">
         <div *ngIf="isLoading" class="text-primary py-4">Đang tải dữ liệu tiến độ...</div>
-        
-        <app-progress-timeline 
+
+        <app-progress-timeline
           *ngIf="!isLoading"
           [logs]="progressService.progressLogs()"
           (commentSubmit)="onCommentSubmit($event.logId, $event.request)">
@@ -41,8 +45,9 @@ export class ProgressListPageComponent implements OnInit {
   progressService = inject(ProgressService);
   authService = inject(AuthService);
   route = inject(ActivatedRoute);
-  
+
   isLoading = false;
+  errorMessage = '';
   registrationId: string | null = null;
 
   get isStudent(): boolean {
@@ -53,15 +58,21 @@ export class ProgressListPageComponent implements OnInit {
     this.registrationId = this.route.snapshot.paramMap.get('registrationId');
     if (this.registrationId) {
       this.loadProgress();
+    } else {
+      this.errorMessage = 'Không tìm thấy mã đăng ký để tải tiến độ.';
     }
   }
 
   loadProgress() {
     if (!this.registrationId) return;
     this.isLoading = true;
+    this.errorMessage = '';
     this.progressService.getLogsByRegistration(this.registrationId).subscribe({
       next: () => this.isLoading = false,
-      error: () => this.isLoading = false
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = this.getErrorMessage(err, 'Không thể tải dữ liệu tiến độ.');
+      }
     });
   }
 
@@ -69,13 +80,27 @@ export class ProgressListPageComponent implements OnInit {
     if (!this.registrationId) return;
     // Gắn ID đăng ký vào payload trước khi gọi API
     const requestWithId = { ...req, registration_id: this.registrationId };
-    
-    this.progressService.createLog(requestWithId).subscribe(() => {
-      this.loadProgress(); // Reload sau khi tạo thành công
+    this.errorMessage = '';
+
+    this.progressService.createLog(requestWithId).subscribe({
+      next: () => this.loadProgress(), // Reload sau khi tạo thành công
+      error: (err) => {
+        this.errorMessage = this.getErrorMessage(err, 'Không thể nộp báo cáo tiến độ.');
+      }
     });
   }
 
   onCommentSubmit(logId: string, req: AddTeacherCommentRequest) {
-    this.progressService.addComment(logId, req).subscribe(() => this.loadProgress());
+    this.errorMessage = '';
+    this.progressService.addComment(logId, req).subscribe({
+      next: () => this.loadProgress(),
+      error: (err) => {
+        this.errorMessage = this.getErrorMessage(err, 'Không thể gửi nhận xét tiến độ.');
+      }
+    });
+  }
+
+  private getErrorMessage(err: any, fallback: string): string {
+    return err?.error?.message || err?.error?.error?.message || fallback;
   }
 }

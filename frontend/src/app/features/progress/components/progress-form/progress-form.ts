@@ -37,7 +37,7 @@ import { AuthService } from '../../../../core/services/auth';
 
       <!-- Cảnh báo nếu không phải sinh viên -->
       <div *ngIf="!canSubmit" class="mt-4 p-3 bg-warning/10 border border-warning/20 text-warning text-sm rounded-sm">
-        Chỉ sinh viên mới có quyền nộp báo cáo tiến độ.
+        Chỉ sinh viên mới có quyền nộp báo cáo tiến độ. Hệ thống sẽ kiểm tra trạng thái đăng ký và kỳ thực hiện khi nộp.
       </div>
     </div>
   `

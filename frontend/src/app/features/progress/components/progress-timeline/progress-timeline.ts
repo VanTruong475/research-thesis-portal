@@ -81,7 +81,7 @@ export class ProgressTimelineComponent {
 
   get canComment(): boolean {
     const user = this.authService.currentUser();
-    return !!user && (user.role === 'lecturer' || user.role === 'admin');
+    return !!user && user.role === 'lecturer';
   }
 
   onCommentSubmit(logId: string, comment: string) {
