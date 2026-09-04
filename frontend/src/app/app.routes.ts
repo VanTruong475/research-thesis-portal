@@ -13,7 +13,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/progress/pages/progress-list-page/progress-list-page').then(m => m.ProgressListPageComponent)
       },
       {
-        path: 'topics/:topicId/reports',
+        path: 'registrations/:registrationId/reports',
         loadComponent: () => import('./features/reports/pages/report-page/report-page').then(m => m.ReportPageComponent)
       },
       {

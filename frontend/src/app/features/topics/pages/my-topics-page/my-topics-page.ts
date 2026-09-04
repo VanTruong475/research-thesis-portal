@@ -59,7 +59,6 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
                 </td>
                 <td class="p-4 text-right">
                   <button class="text-muted hover:text-primary transition-colors text-sm underline mr-3" (click)="openDialog(topic)">Sửa</button>
-                  <a [routerLink]="['/app/topics', topic.id, 'reports']" class="text-muted hover:text-primary transition-colors text-sm underline mr-3" title="Xem Báo cáo">Báo cáo</a>
                   <a routerLink="/app/registrations/review" class="text-muted hover:text-primary transition-colors text-sm underline" title="Danh sách Sinh viên">DS Sinh viên</a>
                 </td>
               </tr>

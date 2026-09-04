@@ -68,7 +68,7 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
                   <div class="flex items-center justify-end gap-3">
                     <ng-container *ngIf="reg.status === 'approved'">
                       <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Xem tiến độ">Tiến độ</a>
-                      <a [routerLink]="['/app/topics', reg.topic_id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Nộp báo cáo">Báo cáo</a>
+                      <a [routerLink]="['/app/registrations', reg.id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Nộp báo cáo">Báo cáo</a>
                       <a [routerLink]="['/app/registrations', reg.id, 'final-results']" class="text-sm font-medium text-primary hover:underline" title="Xem điểm">Điểm</a>
                     </ng-container>
 

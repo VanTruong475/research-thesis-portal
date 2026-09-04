@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import BaseModel, utc_now
 
 if TYPE_CHECKING:
+    from app.modules.registrations.model import Registration
     from app.modules.topics.model import Topic
     from app.modules.users.model import User
 
@@ -17,14 +18,20 @@ if TYPE_CHECKING:
 class Report(BaseModel):
     __tablename__ = "reports"
     __table_args__ = (
+        Index("reports_registration_idx", "registration_id"),
         Index("reports_topic_idx", "topic_id"),
         Index("reports_student_idx", "student_id"),
     )
 
-    # Đề tài được nộp báo cáo
-    topic_id: Mapped[UUID] = mapped_column(
-        ForeignKey("topics.id", ondelete="CASCADE"),
-        nullable=False,
+    # Đơn đăng ký là execution record trung tâm của báo cáo.
+    registration_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("registrations.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    # Legacy metadata cho dữ liệu báo cáo cũ; không dùng làm execution owner.
+    topic_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("topics.id", ondelete="RESTRICT"),
+        nullable=True,
     )
     # Sinh viên thực hiện nộp
     student_id: Mapped[UUID] = mapped_column(
@@ -37,7 +44,7 @@ class Report(BaseModel):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     # Kích thước file tính bằng Bytes
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    # Số phiên bản (Tự động tăng: 1, 2, 3...) cho từng lần nộp lại của đề tài
+    # Số phiên bản (Tự động tăng: 1, 2, 3...) cho từng lần nộp lại của đơn đăng ký
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     # Thời điểm nộp file
     submitted_at: Mapped[datetime] = mapped_column(
@@ -48,5 +55,6 @@ class Report(BaseModel):
     )
 
     # Các mối quan hệ (Relationships)
-    topic: Mapped[Topic] = relationship()
+    registration: Mapped[Registration | None] = relationship()
+    topic: Mapped[Topic | None] = relationship()
     student: Mapped[User] = relationship()
