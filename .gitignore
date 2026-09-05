@@ -1,0 +1,33 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Pytest
+.pytest_cache/
+
+# Ruff
+.ruff_cache/
+
+# Environment variables
+.env
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+.claude/
+node_modules/
+TaiLieu/
+PROGRESS.md
+datoi.md    
+ERD_DESIGN.md
