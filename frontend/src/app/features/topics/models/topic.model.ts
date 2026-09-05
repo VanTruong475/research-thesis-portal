@@ -12,6 +12,7 @@ export interface Topic {
   description: string;
   requirements?: string;
   max_students: number;
+  current_students?: number;
   proposed_by_id: string;
   approved_by_id?: string;
   status: TopicStatus;

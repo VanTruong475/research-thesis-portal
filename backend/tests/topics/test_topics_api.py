@@ -364,6 +364,61 @@ async def test_student_list_sees_only_available_approved_topics(
 
 
 @pytest.mark.asyncio
+async def test_topic_list_includes_current_students_from_accepted_registrations(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    approved_student = await create_user(test_session, role=UserRole.STUDENT)
+    in_progress_student = await create_user(test_session, role=UserRole.STUDENT)
+    pending_student = await create_user(test_session, role=UserRole.STUDENT)
+    period = await create_period(test_session, admin_id=admin.id)
+    topic = await create_topic(
+        test_session,
+        period_id=period.id,
+        lecturer_id=lecturer.id,
+        admin_id=admin.id,
+        code="COUNT-CHECK",
+        status=TopicStatus.APPROVED,
+        max_students=3,
+    )
+    await create_registration(
+        test_session,
+        period_id=period.id,
+        topic_id=topic.id,
+        student_id=approved_student.id,
+        supervisor_id=lecturer.id,
+        status=RegistrationStatus.APPROVED,
+    )
+    await create_registration(
+        test_session,
+        period_id=period.id,
+        topic_id=topic.id,
+        student_id=in_progress_student.id,
+        supervisor_id=lecturer.id,
+        status=RegistrationStatus.IN_PROGRESS,
+    )
+    await create_registration(
+        test_session,
+        period_id=period.id,
+        topic_id=topic.id,
+        student_id=pending_student.id,
+        supervisor_id=lecturer.id,
+        status=RegistrationStatus.PENDING,
+    )
+    headers = await auth_headers(client, admin)
+
+    response = await client.get("/api/v1/topics?keyword=COUNT-CHECK", headers=headers)
+
+    assert response.status_code == 200
+    items = response.json()["data"]["items"]
+    assert len(items) == 1
+    assert items[0]["code"] == "COUNT-CHECK"
+    assert items[0]["current_students"] == 2
+
+
+@pytest.mark.asyncio
 async def test_get_missing_topic_returns_not_found(
     client: AsyncClient,
     test_session: AsyncSession,

@@ -75,7 +75,7 @@ class TopicRepository:
         only_approved_visible: bool = False,
         only_available: bool = False,
         now: datetime | None = None,
-    ) -> tuple[list[Topic], int]:
+    ) -> tuple[list[tuple[Topic, int]], int]:
         stmt = self._build_list_statement(
             status=status,
             academic_period_id=academic_period_id,
@@ -100,7 +100,7 @@ class TopicRepository:
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
-        return list(result.scalars().all()), int(total_items or 0)
+        return [(topic, int(current_students or 0)) for topic, current_students in result.all()], int(total_items or 0)
 
     async def count_accepted_registrations(self, topic_id: UUID) -> int:
         count = await self.db.scalar(
@@ -135,8 +135,9 @@ class TopicRepository:
         only_approved_visible: bool,
         only_available: bool,
         now: datetime | None,
-    ) -> Select[tuple[Topic]]:
-        stmt = select(Topic).join(Topic.academic_period).join(Topic.proposed_by)
+    ) -> Select[tuple[Topic, int]]:
+        current_students = self._accepted_registration_count_subquery()
+        stmt = select(Topic, current_students.label("current_students")).join(Topic.academic_period).join(Topic.proposed_by)
 
         if status is not None:
             stmt = stmt.where(Topic.status == status)
@@ -173,20 +174,22 @@ class TopicRepository:
                     AcademicPeriod.registration_start_at <= now,
                     AcademicPeriod.registration_end_at >= now,
                 )
-            approved_count = (
-                select(func.count(Registration.id))
-                .where(
-                    Registration.topic_id == Topic.id,
-                    Registration.status.in_(
-                        [RegistrationStatus.APPROVED, RegistrationStatus.IN_PROGRESS]
-                    ),
-                )
-                .correlate(Topic)
-                .scalar_subquery()
-            )
-            stmt = stmt.where(approved_count < Topic.max_students)
+            stmt = stmt.where(current_students < Topic.max_students)
 
         return stmt
+
+    def _accepted_registration_count_subquery(self):
+        return (
+            select(func.count(Registration.id))
+            .where(
+                Registration.topic_id == Topic.id,
+                Registration.status.in_(
+                    [RegistrationStatus.APPROVED, RegistrationStatus.IN_PROGRESS]
+                ),
+            )
+            .correlate(Topic)
+            .scalar_subquery()
+        )
 
     def _sort_column(self, sort_by: str):
         return {
