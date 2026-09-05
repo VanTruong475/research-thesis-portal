@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
@@ -9,12 +9,17 @@ import { FinalResultResponse, FinalResultStatus, ResultClassification } from '..
 @Component({
   selector: 'app-final-results-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge],
+  imports: [CommonModule, RouterModule, StatusBadge],
   template: `
     <div class="p-8 max-w-4xl mx-auto h-full flex flex-col">
-      <div class="mb-8 text-center flex justify-between items-center">
+      <div class="mb-8 flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-display font-bold text-primary uppercase tracking-wider text-left">
+          <a
+            [routerLink]="getBackRoute()"
+            class="inline-flex items-center rounded-sm border border-border-subtle px-3 py-1.5 text-sm font-medium text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors mb-4">
+            ← {{ getBackLabel() }}
+          </a>
+          <h1 class="text-3xl font-display font-bold text-heading uppercase tracking-wider text-left">
             Kết Quả Tổng Kết
           </h1>
           <p class="text-muted mt-2 text-left">Bảng điểm và đánh giá cuối cùng dành cho Đồ án</p>
@@ -99,9 +104,9 @@ import { FinalResultResponse, FinalResultStatus, ResultClassification } from '..
 
       <ng-template #noResult>
         <div *ngIf="!isLoading" class="mt-12 text-center text-muted p-12 border border-dashed border-border-subtle rounded-sm">
-          <span class="material-symbols-outlined text-5xl mb-4 opacity-50">hourglass_empty</span>
+          <div class="text-5xl mb-4 opacity-60" aria-hidden="true">⏳</div>
           <p class="text-lg">Chưa có kết quả tổng kết cho đồ án này.</p>
-          <p class="text-sm mt-2">Vui lòng chờ hoặc thực hiện tính điểm (dành cho Admin).</p>
+          <p class="text-sm mt-2">{{ getNoResultMessage() }}</p>
         </div>
       </ng-template>
     </div>
@@ -121,6 +126,25 @@ export class FinalResultsPageComponent implements OnInit {
 
   get isAdmin(): boolean {
     return this.authService.currentUser()?.role === 'admin';
+  }
+
+  get isStudent(): boolean {
+    return this.authService.currentUser()?.role === 'student';
+  }
+
+  getBackRoute(): string {
+    return this.isStudent ? '/app/registrations/my' : '/app/registrations/review';
+  }
+
+  getBackLabel(): string {
+    return this.isStudent ? 'Quay lại đăng ký của tôi' : 'Quay lại danh sách đăng ký';
+  }
+
+  getNoResultMessage(): string {
+    if (this.isAdmin) {
+      return 'Vui lòng thực hiện tính điểm khi đủ điều kiện.';
+    }
+    return 'Kết quả sẽ hiển thị sau khi được công bố.';
   }
 
   ngOnInit() {

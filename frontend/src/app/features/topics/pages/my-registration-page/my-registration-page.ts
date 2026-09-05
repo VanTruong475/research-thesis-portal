@@ -65,18 +65,33 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
-                  <div class="flex items-center justify-end gap-3">
+                  <div class="flex flex-wrap items-center justify-end gap-2">
                     <ng-container *ngIf="reg.status === 'approved'">
-                      <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Xem tiến độ">Tiến độ</a>
-                      <a [routerLink]="['/app/registrations', reg.id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Nộp báo cáo">Báo cáo</a>
-                      <a [routerLink]="['/app/registrations', reg.id, 'final-results']" class="text-sm font-medium text-primary hover:underline" title="Xem điểm">Điểm</a>
+                      <a
+                        [routerLink]="['/app/registrations', reg.id, 'progress']"
+                        class="inline-flex items-center rounded-sm border border-border-subtle px-3 py-1.5 text-sm font-medium text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                        title="Xem tiến độ">
+                        Tiến độ
+                      </a>
+                      <a
+                        [routerLink]="['/app/registrations', reg.id, 'reports']"
+                        class="inline-flex items-center rounded-sm border border-border-subtle px-3 py-1.5 text-sm font-medium text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                        title="Nộp báo cáo">
+                        Báo cáo
+                      </a>
+                      <a
+                        [routerLink]="['/app/registrations', reg.id, 'final-results']"
+                        class="inline-flex items-center rounded-sm border border-border-subtle px-3 py-1.5 text-sm font-medium text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                        title="Xem kết quả tổng kết">
+                        Kết quả
+                      </a>
                     </ng-container>
 
                     <button
                       *ngIf="reg.status === 'pending'"
                       [disabled]="isCancelling === reg.id"
                       (click)="cancelRegistration(reg.id)"
-                      class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline disabled:opacity-50 disabled:no-underline">
+                      class="inline-flex items-center rounded-sm border border-danger/30 px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger/5 transition-colors disabled:opacity-50">
                       {{ isCancelling === reg.id ? 'Đang hủy...' : 'Hủy đăng ký' }}
                     </button>
                   </div>
