@@ -113,6 +113,7 @@ class RegistrationService:
         )
         try:
             await self.repository.create(registration)
+            registration_id = registration.id
             await self.db.commit()
         except IntegrityError as exc:
             await self.db.rollback()
@@ -121,7 +122,7 @@ class RegistrationService:
                 message="The student already has an effective registration in this academic period.",
                 code="REGISTRATION_ALREADY_EFFECTIVE",
             ) from exc
-        return RegistrationResponse.model_validate(registration)
+        return await self._get_registration_response_or_raise(registration_id)
 
     async def get_registration(
         self,
@@ -198,9 +199,10 @@ class RegistrationService:
                 reason=_FULL_TOPIC_REJECTION_REASON,
             )
 
+        registration_id = registration.id
         await self.repository.update(registration)
         await self.db.commit()
-        return RegistrationResponse.model_validate(registration)
+        return await self._get_registration_response_or_raise(registration_id)
 
     async def reject_registration(
         self,
@@ -222,9 +224,10 @@ class RegistrationService:
         registration.review_reason = payload.review_reason
         registration.reviewed_by_id = reviewer.id
         registration.reviewed_at = utc_now()
+        registration_id = registration.id
         await self.repository.update(registration)
         await self.db.commit()
-        return RegistrationResponse.model_validate(registration)
+        return await self._get_registration_response_or_raise(registration_id)
 
     async def cancel_registration(
         self,
@@ -246,9 +249,10 @@ class RegistrationService:
 
         registration.status = RegistrationStatus.CANCELLED
         registration.cancelled_at = utc_now()
+        registration_id = registration.id
         await self.repository.update(registration)
         await self.db.commit()
-        return RegistrationResponse.model_validate(registration)
+        return await self._get_registration_response_or_raise(registration_id)
 
     async def assign_supervisor(
         self,
@@ -287,9 +291,10 @@ class RegistrationService:
         registration.supervisor_id = supervisor.id
         registration.supervisor_assigned_by_id = admin.id
         registration.supervisor_assigned_at = utc_now()
+        registration_id = registration.id
         await self.repository.update(registration)
         await self.db.commit()
-        return RegistrationResponse.model_validate(registration)
+        return await self._get_registration_response_or_raise(registration_id)
 
     async def _get_registration_or_raise(self, registration_id: UUID) -> Registration:
         registration = await self.repository.get_by_id(registration_id)
@@ -299,6 +304,15 @@ class RegistrationService:
                 error_code="REGISTRATION_NOT_FOUND",
             )
         return registration
+
+    async def _get_registration_response_or_raise(self, registration_id: UUID) -> RegistrationResponse:
+        registration = await self.repository.get_response_by_id(registration_id)
+        if registration is None:
+            raise NotFoundException(
+                message="Registration not found.",
+                error_code="REGISTRATION_NOT_FOUND",
+            )
+        return RegistrationResponse.model_validate(registration)
 
     def _ensure_topic_accepts_registration(self, topic) -> None:
         period = topic.academic_period

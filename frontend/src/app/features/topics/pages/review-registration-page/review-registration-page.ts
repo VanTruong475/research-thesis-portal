@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { Registration, RegistrationStatus } from '../../models/topic.model';
 
 @Component({
   selector: 'app-review-registration-page',
@@ -37,41 +38,48 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr *ngFor="let reg of topicService.registrations()" class="hover:bg-surface-raised transition-colors">
-                <td class="p-4 text-sm font-mono text-muted">{{ reg.created_at | date:'dd/MM/yyyy' }}</td>
+              <tr *ngFor="let reg of topicService.registrations()" class="hover:bg-surface-raised transition-colors align-top">
+                <td class="p-4 text-sm font-mono text-muted">{{ (reg.registered_at || reg.created_at) | date:'dd/MM/yyyy' }}</td>
                 <td class="p-4">
-                  <div class="font-medium text-body">{{ reg.studentName || 'Chưa cập nhật' }}</div>
-                  <div class="text-xs text-muted font-mono mt-1">{{ reg.student_id }}</div>
+                  <div class="font-medium text-body">{{ getStudentLabel(reg) }}</div>
+                  <div class="text-xs text-muted font-mono mt-1">{{ reg.student_institutional_code || reg.student_id }}</div>
                 </td>
-                <td class="p-4 text-sm text-body max-w-sm truncate">{{ reg.topicName || 'Chưa cập nhật' }}</td>
+                <td class="p-4 text-sm text-body max-w-sm">
+                  <div class="font-medium truncate">{{ getTopicLabel(reg) }}</div>
+                  <div class="text-xs text-muted mt-1">Kỳ: {{ getAcademicPeriodLabel(reg) }}</div>
+                  <div *ngIf="reg.supervisor_full_name" class="text-xs text-muted mt-1">GVHD: {{ getSupervisorLabel(reg) }}</div>
+                  <div *ngIf="reg.review_reason && (reg.status === 'rejected' || reg.status === 'cancelled')" class="text-xs text-danger mt-2">
+                    Lý do: {{ reg.review_reason }}
+                  </div>
+                </td>
                 <td class="p-4">
-                  <app-status-badge [type]="reg.status === 'pending' ? 'warning' : (reg.status === 'approved' ? 'success' : 'danger')">
-                    {{ reg.status === 'pending' ? 'Đang chờ' : (reg.status === 'approved' ? 'Đã duyệt' : 'Từ chối') }}
+                  <app-status-badge [type]="getRegistrationStatusBadgeType(reg.status)">
+                    {{ formatRegistrationStatus(reg.status) }}
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
                   <div *ngIf="reg.status === 'pending'" class="flex justify-end gap-3">
-                    <button 
+                    <button
                       [disabled]="isProcessing === reg.id"
                       (click)="approveRegistration(reg.id)"
                       class="px-4 py-1.5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-dark-ink transition-colors rounded-sm text-sm font-medium disabled:opacity-50">
                       Duyệt
                     </button>
-                    <button 
+                    <button
                       [disabled]="isProcessing === reg.id"
                       (click)="rejectRegistration(reg.id)"
                       class="px-4 py-1.5 bg-transparent text-danger border border-border-subtle hover:border-danger transition-colors rounded-sm text-sm font-medium disabled:opacity-50">
                       Từ chối
                     </button>
                   </div>
-                  
+
                   <div *ngIf="reg.status === 'approved'" class="flex justify-end gap-3">
                     <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Theo dõi tiến độ">Tiến độ</a>
                     <a [routerLink]="['/app/registrations', reg.id, 'evaluation']" class="text-sm font-medium text-primary hover:underline" title="Chấm điểm">Chấm điểm</a>
                   </div>
-                  
-                  <div *ngIf="reg.status === 'rejected'" class="text-muted text-sm italic">
-                    Đã từ chối
+
+                  <div *ngIf="reg.status !== 'pending' && reg.status !== 'approved'" class="text-muted text-sm italic">
+                    Không có thao tác
                   </div>
                 </td>
               </tr>
@@ -103,11 +111,49 @@ export class ReviewRegistrationPageComponent implements OnInit {
     const user = this.authService.currentUser();
     if (user && user.role === 'lecturer') {
       this.isLoading = true;
-      this.topicService.fetchPendingRegistrations().subscribe({
+      this.topicService.fetchLecturerRegistrations().subscribe({
         next: () => this.isLoading = false,
         error: () => this.isLoading = false
       });
     }
+  }
+
+  formatRegistrationStatus(status: RegistrationStatus): string {
+    const statusMap: Record<RegistrationStatus, string> = {
+      pending: 'Đang chờ',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
+      cancelled: 'Đã hủy',
+      in_progress: 'Đang thực hiện (cũ)',
+      completed: 'Hoàn thành'
+    };
+    return statusMap[status] || status;
+  }
+
+  getRegistrationStatusBadgeType(status: RegistrationStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'approved') return 'success';
+    if (status === 'pending') return 'warning';
+    if (status === 'rejected' || status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  getStudentLabel(registration: Registration): string {
+    return registration.student_full_name || registration.studentName || 'Chưa cập nhật';
+  }
+
+  getTopicLabel(registration: Registration): string {
+    const title = registration.topic_title || registration.topicName || 'Chưa cập nhật';
+    return registration.topic_code ? `${registration.topic_code} - ${title}` : title;
+  }
+
+  getAcademicPeriodLabel(registration: Registration): string {
+    const name = registration.academic_period_name || 'Chưa cập nhật';
+    return registration.academic_period_code ? `${registration.academic_period_code} - ${name}` : name;
+  }
+
+  getSupervisorLabel(registration: Registration): string {
+    const name = registration.supervisor_full_name || 'Chưa phân công';
+    return registration.supervisor_institutional_code ? `${registration.supervisor_institutional_code} - ${name}` : name;
   }
 
   approveRegistration(registrationId: string) {

@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Report, ReportUploadRequest } from '../models/report.model';
+import { ReportResponse } from '../models/report.model';
 import { ApiResponse } from '../../../core/models/api.model';
 import { environment } from '../../../../environments/environment';
 
@@ -13,12 +13,12 @@ export class ReportService {
   private http = inject(HttpClient);
   private readonly API_URL = environment.apiUrl;
 
-  reports = signal<Report[]>([]);
+  reports = signal<ReportResponse[]>([]);
 
   constructor() { }
 
-  getReportsByTopic(topicId: string): Observable<ApiResponse<Report[]>> {
-    return this.http.get<ApiResponse<Report[]>>(`${this.API_URL}/topics/${topicId}/reports`).pipe(
+  getReportsByRegistration(registrationId: string): Observable<ApiResponse<ReportResponse[]>> {
+    return this.http.get<ApiResponse<ReportResponse[]>>(`${this.API_URL}/registrations/${registrationId}/reports`).pipe(
       tap(res => {
         if (res.data) {
           this.reports.set(res.data);
@@ -27,12 +27,12 @@ export class ReportService {
     );
   }
 
-  uploadReport(req: ReportUploadRequest): Observable<ApiResponse<Report>> {
+  uploadReport(registrationId: string, file: File): Observable<ApiResponse<ReportResponse>> {
     const formData = new FormData();
-    formData.append('topic_id', req.topic_id);
-    formData.append('file', req.file);
+    formData.append('registration_id', registrationId);
+    formData.append('file', file);
 
-    return this.http.post<ApiResponse<Report>>(`${this.API_URL}/reports`, formData).pipe(
+    return this.http.post<ApiResponse<ReportResponse>>(`${this.API_URL}/reports`, formData).pipe(
       tap(res => {
         if (res.data) {
           this.reports.update(reps => [res.data, ...reps]);

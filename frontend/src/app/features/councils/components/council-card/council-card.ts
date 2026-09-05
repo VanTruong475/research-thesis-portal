@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Council } from '../../models/council.model';
+import { Council, CouncilStatus } from '../../models/council.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
 @Component({
@@ -15,8 +15,8 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <h3 class="text-xl font-display font-medium text-heading">{{ council.name }}</h3>
           <p class="text-xs text-muted font-mono mt-1">ID: {{ council.id }}</p>
         </div>
-        <app-status-badge [type]="council.status === 'Published' ? 'success' : (council.status === 'Completed' ? 'neutral' : 'warning')">
-          {{ council.status === 'Published' ? 'Đã công bố' : (council.status === 'Completed' ? 'Đã hoàn tất' : 'Bản nháp') }}
+        <app-status-badge [type]="getCouncilStatusBadgeType(council.status)">
+          {{ formatCouncilStatus(council.status) }}
         </app-status-badge>
       </div>
 
@@ -91,4 +91,22 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 })
 export class CouncilCardComponent {
   @Input() council!: Council;
+
+  formatCouncilStatus(status: CouncilStatus): string {
+    const statusMap: Record<CouncilStatus, string> = {
+      draft: 'Bản nháp',
+      scheduled: 'Đã lên lịch',
+      in_progress: 'Đang diễn ra (cũ)',
+      completed: 'Đã hoàn tất',
+      cancelled: 'Đã hủy'
+    };
+    return statusMap[status] || status;
+  }
+
+  getCouncilStatusBadgeType(status: CouncilStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'scheduled') return 'success';
+    if (status === 'draft') return 'warning';
+    if (status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
 }

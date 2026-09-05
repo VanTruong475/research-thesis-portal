@@ -29,7 +29,7 @@ import { AuthService } from '../../../../core/services/auth';
             <input type="file" class="hidden" (change)="onFileSelected($event)">
           </label>
         </p>
-        <p class="text-xs text-muted">Hỗ trợ định dạng: PDF, DOCX (Tối đa 10MB)</p>
+        <p class="text-xs text-muted">Hỗ trợ định dạng tài liệu báo cáo theo quy định (Tối đa 20MB)</p>
 
         <!-- Hiển thị file đã chọn -->
         <div *ngIf="selectedFile" class="mt-6 inline-flex items-center space-x-4 bg-surface px-4 py-2 border border-border-subtle rounded">

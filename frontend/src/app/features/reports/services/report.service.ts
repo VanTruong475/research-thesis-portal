@@ -17,19 +17,19 @@ export class ReportService {
 
   constructor() {}
 
-  // Sinh viên upload file báo cáo (Sử dụng FormData để đính kèm file)
-  uploadReport(topicId: string, file: File): Observable<ApiResponse<ReportResponse>> {
+  // Sinh viên upload file báo cáo theo đơn đăng ký (Sử dụng FormData để đính kèm file)
+  uploadReport(registrationId: string, file: File): Observable<ApiResponse<ReportResponse>> {
     const formData = new FormData();
-    formData.append('topic_id', topicId);
+    formData.append('registration_id', registrationId);
     formData.append('file', file);
-    
+
     // Ghi chú: HttpClient sẽ tự động cấu hình Content-Type thành multipart/form-data khi gửi FormData
     return this.http.post<ApiResponse<ReportResponse>>(`${this.API_URL}/reports`, formData);
   }
 
-  // Lấy lịch sử báo cáo của một đề tài
-  getReportsByTopic(topicId: string): Observable<ApiResponse<ReportResponse[]>> {
-    return this.http.get<ApiResponse<ReportResponse[]>>(`${this.API_URL}/topics/${topicId}/reports`).pipe(
+  // Lấy lịch sử báo cáo của một đơn đăng ký
+  getReportsByRegistration(registrationId: string): Observable<ApiResponse<ReportResponse[]>> {
+    return this.http.get<ApiResponse<ReportResponse[]>>(`${this.API_URL}/registrations/${registrationId}/reports`).pipe(
       tap(res => {
         if (res.data) {
           this.reports.set(res.data);

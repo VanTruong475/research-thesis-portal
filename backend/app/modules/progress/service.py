@@ -1,99 +1,143 @@
 from collections.abc import Sequence
-from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.exceptions import AppException, NotFoundException
+from app.core.security import utc_now
+from app.db.enums import AcademicPeriodStatus, RegistrationStatus, UserRole
 from app.modules.progress.model import ProgressLog
+from app.modules.progress.repository import ProgressRepository
 from app.modules.progress.schemas import (
     AddTeacherCommentRequest,
     CreateProgressLogRequest,
 )
 from app.modules.registrations.model import Registration
+from app.modules.users.model import User
 
 
 class ProgressService:
-    @staticmethod
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+        self.repository = ProgressRepository(db)
+
     async def create_progress_log(
-        db: AsyncSession,
-        student_id: UUID,
+        self,
+        *,
+        current_student: User,
         payload: CreateProgressLogRequest,
     ) -> ProgressLog:
         """
         Xử lý nghiệp vụ cho Sinh viên nộp báo cáo tiến độ mới (FR-13).
         """
-        # 1. Truy vấn kiểm tra đơn đăng ký đề tài có tồn tại không
-        stmt = select(Registration).where(Registration.id == payload.registration_id)
-        result = await db.execute(stmt)
-        registration = result.scalar_one_or_none()
+        registration = await self._get_registration_or_raise(payload.registration_id)
+        self._ensure_student_can_submit(registration, current_student)
 
-        # Kiểm tra nếu đơn đăng ký không tồn tại
-        if not registration:
-            raise NotFoundException("Đơn đăng ký đề tài không tồn tại.")
+        if payload.milestone_id is not None:
+            milestone = await self.repository.get_milestone_by_id(payload.milestone_id)
+            if milestone is None:
+                raise NotFoundException(
+                    message="Milestone not found.",
+                    error_code="MILESTONE_NOT_FOUND",
+                )
 
-        # 2. Kiểm tra xem đơn đăng ký này có đúng là của sinh viên đang nộp không
-        if registration.student_id != student_id:
-            raise AppException("Bạn không có quyền nộp báo cáo tiến độ cho đơn đăng ký này.")
-
-        # 3. Tạo đối tượng ProgressLog mới để lưu vào CSDL
         new_log = ProgressLog(
             registration_id=payload.registration_id,
-            student_id=student_id,
+            student_id=current_student.id,
             milestone_id=payload.milestone_id,
             content=payload.content,
-            submitted_at=datetime.now(timezone.utc),
+            submitted_at=utc_now(),
         )
 
-        # Ghi vào session và commit lưu CSDL
-        db.add(new_log)
-        await db.commit()
-        await db.refresh(new_log)
-
+        await self.repository.create(new_log)
+        await self.db.commit()
+        await self.db.refresh(new_log)
         return new_log
 
-    @staticmethod
     async def add_teacher_comment(
-        db: AsyncSession,
+        self,
+        *,
         log_id: UUID,
+        current_lecturer: User,
         payload: AddTeacherCommentRequest,
     ) -> ProgressLog:
         """
         Xử lý nghiệp vụ cho Giảng viên hướng dẫn ghi nhận xét vào báo cáo tiến độ (FR-14).
         """
-        # 1. Truy vấn tìm nhật ký tiến độ theo log_id
-        stmt = select(ProgressLog).where(ProgressLog.id == log_id)
-        result = await db.execute(stmt)
-        progress_log = result.scalar_one_or_none()
+        progress_log = await self.repository.get_progress_log_by_id(log_id)
+        if progress_log is None:
+            raise NotFoundException(
+                message="Progress log not found.",
+                error_code="PROGRESS_LOG_NOT_FOUND",
+            )
 
-        # Kiểm tra nếu nhật ký tiến độ không tồn tại
-        if not progress_log:
-            raise NotFoundException("Bản ghi tiến độ không tồn tại.")
+        self._ensure_lecturer_can_comment(progress_log.registration, current_lecturer)
 
-        # 2. Cập nhật nhận xét và mốc thời gian nhận xét của GVHD
         progress_log.teacher_comment = payload.teacher_comment
-        progress_log.commented_at = datetime.now(timezone.utc)
+        progress_log.commented_at = utc_now()
 
-        # Commit cập nhật CSDL
-        await db.commit()
-        await db.refresh(progress_log)
-
+        await self.repository.update(progress_log)
+        await self.db.commit()
+        await self.db.refresh(progress_log)
         return progress_log
 
-    @staticmethod
     async def get_progress_logs_by_registration(
-        db: AsyncSession,
+        self,
+        *,
         registration_id: UUID,
+        current_user: User,
     ) -> Sequence[ProgressLog]:
         """
-        Lấy danh sách tất cả nhật ký tiến độ của một đơn đăng ký đề tài.
+        Lấy danh sách nhật ký tiến độ của một đơn đăng ký đề tài theo quyền truy cập.
         """
-        # Truy vấn sắp xếp nhật ký tiến độ theo thứ tự thời gian nộp mới nhất lên đầu
-        stmt = (
-            select(ProgressLog)
-            .where(ProgressLog.registration_id == registration_id)
-            .order_by(ProgressLog.submitted_at.desc())
+        registration = await self._get_registration_or_raise(registration_id)
+        self._ensure_user_can_read(registration, current_user)
+        return await self.repository.list_logs_by_registration(registration_id)
+
+    async def _get_registration_or_raise(self, registration_id: UUID) -> Registration:
+        registration = await self.repository.get_registration_by_id(registration_id)
+        if registration is None:
+            raise NotFoundException(
+                message="Registration not found.",
+                error_code="REGISTRATION_NOT_FOUND",
+            )
+        return registration
+
+    def _ensure_student_can_submit(self, registration: Registration, current_student: User) -> None:
+        if current_student.role != UserRole.STUDENT or registration.student_id != current_student.id:
+            raise self._permission_denied()
+        if registration.status != RegistrationStatus.APPROVED:
+            raise AppException(
+                status_code=400,
+                message="Progress can be submitted only for an approved registration.",
+                code="PROGRESS_REGISTRATION_NOT_APPROVED",
+                details={"current_status": registration.status.value},
+            )
+        if registration.academic_period.status != AcademicPeriodStatus.IN_PROGRESS:
+            raise AppException(
+                status_code=400,
+                message="Progress can be submitted only while the academic period is in progress.",
+                code="PROGRESS_PERIOD_NOT_IN_PROGRESS",
+                details={"academic_period_status": registration.academic_period.status.value},
+            )
+
+    def _ensure_lecturer_can_comment(self, registration: Registration, current_lecturer: User) -> None:
+        if current_lecturer.role == UserRole.LECTURER and registration.supervisor_id == current_lecturer.id:
+            return
+        raise self._permission_denied()
+
+    def _ensure_user_can_read(self, registration: Registration, current_user: User) -> None:
+        if current_user.role == UserRole.ADMIN:
+            return
+        if current_user.role == UserRole.STUDENT and registration.student_id == current_user.id:
+            return
+        if current_user.role == UserRole.LECTURER and registration.supervisor_id == current_user.id:
+            return
+        raise self._permission_denied()
+
+    def _permission_denied(self) -> AppException:
+        return AppException(
+            status_code=403,
+            message="You do not have permission to perform this action.",
+            code="PERMISSION_DENIED",
         )
-        result = await db.execute(stmt)
-        return result.scalars().all()

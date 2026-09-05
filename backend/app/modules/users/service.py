@@ -12,6 +12,7 @@ from app.modules.users.schemas import (
     PaginationResponse,
     UserCreateRequest,
     UserListResponse,
+    UserPasswordUpdateRequest,
     UserProfileUpdateRequest,
     UserResponse,
     UserStatusUpdateRequest,
@@ -45,7 +46,7 @@ class UserService:
         current_user: User,
         payload: UserPasswordUpdateRequest,
     ) -> UserResponse:
-        from app.core.security import verify_password, hash_password
+        from app.core.security import hash_password, verify_password
         if not verify_password(payload.current_password, current_user.password_hash):
             raise AppException(
                 status_code=400,

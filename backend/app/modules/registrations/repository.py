@@ -27,10 +27,7 @@ class RegistrationRepository:
     async def get_by_id(self, registration_id: UUID) -> Registration | None:
         result = await self.db.execute(
             select(Registration)
-            .options(
-                joinedload(Registration.topic).joinedload(Topic.academic_period),
-                joinedload(Registration.topic).joinedload(Topic.proposed_by),
-            )
+            .options(*self._response_options())
             .where(Registration.id == registration_id)
         )
         return result.scalar_one_or_none()
@@ -38,10 +35,7 @@ class RegistrationRepository:
     async def get_by_id_for_update(self, registration_id: UUID) -> Registration | None:
         result = await self.db.execute(
             select(Registration)
-            .options(
-                joinedload(Registration.topic).joinedload(Topic.academic_period),
-                joinedload(Registration.topic).joinedload(Topic.proposed_by),
-            )
+            .options(*self._response_options())
             .where(Registration.id == registration_id)
             .with_for_update(of=Registration)
         )
@@ -100,10 +94,7 @@ class RegistrationRepository:
         )
         total_items = await self.db.scalar(select(func.count()).select_from(stmt.subquery()))
         result = await self.db.execute(
-            stmt.options(
-                joinedload(Registration.topic).joinedload(Topic.academic_period),
-                joinedload(Registration.topic).joinedload(Topic.proposed_by),
-            )
+            stmt.options(*self._response_options())
             .order_by(Registration.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
@@ -178,6 +169,14 @@ class RegistrationRepository:
         await self.db.refresh(registration)
         return registration
 
+    async def get_response_by_id(self, registration_id: UUID) -> Registration | None:
+        result = await self.db.execute(
+            select(Registration)
+            .options(*self._response_options())
+            .where(Registration.id == registration_id)
+        )
+        return result.scalar_one_or_none()
+
     def _build_list_statement(
         self,
         *,
@@ -207,3 +206,12 @@ class RegistrationRepository:
                 )
             )
         return stmt
+
+    def _response_options(self):
+        return (
+            joinedload(Registration.academic_period),
+            joinedload(Registration.topic).joinedload(Topic.academic_period),
+            joinedload(Registration.topic).joinedload(Topic.proposed_by),
+            joinedload(Registration.student),
+            joinedload(Registration.supervisor),
+        )

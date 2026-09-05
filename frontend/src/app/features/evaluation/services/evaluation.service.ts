@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { ScoreCreate, ScoreResponse, FinalResultCalculateRequest, FinalResultResponse } from '../models/evaluation.model';
+import { ScoreCreate, ScoreUpdate, ScoreResponse, FinalResultCalculateRequest, FinalResultResponse } from '../models/evaluation.model';
 import { ApiResponse } from '../../../core/models/api.model';
 import { environment } from '../../../../environments/environment';
 
@@ -21,9 +21,16 @@ export class EvaluationService {
     return this.http.post<ApiResponse<ScoreResponse>>(`${this.API_URL}/scores`, payload);
   }
 
+  // Giảng viên cập nhật điểm theo API contract
+  updateScore(scoreId: string, payload: ScoreUpdate): Observable<ApiResponse<ScoreResponse>> {
+    return this.http.put<ApiResponse<ScoreResponse>>(`${this.API_URL}/scores/${scoreId}`, payload);
+  }
+
   // Lấy danh sách phiếu điểm của một đồ án
   getScoresByRegistration(registrationId: string): Observable<ApiResponse<ScoreResponse[]>> {
-    return this.http.get<ApiResponse<ScoreResponse[]>>(`${this.API_URL}/scores/registration/${registrationId}`).pipe(
+    return this.http.get<ApiResponse<ScoreResponse[]>>(`${this.API_URL}/scores`, {
+      params: { registration_id: registrationId }
+    }).pipe(
       tap(res => {
         if (res.data) {
           this.evaluations.set(res.data);
@@ -32,9 +39,9 @@ export class EvaluationService {
     );
   }
 
-  // Tính toán kết quả tổng kết (Admin / System)
+  // Tính toán kết quả tổng kết (Admin)
   calculateFinalResult(registrationId: string, payload?: FinalResultCalculateRequest): Observable<ApiResponse<FinalResultResponse>> {
-    return this.http.post<ApiResponse<FinalResultResponse>>(`${this.API_URL}/registrations/${registrationId}/final-result/calculate`, payload || {}).pipe(
+    return this.http.post<ApiResponse<FinalResultResponse>>(`${this.API_URL}/registrations/${registrationId}/final-result/calculate`, payload ?? {}).pipe(
       tap(res => {
         if (res.data) {
           this.finalResult.set(res.data);
@@ -60,6 +67,8 @@ export class EvaluationService {
       tap(res => {
         if (res.data) {
           this.finalResult.set(res.data);
+        } else {
+          this.finalResult.set(null);
         }
       })
     );

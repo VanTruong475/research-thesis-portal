@@ -6,7 +6,7 @@ import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { PeriodService } from '../../../academic-periods/services/period.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
-import { Topic, TopicCreateRequest } from '../../models/topic.model';
+import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model';
 
 @Component({
   selector: 'app-my-topics-page',
@@ -22,7 +22,7 @@ import { Topic, TopicCreateRequest } from '../../models/topic.model';
           <p class="text-muted mt-2">Quản lý các đề tài do bạn hướng dẫn</p>
         </div>
         
-        <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="!activePeriodId ? 'Hiện không có đợt mở đề xuất đề tài nào' : ''">
+        <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="proposalPeriodMessage">
           + Thêm Đề Tài Mới
         </button>
       </div>
@@ -53,13 +53,12 @@ import { Topic, TopicCreateRequest } from '../../models/topic.model';
                   </span>
                 </td>
                 <td class="p-4">
-                  <app-status-badge [type]="topic.status === 'active' || topic.status === 'approved' ? 'success' : 'neutral'">
-                    {{ topic.status === 'active' || topic.status === 'approved' ? 'Đang mở' : 'Đã đóng' }}
+                  <app-status-badge [type]="getStatusBadgeType(topic.status)">
+                    {{ formatTopicStatus(topic.status) }}
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
                   <button class="text-muted hover:text-primary transition-colors text-sm underline mr-3" (click)="openDialog(topic)">Sửa</button>
-                  <a [routerLink]="['/app/topics', topic.id, 'reports']" class="text-muted hover:text-primary transition-colors text-sm underline mr-3" title="Xem Báo cáo">Báo cáo</a>
                   <a routerLink="/app/registrations/review" class="text-muted hover:text-primary transition-colors text-sm underline" title="Danh sách Sinh viên">DS Sinh viên</a>
                 </td>
               </tr>
@@ -130,10 +129,12 @@ export class MyTopicsPageComponent implements OnInit {
   isSubmitting = false;
   isDialogOpen = false;
   editingTopicId: string | null = null;
+  editingTopicPeriodId: string | null = null;
   topicForm!: FormGroup;
 
-  // Biến lưu ID thật của học kỳ thay vì dùng DUMMY
+  // Biến lưu ID thật của học kỳ đang mở đề xuất đề tài thay vì dùng DUMMY
   activePeriodId: string | null = null;
+  proposalPeriodMessage = 'Đang kiểm tra đợt mở đề xuất đề tài...';
 
   ngOnInit() {
     this.initForm();
@@ -142,13 +143,26 @@ export class MyTopicsPageComponent implements OnInit {
   }
 
   loadActivePeriod() {
-    // Lấy danh sách học kỳ và tìm học kỳ đang mở đề xuất đề tài
-    this.periodService.fetchPeriods(1, 10).subscribe({
+    // Lấy danh sách học kỳ và tìm học kỳ đang mở đề xuất đề tài trong đúng khung thời gian
+    this.periodService.fetchPeriods(1, 50).subscribe({
       next: (res) => {
-        if (res.data && res.data.items.length > 0) {
-          const active = res.data.items.find(p => p.status === 'proposal_open');
-          this.activePeriodId = active ? active.id : null;
-        }
+        const now = new Date().getTime();
+        const validPeriod = res.data?.items.find(period => {
+          if (period.status !== 'proposal_open') return false;
+
+          const startAt = new Date(period.proposal_start_at).getTime();
+          const endAt = new Date(period.proposal_end_at).getTime();
+          return startAt <= now && now <= endAt;
+        });
+
+        this.activePeriodId = validPeriod?.id || null;
+        this.proposalPeriodMessage = this.activePeriodId
+          ? `Đang sử dụng đợt đề xuất: ${validPeriod?.name}`
+          : 'Hiện chưa có đợt mở đề xuất đề tài.';
+      },
+      error: (err) => {
+        this.activePeriodId = null;
+        this.proposalPeriodMessage = this.getTopicErrorMessage(err, 'Không thể tải danh sách đợt đề xuất đề tài.');
       }
     });
   }
@@ -175,9 +189,15 @@ export class MyTopicsPageComponent implements OnInit {
   }
 
   openDialog(topic?: Topic) {
+    if (!topic && !this.activePeriodId) {
+      alert(this.proposalPeriodMessage || 'Hiện chưa có đợt mở đề xuất đề tài.');
+      return;
+    }
+
     this.isDialogOpen = true;
     if (topic) {
       this.editingTopicId = topic.id;
+      this.editingTopicPeriodId = topic.academic_period_id;
       this.topicForm.patchValue({
         code: topic.code,
         title: topic.title,
@@ -187,6 +207,7 @@ export class MyTopicsPageComponent implements OnInit {
       });
     } else {
       this.editingTopicId = null;
+      this.editingTopicPeriodId = null;
       this.topicForm.reset({ max_students: 1 });
     }
   }
@@ -194,17 +215,27 @@ export class MyTopicsPageComponent implements OnInit {
   closeDialog() {
     this.isDialogOpen = false;
     this.editingTopicId = null;
+    this.editingTopicPeriodId = null;
     this.topicForm.reset();
   }
 
   onSubmit() {
     // Không cho phép lưu nếu form không hợp lệ hoặc chưa có học kỳ
-    if (this.topicForm.invalid || !this.activePeriodId) return;
-    
+    if (this.topicForm.invalid) return;
+    if (!this.activePeriodId) {
+      alert(this.proposalPeriodMessage || 'Hiện chưa có đợt mở đề xuất đề tài.');
+      return;
+    }
+
     this.isSubmitting = true;
+    const formValue = this.topicForm.value;
     const payload: TopicCreateRequest = {
-      ...this.topicForm.value,
-      academic_period_id: this.activePeriodId // Truyền ID học kỳ thật vào payload gửi lên backend
+      academic_period_id: this.editingTopicPeriodId || this.activePeriodId,
+      code: formValue.code,
+      title: formValue.title,
+      description: formValue.description,
+      requirements: formValue.requirements || undefined,
+      max_students: formValue.max_students
     };
 
     if (this.editingTopicId) {
@@ -212,19 +243,56 @@ export class MyTopicsPageComponent implements OnInit {
         next: () => {
           this.isSubmitting = false;
           this.closeDialog();
+          alert('Cập nhật đề tài thành công.');
           this.loadTopics();
         },
-        error: () => this.isSubmitting = false
+        error: (err) => {
+          this.isSubmitting = false;
+          alert(this.getTopicErrorMessage(err, 'Có lỗi xảy ra khi cập nhật đề tài.'));
+        }
       });
     } else {
       this.topicService.createTopic(payload).subscribe({
         next: () => {
           this.isSubmitting = false;
           this.closeDialog();
+          alert('Tạo đề tài thành công. Đề tài đang chờ Admin duyệt.');
           this.loadTopics();
         },
-        error: () => this.isSubmitting = false
+        error: (err) => {
+          this.isSubmitting = false;
+          alert(this.getTopicErrorMessage(err, 'Có lỗi xảy ra khi tạo đề tài.'));
+        }
       });
     }
+  }
+
+  formatTopicStatus(status: TopicStatus): string {
+    const statusMap: Record<TopicStatus, string> = {
+      pending_approval: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
+      closed: 'Đã đóng',
+      cancelled: 'Đã hủy',
+      completed: 'Không dùng (cũ)'
+    };
+    return statusMap[status] || status;
+  }
+
+  getStatusBadgeType(status: TopicStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'approved') return 'success';
+    if (status === 'pending_approval') return 'warning';
+    if (status === 'rejected' || status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  private getTopicErrorMessage(err: any, fallbackMessage: string): string {
+    const code = err.error?.error?.code;
+    if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền thực hiện thao tác này.';
+    if (code === 'TOPIC_PROPOSAL_PERIOD_CLOSED') return 'Hiện chưa đến thời gian hoặc đã quá hạn đề xuất đề tài.';
+    if (code === 'TOPIC_CODE_EXISTS') return 'Mã đề tài đã tồn tại trong đợt này. Vui lòng chọn mã khác.';
+    if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu đề tài không hợp lệ. Vui lòng kiểm tra lại các trường bắt buộc.';
+    return err.error?.message || fallbackMessage;
   }
 }

@@ -4,7 +4,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.responses import SuccessResponse
@@ -15,6 +15,7 @@ from app.modules.evaluation.schemas import (
     FinalResultResponse,
     ScoreCreate,
     ScoreResponse,
+    ScoreUpdate,
 )
 from app.modules.evaluation.service import EvaluationService
 from app.modules.users.model import User
@@ -25,6 +26,7 @@ router = APIRouter(prefix="", tags=["Scoring & Final Results"])
 # ==========================================
 # 1. API ENDPOINTS CHẤM ĐIỂM (SCORES)
 # ==========================================
+
 
 @router.post(
     "/scores",
@@ -51,6 +53,27 @@ async def submit_score(
 
 
 @router.get(
+    "/scores",
+    response_model=SuccessResponse[list[ScoreResponse]],
+    summary="Xem danh sách phiếu điểm theo đăng ký",
+)
+async def list_scores(
+    registration_id: Annotated[UUID, Query(description="ID đăng ký đồ án/khóa luận")],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    API theo hợp đồng: lấy các phiếu điểm của một đăng ký theo quyền truy cập.
+    """
+    service = EvaluationService(db)
+    scores = await service.get_scores_by_registration(registration_id, current_user)
+    return SuccessResponse(
+        message="Lấy danh sách phiếu điểm thành công.",
+        data=[ScoreResponse.model_validate(score) for score in scores],
+    )
+
+
+@router.get(
     "/scores/registration/{registration_id}",
     response_model=SuccessResponse[list[ScoreResponse]],
     summary="Xem danh sách các phiếu điểm chấm cho một đồ án",
@@ -58,22 +81,45 @@ async def submit_score(
 async def get_scores_by_registration(
     registration_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
-    API xem toàn bộ phiếu điểm đã chấm cho 1 Đăng ký đồ án/khóa luận.
+    API tương thích frontend hiện tại: xem phiếu điểm của một đăng ký theo quyền truy cập.
     """
     service = EvaluationService(db)
-    scores = await service.get_scores_by_registration(registration_id)
+    scores = await service.get_scores_by_registration(registration_id, current_user)
     return SuccessResponse(
         message="Lấy danh sách phiếu điểm thành công.",
-        data=[ScoreResponse.model_validate(s) for s in scores],
+        data=[ScoreResponse.model_validate(score) for score in scores],
+    )
+
+
+@router.put(
+    "/scores/{score_id}",
+    response_model=SuccessResponse[ScoreResponse],
+    summary="Cập nhật phiếu điểm trước khi kết quả được công bố",
+)
+async def update_score(
+    score_id: UUID,
+    data: ScoreUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    API cho phép giảng viên cập nhật phiếu điểm của chính mình khi chưa bị khóa.
+    """
+    service = EvaluationService(db)
+    score_obj = await service.update_score(current_user, score_id, data)
+    return SuccessResponse(
+        message="Cập nhật phiếu điểm thành công.",
+        data=ScoreResponse.model_validate(score_obj),
     )
 
 
 # ==========================================
 # 2. API ENDPOINTS KẾT QUẢ CUỐI CÙNG (FINAL RESULTS)
 # ==========================================
+
 
 @router.post(
     "/registrations/{registration_id}/final-result/calculate",
@@ -137,7 +183,7 @@ async def get_final_result(
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
-    API xem Kết quả tổng kết đồ án. Sinh viên chỉ xem được khi kết quả đã được công bố.
+    API xem Kết quả tổng kết đồ án. Sinh viên chỉ xem được kết quả của mình khi đã công bố.
     """
     service = EvaluationService(db)
     result_obj = await service.get_final_result(current_user, registration_id)

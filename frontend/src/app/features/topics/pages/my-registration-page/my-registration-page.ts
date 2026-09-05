@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { Registration, RegistrationStatus } from '../../models/topic.model';
 
 @Component({
   selector: 'app-my-registration-page',
@@ -30,30 +31,49 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
             <thead class="sticky top-0 bg-surface-deep z-10 shadow-sm">
               <tr>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Ngày ĐK</th>
-                <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Đề tài</th>
+                <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Đăng ký thực hiện</th>
+                <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">GV hướng dẫn</th>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Trạng thái</th>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle text-right">Hành động</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr *ngFor="let reg of topicService.registrations()" class="hover:bg-surface-raised transition-colors">
-                <td class="p-4 text-sm font-mono text-muted">{{ reg.created_at | date:'dd/MM/yyyy' }}</td>
-                <td class="p-4 font-medium text-body">{{ reg.topicName || 'Chưa cập nhật' }}</td>
+              <tr *ngFor="let reg of topicService.registrations()" class="hover:bg-surface-raised transition-colors align-top">
+                <td class="p-4 text-sm font-mono text-muted">{{ (reg.registered_at || reg.created_at) | date:'dd/MM/yyyy' }}</td>
                 <td class="p-4">
-                  <app-status-badge [type]="reg.status === 'pending' ? 'warning' : (reg.status === 'approved' ? 'success' : 'danger')">
-                    {{ reg.status === 'pending' ? 'Đang chờ duyệt' : (reg.status === 'approved' ? 'Thành công' : 'Bị từ chối') }}
+                  <div class="font-medium text-body">{{ getTopicLabel(reg) }}</div>
+                  <div class="text-xs text-muted mt-1">Kỳ: {{ getAcademicPeriodLabel(reg) }}</div>
+                  <div *ngIf="reg.status === 'approved'" class="text-xs text-success mt-2 font-medium">
+                    {{ isExecuting(reg) ? 'Đang thực hiện' : 'Đã được chấp nhận thực hiện đề tài' }}
+                  </div>
+                  <div *ngIf="reg.status === 'rejected' && reg.review_reason" class="text-xs text-danger mt-2">
+                    Lý do từ chối: {{ reg.review_reason }}
+                  </div>
+                  <div *ngIf="reg.status === 'cancelled'" class="text-xs text-muted mt-2">
+                    Đã hủy<span *ngIf="reg.cancelled_at"> ngày {{ reg.cancelled_at | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                </td>
+                <td class="p-4 text-sm text-body">
+                  <div>{{ getSupervisorLabel(reg) }}</div>
+                  <div *ngIf="reg.supervisor_institutional_code" class="text-xs text-muted font-mono mt-1">
+                    {{ reg.supervisor_institutional_code }}
+                  </div>
+                </td>
+                <td class="p-4">
+                  <app-status-badge [type]="getRegistrationStatusBadgeType(reg.status)">
+                    {{ formatRegistrationStatus(reg.status) }}
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
                   <div class="flex items-center justify-end gap-3">
                     <ng-container *ngIf="reg.status === 'approved'">
                       <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Xem tiến độ">Tiến độ</a>
-                      <a [routerLink]="['/app/topics', reg.topic_id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Nộp báo cáo">Báo cáo</a>
+                      <a [routerLink]="['/app/registrations', reg.id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Nộp báo cáo">Báo cáo</a>
                       <a [routerLink]="['/app/registrations', reg.id, 'final-results']" class="text-sm font-medium text-primary hover:underline" title="Xem điểm">Điểm</a>
                     </ng-container>
 
-                    <button 
-                      *ngIf="reg.status === 'pending'" 
+                    <button
+                      *ngIf="reg.status === 'pending'"
                       [disabled]="isCancelling === reg.id"
                       (click)="cancelRegistration(reg.id)"
                       class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline disabled:opacity-50 disabled:no-underline">
@@ -64,7 +84,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               </tr>
               
               <tr *ngIf="topicService.registrations().length === 0 && !isLoading">
-                <td colspan="4" class="p-8 text-center text-muted italic">
+                <td colspan="5" class="p-8 text-center text-muted italic">
                   Bạn chưa đăng ký đề tài nào. Hãy quay lại trang Danh sách Đề tài để đăng ký.
                 </td>
               </tr>
@@ -95,6 +115,43 @@ export class MyRegistrationPageComponent implements OnInit {
         error: () => this.isLoading = false
       });
     }
+  }
+
+  formatRegistrationStatus(status: RegistrationStatus): string {
+    const statusMap: Record<RegistrationStatus, string> = {
+      pending: 'Đang chờ duyệt',
+      approved: 'Thành công',
+      rejected: 'Bị từ chối',
+      cancelled: 'Đã hủy',
+      in_progress: 'Đang thực hiện (cũ)',
+      completed: 'Hoàn thành'
+    };
+    return statusMap[status] || status;
+  }
+
+  getRegistrationStatusBadgeType(status: RegistrationStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'approved') return 'success';
+    if (status === 'pending') return 'warning';
+    if (status === 'rejected' || status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  getTopicLabel(registration: Registration): string {
+    const title = registration.topic_title || registration.topicName || 'Chưa cập nhật';
+    return registration.topic_code ? `${registration.topic_code} - ${title}` : title;
+  }
+
+  getAcademicPeriodLabel(registration: Registration): string {
+    const name = registration.academic_period_name || 'Chưa cập nhật';
+    return registration.academic_period_code ? `${registration.academic_period_code} - ${name}` : name;
+  }
+
+  getSupervisorLabel(registration: Registration): string {
+    return registration.supervisor_full_name || 'Chưa phân công';
+  }
+
+  isExecuting(registration: Registration): boolean {
+    return registration.status === 'approved' && registration.academic_period_status === 'in_progress';
   }
 
   cancelRegistration(registrationId: string) {

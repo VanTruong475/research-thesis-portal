@@ -14,8 +14,18 @@ import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
           Phiếu Chấm Điểm
         </h3>
         <p class="text-sm text-muted">
-          Sinh viên: <span class="text-primary">{{ evaluation.studentName || 'Chưa cập nhật' }}</span>
+          Sinh viên: <span class="text-primary">{{ studentName }}</span>
         </p>
+        <p class="text-xs text-muted mt-1">
+          Đề tài: {{ topicTitle }}
+        </p>
+        <p class="text-xs text-muted mt-1" *ngIf="evaluation.evaluator_full_name">
+          Người chấm: {{ evaluation.evaluator_full_name }}
+        </p>
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-4 rounded-sm border border-danger/30 bg-danger/5 p-3 text-sm text-danger">
+        {{ errorMessage }}
       </div>
 
       <div class="space-y-6">
@@ -26,7 +36,7 @@ import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
             type="number"
             class="ks-input w-24 text-right font-display text-xl font-bold text-primary"
             [(ngModel)]="evaluation.score"
-            [disabled]="evaluation.status === 'submitted'"
+            [disabled]="isLocked"
             min="0"
             max="10"
             step="0.1"
@@ -41,13 +51,17 @@ import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
           <textarea
             class="ks-input h-32 resize-none"
             [(ngModel)]="evaluation.comments"
-            [disabled]="evaluation.status === 'submitted'"
+            [disabled]="isLocked"
             placeholder="Nhập nhận xét đánh giá..."
           ></textarea>
         </div>
 
+        <div *ngIf="isLocked" class="text-sm text-muted italic">
+          Phiếu điểm đã bị khóa sau khi kết quả cuối cùng được công bố.
+        </div>
+
         <!-- Các nút hành động -->
-        <div class="flex gap-4 justify-end pt-4 border-t border-border-subtle" *ngIf="evaluation.status === 'draft'">
+        <div class="flex gap-4 justify-end pt-4 border-t border-border-subtle" *ngIf="!isLocked">
           <button class="ks-button outline text-body hover:text-primary" (click)="onSaveDraft()">
             Lưu nháp
           </button>
@@ -63,6 +77,20 @@ export class EvaluationFormComponent {
   @Input() evaluation!: ScoreResponse;
   @Output() save = new EventEmitter<ScoreCreate>();
 
+  errorMessage = '';
+
+  get isLocked(): boolean {
+    return this.evaluation.status === 'locked' || !!this.evaluation.locked_at;
+  }
+
+  get studentName(): string {
+    return this.evaluation.student_full_name || this.evaluation.studentName || 'Chưa cập nhật';
+  }
+
+  get topicTitle(): string {
+    return this.evaluation.topic_title || this.evaluation.topicName || this.evaluation.registration_id;
+  }
+
   private buildRequest(isSubmit: boolean): ScoreCreate {
     return {
       registration_id: this.evaluation.registration_id,
@@ -74,12 +102,29 @@ export class EvaluationFormComponent {
     };
   }
 
+  private validateScore(): boolean {
+    if (this.evaluation.score === null || this.evaluation.score === undefined || Number.isNaN(Number(this.evaluation.score))) {
+      this.errorMessage = 'Vui lòng nhập điểm số.';
+      return false;
+    }
+
+    if (Number(this.evaluation.score) < 0 || Number(this.evaluation.score) > 10) {
+      this.errorMessage = 'Điểm số phải nằm trong khoảng 0.0 đến 10.0.';
+      return false;
+    }
+
+    this.errorMessage = '';
+    return true;
+  }
+
   onSaveDraft() {
+    if (!this.validateScore()) return;
     this.save.emit(this.buildRequest(false));
   }
 
   onSubmit() {
-    if (confirm('Bạn có chắc chắn muốn nộp bảng điểm này? Sau khi nộp sẽ không thể sửa lại.')) {
+    if (!this.validateScore()) return;
+    if (confirm('Bạn có chắc chắn muốn nộp bảng điểm này? Điểm vẫn có thể chỉnh sửa cho đến khi kết quả cuối cùng được công bố và khóa.')) {
       this.save.emit(this.buildRequest(true));
     }
   }

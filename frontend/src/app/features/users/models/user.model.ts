@@ -1,5 +1,5 @@
 export type UserRole = 'student' | 'lecturer' | 'admin';
-export type UserStatus = 'active' | 'inactive' | 'suspended';
+export type UserStatus = 'active' | 'inactive' | 'locked';
 
 // Cấu trúc dữ liệu yêu cầu gửi lên API để tạo người dùng mới
 export interface CreateUserRequest {

@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { FinalResultResponse, FinalResultStatus, ResultClassification } from '../../models/evaluation.model';
 
 @Component({
   selector: 'app-final-results-page',
@@ -18,22 +19,25 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           </h1>
           <p class="text-muted mt-2 text-left">Bảng điểm và đánh giá cuối cùng dành cho Đồ án</p>
         </div>
-        
-        <!-- Các nút chức năng dành cho Admin/Giảng viên -->
-        <div class="flex gap-4" *ngIf="isAdminOrLecturer">
-          <button class="ks-button ks-button-secondary" (click)="onCalculate()" [disabled]="isProcessing || !registrationId">
+
+        <!-- Các nút chức năng dành cho Admin -->
+        <div class="flex gap-4" *ngIf="isAdmin">
+          <button class="ks-button ks-button-secondary" (click)="onCalculate()" [disabled]="isProcessing || !registrationId || result()?.status === 'published'">
             <span class="material-symbols-outlined text-sm mr-2">calculate</span>
             Tính Điểm
           </button>
-          <button 
-            *ngIf="isAdmin"
-            class="ks-button ks-button-primary" 
-            (click)="onPublish()" 
+          <button
+            class="ks-button ks-button-primary"
+            (click)="onPublish()"
             [disabled]="isProcessing || !registrationId || (result()?.status === 'published')">
             <span class="material-symbols-outlined text-sm mr-2">campaign</span>
             {{ result()?.status === 'published' ? 'Đã Công Bố' : 'Công Bố Kết Quả' }}
           </button>
         </div>
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-4 rounded-sm border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+        {{ errorMessage }}
       </div>
 
       <div *ngIf="isLoading" class="text-center py-10">
@@ -44,11 +48,19 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         <div class="ks-card mt-8">
           <div class="border-b border-border-subtle pb-6 mb-6">
             <h2 class="text-2xl font-display font-medium text-heading mb-2">
-              Đề tài: {{ res.topicName || res.registration_id }}
+              Đề tài: {{ getTopicTitle(res) }}
             </h2>
             <p class="text-body font-sans">
-              Sinh viên thực hiện: <span class="font-medium text-primary">{{ res.studentName || 'Chưa cập nhật' }}</span>
+              Sinh viên thực hiện: <span class="font-medium text-primary">{{ getStudentName(res) }}</span>
             </p>
+            <p class="text-sm text-muted mt-2" *ngIf="res.supervisor_full_name">
+              GVHD: {{ res.supervisor_full_name }}
+            </p>
+            <div class="mt-3">
+              <app-status-badge [type]="getFinalResultStatusBadgeType(res.status)">
+                {{ formatFinalResultStatus(res.status) }}
+              </app-status-badge>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-6 mb-8 text-center">
@@ -67,13 +79,20 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <p class="text-sm text-heading mb-1 uppercase tracking-wider">Điểm Tổng Kết</p>
               <p class="font-display text-5xl font-bold text-primary">{{ res.final_score }} / 10</p>
             </div>
-            
+
             <div class="text-right">
               <p class="text-sm text-heading mb-2 uppercase tracking-wider">Xếp Loại</p>
-              <app-status-badge [type]="res.classification === 'excellent' ? 'success' : (res.classification === 'pass' || res.classification === 'good' || res.classification === 'fair' ? 'warning' : 'danger')">
+              <app-status-badge [type]="getClassificationBadgeType(res.classification)">
                 {{ formatClassification(res.classification) }}
               </app-status-badge>
             </div>
+          </div>
+
+          <div class="text-xs text-muted space-y-1">
+            <p>Thời điểm tính điểm: {{ res.calculated_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p *ngIf="res.published_at">Thời điểm công bố: {{ res.published_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p *ngIf="res.calculated_by_full_name">Người tính điểm: {{ res.calculated_by_full_name }}</p>
+            <p *ngIf="res.published_by_full_name">Người công bố: {{ res.published_by_full_name }}</p>
           </div>
         </div>
       </div>
@@ -82,7 +101,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         <div *ngIf="!isLoading" class="mt-12 text-center text-muted p-12 border border-dashed border-border-subtle rounded-sm">
           <span class="material-symbols-outlined text-5xl mb-4 opacity-50">hourglass_empty</span>
           <p class="text-lg">Chưa có kết quả tổng kết cho đồ án này.</p>
-          <p class="text-sm mt-2">Vui lòng chờ hoặc thực hiện tính điểm (dành cho GV/Admin).</p>
+          <p class="text-sm mt-2">Vui lòng chờ hoặc thực hiện tính điểm (dành cho Admin).</p>
         </div>
       </ng-template>
     </div>
@@ -95,7 +114,8 @@ export class FinalResultsPageComponent implements OnInit {
 
   isLoading = false;
   isProcessing = false;
-  
+  errorMessage = '';
+
   result = this.evaluationService.finalResult;
   registrationId: string | null = null;
 
@@ -103,13 +123,9 @@ export class FinalResultsPageComponent implements OnInit {
     return this.authService.currentUser()?.role === 'admin';
   }
 
-  get isAdminOrLecturer(): boolean {
-    const role = this.authService.currentUser()?.role;
-    return role === 'admin' || role === 'lecturer';
-  }
-
   ngOnInit() {
     this.registrationId = this.route.snapshot.paramMap.get('registrationId');
+    this.evaluationService.finalResult.set(null);
     if (this.registrationId) {
       this.loadResult();
     }
@@ -118,20 +134,29 @@ export class FinalResultsPageComponent implements OnInit {
   loadResult() {
     if (!this.registrationId) return;
     this.isLoading = true;
+    this.errorMessage = '';
     this.evaluationService.getFinalResult(this.registrationId).subscribe({
       next: () => this.isLoading = false,
-      error: () => this.isLoading = false
+      error: (err) => {
+        this.isLoading = false;
+        this.evaluationService.finalResult.set(null);
+        const code = err.error?.error?.code;
+        if (code !== 'FINAL_RESULT_NOT_FOUND') {
+          this.errorMessage = err.error?.message || 'Không thể tải kết quả tổng kết.';
+        }
+      }
     });
   }
 
   onCalculate() {
     if (!this.registrationId) return;
     this.isProcessing = true;
+    this.errorMessage = '';
     this.evaluationService.calculateFinalResult(this.registrationId).subscribe({
       next: () => this.isProcessing = false,
       error: (err) => {
         this.isProcessing = false;
-        alert(err.error?.message || 'Có lỗi xảy ra khi tính điểm.');
+        this.errorMessage = err.error?.message || 'Có lỗi xảy ra khi tính điểm.';
       }
     });
   }
@@ -140,25 +165,58 @@ export class FinalResultsPageComponent implements OnInit {
     if (!this.registrationId) return;
     if (confirm('Bạn có chắc chắn muốn công bố điểm? Sau khi công bố, điểm số sẽ không thể thay đổi nữa.')) {
       this.isProcessing = true;
+      this.errorMessage = '';
       this.evaluationService.publishFinalResult(this.registrationId).subscribe({
         next: () => this.isProcessing = false,
         error: (err) => {
           this.isProcessing = false;
-          alert(err.error?.message || 'Có lỗi xảy ra khi công bố điểm.');
+          this.errorMessage = err.error?.message || 'Có lỗi xảy ra khi công bố điểm.';
         }
       });
     }
   }
 
-  formatClassification(classification?: string | null): string {
+  getTopicTitle(res: FinalResultResponse): string {
+    return res.topic_title || res.topicName || res.registration_id;
+  }
+
+  getStudentName(res: FinalResultResponse): string {
+    return res.student_full_name || res.studentName || 'Chưa cập nhật';
+  }
+
+  formatFinalResultStatus(status: FinalResultStatus): string {
+    const statusMap: Record<FinalResultStatus, string> = {
+      draft: 'Nháp',
+      calculated: 'Đã tính, chưa công bố',
+      published: 'Đã công bố',
+      cancelled: 'Đã hủy'
+    };
+    return statusMap[status] || status;
+  }
+
+  getFinalResultStatusBadgeType(status: FinalResultStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'published') return 'success';
+    if (status === 'calculated' || status === 'draft') return 'warning';
+    if (status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  formatClassification(classification?: ResultClassification | null): string {
     if (!classification) return 'Đang xử lý';
-    const map: Record<string, string> = {
-      'excellent': 'Xuất sắc',
-      'good': 'Giỏi',
-      'fair': 'Khá',
-      'pass': 'Trung bình (Đạt)',
-      'fail': 'Không Đạt'
+    const map: Record<ResultClassification, string> = {
+      excellent: 'Xuất sắc',
+      good: 'Giỏi',
+      fair: 'Khá',
+      average: 'Trung bình',
+      failed: 'Không đạt'
     };
     return map[classification] || classification;
+  }
+
+  getClassificationBadgeType(classification?: ResultClassification | null): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (classification === 'excellent') return 'success';
+    if (classification === 'good' || classification === 'fair' || classification === 'average') return 'warning';
+    if (classification === 'failed') return 'danger';
+    return 'neutral';
   }
 }

@@ -3,7 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CouncilService } from '../../services/council';
 import { PeriodService } from '../../../academic-periods/services/period.service';
-import { Council, CouncilMemberRole, CreateCouncilRequest, CouncilMemberAssignRequest, DefenseScheduleCreateRequest } from '../../models/council.model';
+import { CouncilMember, CouncilMemberRole, CouncilStatus, CreateCouncilRequest, CouncilMemberAssignRequest, DefenseSchedule, DefenseScheduleCreateRequest } from '../../models/council.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
 @Component({
@@ -26,6 +26,10 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         </button>
       </div>
 
+      <div *ngIf="errorMessage" class="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+        {{ errorMessage }}
+      </div>
+
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 relative">
         <div *ngIf="isLoading" class="absolute inset-0 z-10 flex items-start justify-center pt-10">
           <span class="text-primary font-medium">Đang tải dữ liệu hội đồng...</span>
@@ -38,8 +42,8 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <div class="text-sm font-mono text-muted mb-1">{{ council.code }}</div>
               <h2 class="text-xl font-display font-bold text-primary">{{ council.name }}</h2>
             </div>
-            <app-status-badge [type]="council.status === 'published' ? 'success' : (council.status === 'draft' ? 'warning' : 'neutral')">
-              {{ council.status === 'published' ? 'Đã chốt' : (council.status === 'draft' ? 'Bản nháp' : 'Hoàn thành') }}
+            <app-status-badge [type]="getCouncilStatusBadgeType(council.status)">
+              {{ formatCouncilStatus(council.status) }}
             </app-status-badge>
           </div>
 
@@ -49,7 +53,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <h3 class="text-sm font-bold text-heading uppercase tracking-wider mb-3">Thành viên Hội đồng</h3>
               <ul class="space-y-2">
                 <li *ngFor="let member of council.members" class="flex justify-between text-sm">
-                  <span class="text-body font-medium">{{ member.name || member.lecturer_id }}</span>
+                  <span class="text-body font-medium">{{ formatMemberName(member) }}</span>
                   <span class="text-muted">{{ formatRole(member.member_role) }}</span>
                 </li>
                 <li *ngIf="council.members.length === 0" class="text-sm text-muted italic">Chưa phân công thành viên</li>
@@ -62,8 +66,9 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <h3 class="text-sm font-bold text-heading uppercase tracking-wider mb-3">Lịch bảo vệ ({{ council.schedules.length }})</h3>
               <div class="space-y-3">
                 <div *ngFor="let schedule of council.schedules" class="p-3 border border-border-subtle rounded-sm bg-surface-deep">
-                  <div class="font-medium text-body text-sm mb-1 truncate">{{ schedule.topic_name || 'Đề tài chưa rõ' }}</div>
-                  <div class="text-xs text-muted mb-2">SV: <span class="font-medium">{{ schedule.student_name || 'SV' }}</span></div>
+                  <div class="font-medium text-body text-sm mb-1 truncate">{{ formatTopicTitle(schedule) }}</div>
+                  <div class="text-xs text-muted mb-1">SV: <span class="font-medium">{{ formatStudentName(schedule) }}</span></div>
+                  <div class="text-xs text-muted mb-2">GVHD: <span class="font-medium">{{ schedule.supervisor_full_name || 'Chưa rõ' }}</span></div>
                   <div class="flex justify-between items-center text-xs font-mono">
                     <span class="text-primary">{{ schedule.scheduled_at | date:'dd/MM/yyyy HH:mm' }} ({{ schedule.duration_minutes }}p)</span>
                     <span class="text-muted">Phòng: {{ schedule.room }}</span>
@@ -162,6 +167,14 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
                 <input type="text" formControlName="room" class="ks-input">
               </div>
             </div>
+            <div>
+              <label class="ks-label">Thứ tự trình bày</label>
+              <input type="number" formControlName="presentation_order" class="ks-input" min="1">
+            </div>
+            <div>
+              <label class="ks-label">Ghi chú</label>
+              <textarea formControlName="note" class="ks-input h-20"></textarea>
+            </div>
             <div class="pt-4 flex justify-end gap-3">
               <button type="button" class="ks-button ks-button-secondary" (click)="closeDialog()">Hủy</button>
               <button type="submit" class="ks-button ks-button-primary" [disabled]="scheduleForm.invalid || isSubmitting">Lưu</button>
@@ -180,7 +193,8 @@ export class CouncilListPageComponent implements OnInit {
   
   isLoading = false;
   isSubmitting = false;
-  
+  errorMessage = '';
+
   activeDialog: 'none' | 'council' | 'member' | 'schedule' = 'none';
   selectedCouncilId: string | null = null;
 
@@ -197,6 +211,7 @@ export class CouncilListPageComponent implements OnInit {
 
   loadActivePeriod() {
     this.isLoading = true;
+    this.errorMessage = '';
     this.periodService.fetchPeriods(1, 1).subscribe({
       next: (res) => {
         if (res.data && res.data.items.length > 0) {
@@ -204,9 +219,13 @@ export class CouncilListPageComponent implements OnInit {
           this.loadCouncils();
         } else {
           this.isLoading = false;
+          this.errorMessage = 'Chưa có học kỳ/đợt bảo vệ để tải hội đồng.';
         }
       },
-      error: () => this.isLoading = false
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = this.getErrorMessage(err, 'Không thể tải đợt bảo vệ.');
+      }
     });
   }
 
@@ -215,7 +234,10 @@ export class CouncilListPageComponent implements OnInit {
     this.isLoading = true;
     this.councilService.getCouncilsByPeriod(this.activePeriodId).subscribe({
       next: () => this.isLoading = false,
-      error: () => this.isLoading = false
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = this.getErrorMessage(err, 'Không thể tải dữ liệu hội đồng.');
+      }
     });
   }
 
@@ -235,25 +257,30 @@ export class CouncilListPageComponent implements OnInit {
     this.scheduleForm = this.fb.group({
       registration_id: ['', Validators.required],
       scheduled_at: ['', Validators.required],
-      duration_minutes: [45, Validators.required],
-      room: ['', Validators.required]
+      duration_minutes: [45, [Validators.required, Validators.min(15), Validators.max(180)]],
+      room: ['', Validators.required],
+      presentation_order: [null, Validators.min(1)],
+      note: ['']
     });
   }
 
   openCreateCouncilDialog() {
+    this.errorMessage = '';
     this.councilForm.reset();
     this.activeDialog = 'council';
   }
 
   openAddMemberDialog(councilId: string) {
+    this.errorMessage = '';
     this.selectedCouncilId = councilId;
     this.memberForm.reset({ member_role: 'member' });
     this.activeDialog = 'member';
   }
 
   openAddScheduleDialog(councilId: string) {
+    this.errorMessage = '';
     this.selectedCouncilId = councilId;
-    this.scheduleForm.reset({ duration_minutes: 45 });
+    this.scheduleForm.reset({ duration_minutes: 45, presentation_order: null, note: '' });
     this.activeDialog = 'schedule';
   }
 
@@ -265,6 +292,7 @@ export class CouncilListPageComponent implements OnInit {
   onSubmitCouncil() {
     if (this.councilForm.invalid || !this.activePeriodId) return;
     this.isSubmitting = true;
+    this.errorMessage = '';
     const payload: CreateCouncilRequest = {
       ...this.councilForm.value,
       academic_period_id: this.activePeriodId
@@ -276,13 +304,17 @@ export class CouncilListPageComponent implements OnInit {
         this.closeDialog();
         this.loadCouncils();
       },
-      error: () => this.isSubmitting = false
+      error: (err) => {
+        this.isSubmitting = false;
+        this.errorMessage = this.getErrorMessage(err, 'Không thể thành lập hội đồng.');
+      }
     });
   }
 
   onSubmitMember() {
     if (this.memberForm.invalid || !this.selectedCouncilId) return;
     this.isSubmitting = true;
+    this.errorMessage = '';
     const payload = this.memberForm.value as CouncilMemberAssignRequest;
 
     this.councilService.assignMember(this.selectedCouncilId, payload).subscribe({
@@ -291,18 +323,24 @@ export class CouncilListPageComponent implements OnInit {
         this.closeDialog();
         this.loadCouncils();
       },
-      error: () => this.isSubmitting = false
+      error: (err) => {
+        this.isSubmitting = false;
+        this.errorMessage = this.getErrorMessage(err, 'Không thể thêm thành viên hội đồng.');
+      }
     });
   }
 
   onSubmitSchedule() {
     if (this.scheduleForm.invalid || !this.selectedCouncilId) return;
     this.isSubmitting = true;
+    this.errorMessage = '';
     const payload = this.scheduleForm.value as DefenseScheduleCreateRequest;
-    
-    // Format to ISO
+
     if (payload.scheduled_at) {
       payload.scheduled_at = new Date(payload.scheduled_at).toISOString();
+    }
+    if (!payload.presentation_order) {
+      payload.presentation_order = null;
     }
 
     this.councilService.createDefenseSchedule(this.selectedCouncilId, payload).subscribe({
@@ -311,8 +349,29 @@ export class CouncilListPageComponent implements OnInit {
         this.closeDialog();
         this.loadCouncils();
       },
-      error: () => this.isSubmitting = false
+      error: (err) => {
+        this.isSubmitting = false;
+        this.errorMessage = this.getErrorMessage(err, 'Không thể xếp lịch bảo vệ.');
+      }
     });
+  }
+
+  formatCouncilStatus(status: CouncilStatus): string {
+    const statusMap: Record<CouncilStatus, string> = {
+      draft: 'Bản nháp',
+      scheduled: 'Đã lên lịch',
+      in_progress: 'Đang diễn ra (cũ)',
+      completed: 'Hoàn thành',
+      cancelled: 'Đã hủy'
+    };
+    return statusMap[status] || status;
+  }
+
+  getCouncilStatusBadgeType(status: CouncilStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'scheduled') return 'success';
+    if (status === 'draft') return 'warning';
+    if (status === 'cancelled') return 'danger';
+    return 'neutral';
   }
 
   formatRole(role: CouncilMemberRole): string {
@@ -323,5 +382,30 @@ export class CouncilListPageComponent implements OnInit {
       member: 'Ủy viên'
     };
     return roles[role] || role;
+  }
+
+  formatMemberName(member: CouncilMember): string {
+    const name = member.lecturer_full_name || member.lecturer_id;
+    return member.lecturer_institutional_code
+      ? `${name} (${member.lecturer_institutional_code})`
+      : name;
+  }
+
+  formatTopicTitle(schedule: DefenseSchedule): string {
+    if (schedule.topic_code && schedule.topic_title) {
+      return `${schedule.topic_code} - ${schedule.topic_title}`;
+    }
+    return schedule.topic_title || 'Đề tài chưa rõ';
+  }
+
+  formatStudentName(schedule: DefenseSchedule): string {
+    const name = schedule.student_full_name || 'Sinh viên chưa rõ';
+    return schedule.student_institutional_code
+      ? `${name} (${schedule.student_institutional_code})`
+      : name;
+  }
+
+  private getErrorMessage(err: any, fallback: string): string {
+    return err?.error?.message || err?.error?.error?.message || fallback;
   }
 }

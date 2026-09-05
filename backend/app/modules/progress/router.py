@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.responses import SuccessResponse
 from app.db.enums import UserRole
 from app.db.session import get_db
-from app.modules.auth.dependencies import require_roles
-from app.modules.users.model import User
+from app.modules.auth.dependencies import get_current_user, require_roles
 from app.modules.progress.schemas import (
     AddTeacherCommentRequest,
     CreateProgressLogRequest,
     ProgressLogResponse,
 )
 from app.modules.progress.service import ProgressService
+from app.modules.users.model import User
 
 router = APIRouter()
 
@@ -31,10 +31,8 @@ async def create_progress_log_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_student: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
 ):
-    # Gọi Service thực hiện lưu vào CSDL
-    new_log = await ProgressService.create_progress_log(
-        db=db,
-        student_id=current_student.id,
+    new_log = await ProgressService(db).create_progress_log(
+        current_student=current_student,
         payload=payload,
     )
 
@@ -57,10 +55,9 @@ async def add_teacher_comment_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_lecturer: Annotated[User, Depends(require_roles(UserRole.LECTURER))],
 ):
-    # Gọi Service cập nhật nhận xét của GVHD vào CSDL
-    updated_log = await ProgressService.add_teacher_comment(
-        db=db,
+    updated_log = await ProgressService(db).add_teacher_comment(
         log_id=id,
+        current_lecturer=current_lecturer,
         payload=payload,
     )
 
@@ -80,14 +77,13 @@ async def add_teacher_comment_endpoint(
 async def get_progress_logs_endpoint(
     registration_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
-    # Gọi Service lấy danh sách từ CSDL
-    logs = await ProgressService.get_progress_logs_by_registration(
-        db=db,
+    logs = await ProgressService(db).get_progress_logs_by_registration(
         registration_id=registration_id,
+        current_user=current_user,
     )
 
-    # Chuyển đổi danh sách ORM objects thành danh sách Schema DTO
     response_data = [ProgressLogResponse.model_validate(log) for log in logs]
 
     return SuccessResponse(

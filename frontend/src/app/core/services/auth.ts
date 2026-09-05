@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
 
 export type UserRole = 'student' | 'lecturer' | 'admin';
-export type UserStatus = 'active' | 'inactive' | 'suspended';
+export type UserStatus = 'active' | 'inactive' | 'locked';
 
 export interface UserResponse {
   id: string;
