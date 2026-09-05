@@ -5,7 +5,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -85,6 +93,12 @@ class Score(BaseModel):
         nullable=True,
     )
 
+    # Thời gian khóa điểm khi kết quả cuối cùng được công bố
+    locked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     # Constraint: Mỗi Giảng viên chỉ chấm 1 điểm duy nhất cho 1 Đăng ký (với loại đánh giá tương ứng)
     __table_args__ = (
         UniqueConstraint(
@@ -92,6 +106,15 @@ class Score(BaseModel):
             "evaluator_id",
             "evaluation_type",
             name="uq_scores_registration_evaluator_type",
+        ),
+        CheckConstraint("score >= 0 AND score <= 10", name="scores_score_range"),
+        CheckConstraint(
+            "evaluation_type NOT IN ('COUNCIL', 'council') OR council_id IS NOT NULL",
+            name="scores_council_requires_council_id",
+        ),
+        CheckConstraint(
+            "evaluation_type NOT IN ('SUPERVISOR', 'supervisor') OR council_id IS NULL",
+            name="scores_supervisor_requires_no_council_id",
         ),
     )
 
@@ -191,6 +214,34 @@ class FinalResult(BaseModel):
         PostgreSQLUUID(as_uuid=True),
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=True,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "supervisor_score >= 0 AND supervisor_score <= 10",
+            name="final_results_supervisor_score_range",
+        ),
+        CheckConstraint(
+            "council_average_score >= 0 AND council_average_score <= 10",
+            name="final_results_council_average_score_range",
+        ),
+        CheckConstraint(
+            "final_score >= 0 AND final_score <= 10",
+            name="final_results_final_score_range",
+        ),
+        CheckConstraint(
+            "supervisor_weight >= 0 AND council_weight >= 0",
+            name="final_results_weight_non_negative",
+        ),
+        CheckConstraint(
+            "supervisor_weight + council_weight = 100",
+            name="final_results_weight_total_100",
+        ),
+        CheckConstraint(
+            "status NOT IN ('PUBLISHED', 'published') OR "
+            "(published_at IS NOT NULL AND published_by_id IS NOT NULL)",
+            name="final_results_published_metadata_required",
+        ),
     )
 
     # Relationships (Liên kết ORM)

@@ -8,13 +8,16 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -84,14 +87,12 @@ class Council(BaseModel):
     members: Mapped[list[CouncilMember]] = relationship(
         "CouncilMember",
         back_populates="council",
-        cascade="all, delete-orphan",
     )
 
     # Relationship với danh sách lịch bảo vệ của sinh viên
     schedules: Mapped[list[DefenseSchedule]] = relationship(
         "DefenseSchedule",
         back_populates="council",
-        cascade="all, delete-orphan",
     )
 
 
@@ -215,6 +216,22 @@ class DefenseSchedule(BaseModel):
         PostgreSQLUUID(as_uuid=True),
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("registration_id", name="uq_defense_schedules_registration"),
+        CheckConstraint("duration_minutes > 0", name="defense_schedule_duration_positive"),
+        CheckConstraint(
+            "presentation_order IS NULL OR presentation_order >= 1",
+            name="defense_schedule_presentation_order_positive",
+        ),
+        Index(
+            "uq_defense_schedules_council_presentation_order",
+            "council_id",
+            "presentation_order",
+            unique=True,
+            postgresql_where=text("presentation_order IS NOT NULL"),
+        ),
     )
 
     # Relationship tới Hội đồng

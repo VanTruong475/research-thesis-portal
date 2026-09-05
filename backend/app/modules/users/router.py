@@ -11,8 +11,8 @@ from app.modules.auth.dependencies import get_current_user, require_roles
 from app.modules.users.model import User
 from app.modules.users.schemas import (
     UserCreateRequest,
-    UserProfileUpdateRequest,
     UserPasswordUpdateRequest,
+    UserProfileUpdateRequest,
     UserStatusUpdateRequest,
 )
 from app.modules.users.service import UserService

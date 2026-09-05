@@ -7,14 +7,17 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.responses import create_success_response
+from app.common.responses import SuccessResponse, create_success_response
 from app.db.enums import UserRole
 from app.db.session import get_db
 from app.modules.auth.dependencies import get_current_user, require_roles
 from app.modules.councils.schemas import (
     CouncilCreateRequest,
     CouncilMemberAssignRequest,
+    CouncilMemberResponse,
+    CouncilResponse,
     DefenseScheduleCreateRequest,
+    DefenseScheduleResponse,
 )
 from app.modules.councils.service import CouncilService
 from app.modules.users.model import User
@@ -25,6 +28,7 @@ ADMIN_REQUIRED = require_roles(UserRole.ADMIN)
 
 @router.post(
     "",
+    response_model=SuccessResponse[CouncilResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Admin thành lập Hội đồng chấm bảo vệ mới",
 )
@@ -47,6 +51,7 @@ async def create_council(
 
 @router.post(
     "/{council_id}/members",
+    response_model=SuccessResponse[CouncilMemberResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Admin phân công Giảng viên vào Hội đồng",
 )
@@ -70,6 +75,7 @@ async def assign_council_member(
 
 @router.post(
     "/{council_id}/schedules",
+    response_model=SuccessResponse[DefenseScheduleResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Admin xếp lịch bảo vệ đồ án cho Sinh viên vào Hội đồng",
 )
@@ -97,17 +103,21 @@ async def create_defense_schedule(
 
 @router.get(
     "/period/{period_id}",
+    response_model=SuccessResponse[list[CouncilResponse]],
     summary="Xem danh sách tất cả các Hội đồng theo Học kỳ",
 )
 async def get_councils_by_period(
     period_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Endpoint xem danh sách các Hội đồng kèm thành viên và lịch bảo vệ thuộc một Học kỳ cụ thể.
     """
-    councils = await CouncilService(db).get_councils_by_period(period_id)
+    councils = await CouncilService(db).get_councils_by_period(
+        period_id=period_id,
+        current_user=current_user,
+    )
     return create_success_response(
         data=[c.model_dump(mode="json") for c in councils],
         message="Lấy danh sách Hội đồng thành công.",

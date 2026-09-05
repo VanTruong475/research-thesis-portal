@@ -10,9 +10,8 @@ export interface CouncilMember {
   member_role: CouncilMemberRole;
   status: CouncilMemberStatus;
   assigned_at: string;
-  // UI extended
-  name?: string;
-  role_in_council?: string;
+  lecturer_full_name?: string | null;
+  lecturer_institutional_code?: string | null;
 }
 
 export interface DefenseSchedule {
@@ -25,11 +24,17 @@ export interface DefenseSchedule {
   presentation_order?: number | null;
   status: DefenseScheduleStatus;
   note?: string | null;
-  // UI extended
-  topic_name?: string;
-  student_name?: string;
-  defense_date?: string;
-  location?: string;
+  topic_id?: string | null;
+  topic_code?: string | null;
+  topic_title?: string | null;
+  student_id?: string | null;
+  student_full_name?: string | null;
+  student_institutional_code?: string | null;
+  supervisor_id?: string | null;
+  supervisor_full_name?: string | null;
+  academic_period_id?: string | null;
+  academic_period_code?: string | null;
+  academic_period_name?: string | null;
 }
 
 export interface Council {
@@ -37,8 +42,8 @@ export interface Council {
   academic_period_id: string;
   code: string;
   name: string;
-  description?: string;
-  default_room?: string;
+  description?: string | null;
+  default_room?: string | null;
   status: CouncilStatus;
   created_at: string;
   members: CouncilMember[];
@@ -49,8 +54,8 @@ export interface CreateCouncilRequest {
   academic_period_id: string;
   code: string;
   name: string;
-  description?: string;
-  default_room?: string;
+  description?: string | null;
+  default_room?: string | null;
 }
 
 export interface CouncilMemberAssignRequest {
@@ -60,8 +65,9 @@ export interface CouncilMemberAssignRequest {
 
 export interface DefenseScheduleCreateRequest {
   registration_id: string;
-  scheduled_at: string; // ISO string
+  scheduled_at: string;
   duration_minutes: number;
   room: string;
+  presentation_order?: number | null;
+  note?: string | null;
 }
-
