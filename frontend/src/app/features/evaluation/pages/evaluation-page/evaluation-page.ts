@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../../core/services/auth';
 import { ScoreResponse, ScoreCreate, ScoreStatus, EvaluationType } from '../../models/evaluation.model';
@@ -11,10 +11,13 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 @Component({
   selector: 'app-evaluation-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, EvaluationFormComponent, StatusBadge],
+  imports: [CommonModule, RouterModule, FormsModule, EvaluationFormComponent, StatusBadge],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="mb-8">
+        <a [routerLink]="getBackRoute()" class="inline-flex items-center text-sm text-muted hover:text-primary transition-colors mb-4">
+          ← {{ getBackLabel() }}
+        </a>
         <h1 class="text-3xl font-display font-bold text-primary uppercase tracking-wider">
           Chấm Điểm Đề Tài
         </h1>
@@ -130,6 +133,18 @@ export class EvaluationPageComponent implements OnInit {
 
   get isLecturer(): boolean {
     return this.authService.currentUser()?.role === 'lecturer';
+  }
+
+  get isStudent(): boolean {
+    return this.authService.currentUser()?.role === 'student';
+  }
+
+  getBackRoute(): string {
+    return this.isStudent ? '/app/registrations/my' : '/app/registrations/review';
+  }
+
+  getBackLabel(): string {
+    return this.isStudent ? 'Quay lại đăng ký của tôi' : 'Quay lại danh sách đăng ký';
   }
 
   ngOnInit() {

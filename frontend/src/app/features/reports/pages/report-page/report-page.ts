@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FileUploaderComponent } from '../../components/file-uploader/file-uploader';
 import { ReportHistoryComponent } from '../../components/report-history/report-history';
 import { ReportService } from '../../services/report.service';
@@ -9,11 +9,16 @@ import { AuthService } from '../../../../core/services/auth';
 @Component({
   selector: 'app-report-page',
   standalone: true,
-  imports: [CommonModule, FileUploaderComponent, ReportHistoryComponent],
+  imports: [CommonModule, RouterModule, FileUploaderComponent, ReportHistoryComponent],
   template: `
     <div class="max-w-4xl mx-auto p-8">
       <div class="mb-8">
-        <h1 class="text-3xl font-display font-bold text-heading mb-2">Báo cáo Tài liệu</h1>
+        <a
+          [routerLink]="getBackRoute()"
+          class="inline-flex items-center rounded-sm border border-border-subtle px-3 py-1.5 text-sm font-medium text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors mb-4">
+          ← {{ getBackLabel() }}
+        </a>
+        <h1 class="text-3xl font-display font-bold text-heading uppercase tracking-wider mb-2">Báo Cáo Tài Liệu</h1>
         <p class="text-muted">Nộp và quản lý các phiên bản tài liệu báo cáo theo đơn đăng ký thực hiện đề tài.</p>
       </div>
 
@@ -47,6 +52,14 @@ export class ReportPageComponent implements OnInit {
   // Getter kiểm tra xem người dùng có phải là sinh viên không
   get isStudent(): boolean {
     return this.authService.currentUser()?.role === 'student';
+  }
+
+  getBackRoute(): string {
+    return this.isStudent ? '/app/registrations/my' : '/app/registrations/review';
+  }
+
+  getBackLabel(): string {
+    return this.isStudent ? 'Quay lại đăng ký của tôi' : 'Quay lại danh sách đăng ký';
   }
 
   ngOnInit() {

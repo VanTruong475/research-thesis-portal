@@ -62,6 +62,7 @@ class TopicResponse(BaseModel):
     description: str
     requirements: str | None = None
     max_students: int
+    current_students: int = 0
     proposed_by_id: UUID
     approved_by_id: UUID | None = None
     status: TopicStatus

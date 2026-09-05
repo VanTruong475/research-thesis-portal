@@ -16,9 +16,9 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           <h1 class="text-3xl font-display font-bold text-heading uppercase tracking-wider">
             Quản Lý Kỳ Học
           </h1>
-          <p class="text-muted mt-2">Thiết lập thời gian và theo dõi tiến độ các học kỳ</p>
+          <p class="text-muted mt-2">Thiết lập thời gian, mở từng giai đoạn và theo dõi tiến độ các học kỳ</p>
         </div>
-        
+
         <!-- Nút mở form tạo kỳ học -->
         <button class="ks-button ks-button-primary" (click)="openDialog()">
           + Thêm Kỳ Học
@@ -28,15 +28,17 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
       <div *ngIf="isLoading" class="text-center py-12 text-primary">Đang tải dữ liệu...</div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6" *ngIf="!isLoading">
-        <div *ngFor="let period of periodService.periods()" class="ks-card hover:border-primary transition-colors group cursor-pointer">
-          <div class="flex justify-between items-start mb-6">
-            <h2 class="text-xl font-display font-bold text-primary">{{ period.name }} ({{ period.academic_year }})</h2>
-            <app-status-badge 
-              [type]="period.status === 'proposal_open' || period.status === 'registration_open' || period.status === 'in_progress' ? 'success' : (period.status === 'completed' ? 'neutral' : (period.status === 'draft' ? 'warning' : 'danger'))">
+        <div *ngFor="let period of periodService.periods()" class="ks-card hover:border-primary transition-colors">
+          <div class="flex justify-between items-start mb-6 gap-4">
+            <div>
+              <h2 class="text-xl font-display font-bold text-primary">{{ period.name }} ({{ period.academic_year }})</h2>
+              <p class="text-xs text-muted mt-2">{{ getPeriodWorkflowHint(period.status) }}</p>
+            </div>
+            <app-status-badge [type]="getStatusBadgeType(period.status)">
               {{ formatStatus(period.status) }}
             </app-status-badge>
           </div>
-          
+
           <div class="space-y-4">
             <div class="flex justify-between border-b border-border-subtle pb-3">
               <span class="text-muted">Đề cương</span>
@@ -49,30 +51,53 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               </span>
             </div>
           </div>
-          
-          <!-- Các nút thao tác hiển thị khi hover -->
-          <div class="mt-6 pt-4 border-t border-border-subtle flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <!-- Chỉ hiển thị bước chuyển trạng thái tiếp theo mà Backend cho phép -->
-            <button
-              *ngIf="getNextStatus(period.status) as nextStatus"
-              class="text-sm font-medium text-primary hover:text-primary/80 transition-colors underline"
-              (click)="changeStatus(period.id, nextStatus)">
-              {{ getNextStatusLabel(period.status) }}
-            </button>
-            <button
-              *ngIf="canCancel(period.status)"
-              class="text-sm font-medium text-danger hover:text-danger/80 transition-colors underline"
-              (click)="changeStatus(period.id, 'cancelled')">
-              Hủy
-            </button>
 
-            <button class="text-sm font-medium text-muted hover:text-primary transition-colors underline" (click)="openDialog(period)">Sửa</button>
+          <!-- Các nút thao tác luôn hiển thị để Admin thấy rõ bước tiếp theo -->
+          <div class="mt-6 pt-4 border-t border-border-subtle">
+            <p class="text-xs text-muted mb-3">{{ getPeriodActionHint(period.status) }}</p>
+            <div class="flex justify-end gap-3 flex-wrap">
+              <!-- Chỉ hiển thị bước chuyển trạng thái tiếp theo mà Backend cho phép -->
+              <button
+                *ngIf="getNextStatus(period.status) as nextStatus"
+                class="ks-button ks-button-primary text-sm"
+                (click)="changeStatus(period.id, nextStatus)">
+                {{ getNextStatusLabel(period.status) }}
+              </button>
+              <button
+                *ngIf="canCancel(period.status)"
+                class="ks-button ks-button-secondary text-sm text-danger"
+                (click)="changeStatus(period.id, 'cancelled')">
+                Hủy
+              </button>
+
+              <button class="ks-button ks-button-secondary text-sm" (click)="openDialog(period)">Sửa</button>
+            </div>
           </div>
         </div>
-        
+
         <div *ngIf="periodService.periods().length === 0" class="col-span-1 md:col-span-2 text-center py-12 text-muted italic ks-card">
           Chưa có kỳ học nào trong hệ thống.
         </div>
+      </div>
+
+      <div *ngIf="!isLoading && getTotalPages() > 1" class="mt-6 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          class="ks-button ks-button-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="currentPage === 1"
+          (click)="goToPreviousPage()">
+          ‹ Trước
+        </button>
+        <span class="text-sm text-muted">
+          Trang {{ currentPage }} / {{ getTotalPages() }} · Tổng {{ periodService.totalItems() }} kỳ học
+        </span>
+        <button
+          type="button"
+          class="ks-button ks-button-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="currentPage === getTotalPages()"
+          (click)="goToNextPage()">
+          Sau ›
+        </button>
       </div>
 
       <!-- Modal Dialog Thêm/Sửa Kỳ học -->
@@ -137,12 +162,14 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 export class PeriodListPageComponent implements OnInit {
   periodService = inject(PeriodService);
   private fb = inject(FormBuilder);
-  
+
   isLoading = false;
   isDialogOpen = false;
   isSubmitting = false;
   editingPeriodId: string | null = null;
   periodForm!: FormGroup;
+  currentPage = 1;
+  readonly pageSize = 4;
 
   ngOnInit() {
     this.initForm();
@@ -162,12 +189,58 @@ export class PeriodListPageComponent implements OnInit {
     return statusMap[status] || status;
   }
 
+  getStatusBadgeType(status: AcademicPeriodStatus): 'success' | 'warning' | 'danger' | 'neutral' {
+    if (status === 'proposal_open' || status === 'registration_open' || status === 'in_progress' || status === 'defense') return 'success';
+    if (status === 'draft') return 'warning';
+    if (status === 'cancelled') return 'danger';
+    return 'neutral';
+  }
+
+  getPeriodWorkflowHint(status: AcademicPeriodStatus): string {
+    if (status === 'completed') return 'Kỳ học đã hoàn thành, chỉ xem lại dữ liệu lịch sử.';
+    if (status === 'cancelled') return 'Kỳ học đã hủy, không mở thêm giai đoạn mới.';
+
+    const nextStatus = this.getNextStatus(status);
+    const nextLabel = nextStatus ? this.formatStatus(nextStatus) : '';
+    return nextStatus
+      ? `Hiện tại: ${this.formatStatus(status)}. Bước tiếp theo: ${nextLabel}.`
+      : `Hiện tại: ${this.formatStatus(status)}.`;
+  }
+
+  getPeriodActionHint(status: AcademicPeriodStatus): string {
+    if (status === 'completed') return 'Không còn bước chuyển trạng thái tiếp theo.';
+    if (status === 'cancelled') return 'Kỳ học đã hủy nên không thể tiếp tục mở giai đoạn.';
+    return 'Chọn hành động bên dưới để mở giai đoạn kế tiếp cho kỳ học này.';
+  }
+
   loadPeriods() {
     this.isLoading = true;
-    this.periodService.fetchPeriods().subscribe({
-      next: () => this.isLoading = false,
+    this.periodService.fetchPeriods(this.currentPage, this.pageSize).subscribe({
+      next: () => {
+        this.isLoading = false;
+        if (this.periodService.periods().length === 0 && this.currentPage > 1) {
+          this.currentPage -= 1;
+          this.loadPeriods();
+        }
+      },
       error: () => this.isLoading = false
     });
+  }
+
+  getTotalPages(): number {
+    return Math.max(1, Math.ceil(this.periodService.totalItems() / this.pageSize));
+  }
+
+  goToPreviousPage() {
+    if (this.currentPage <= 1) return;
+    this.currentPage -= 1;
+    this.loadPeriods();
+  }
+
+  goToNextPage() {
+    if (this.currentPage >= this.getTotalPages()) return;
+    this.currentPage += 1;
+    this.loadPeriods();
   }
 
   initForm() {
@@ -212,20 +285,21 @@ export class PeriodListPageComponent implements OnInit {
 
   onSubmit() {
     if (this.periodForm.invalid) return;
-    
+
     this.isSubmitting = true;
     const payload = this.periodForm.value as CreatePeriodRequest;
-    
-    // Đảm bảo định dạng DateTime hợp lệ cho Backend (thêm T00:00:00Z)
-    const formatToISO = (dateStr: string) => {
+
+    // Input type="date" không có giờ, nên giữ ngày kết thúc đến cuối ngày để giai đoạn không bị đóng ngay 00:00.
+    const formatToISO = (dateStr: string, endOfDay = false) => {
       if (!dateStr) return dateStr;
-      return new Date(dateStr).toISOString();
+      const suffix = endOfDay ? 'T23:59:59.999' : 'T00:00:00.000';
+      return new Date(`${dateStr}${suffix}`).toISOString();
     };
 
     payload.proposal_start_at = formatToISO(payload.proposal_start_at);
-    payload.proposal_end_at = formatToISO(payload.proposal_end_at);
+    payload.proposal_end_at = formatToISO(payload.proposal_end_at, true);
     payload.registration_start_at = formatToISO(payload.registration_start_at);
-    payload.registration_end_at = formatToISO(payload.registration_end_at);
+    payload.registration_end_at = formatToISO(payload.registration_end_at, true);
 
     if (this.editingPeriodId) {
       this.periodService.updatePeriod(this.editingPeriodId, payload).subscribe({

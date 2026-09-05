@@ -53,14 +53,16 @@ export class SidebarComponent {
     // Admin
     { label: 'Quản lý Người dùng', route: '/app/users', roles: ['admin'] },
     { label: 'Kỳ học', route: '/app/academic-periods', roles: ['admin'] },
+    { label: 'Danh sách Đề tài', route: '/app/topics', roles: ['admin'] },
+    { label: 'Quản lý đăng ký', route: '/app/registrations/review', roles: ['admin'] },
     { label: 'Quản lý Hội đồng', route: '/app/councils', roles: ['admin'] },
-    
+
     // Lecturer
     { label: 'Đề tài của tôi', route: '/app/topics/my-topics', roles: ['lecturer'] },
-    { label: 'Duyệt đăng ký', route: '/app/registrations/review', roles: ['lecturer'] },
+    { label: 'Đăng ký hướng dẫn', route: '/app/registrations/review', roles: ['lecturer'] },
 
     // Student
-    { label: 'Danh sách Đề tài', route: '/app/topics', roles: ['student', 'admin'] },
+    { label: 'Danh sách Đề tài', route: '/app/topics', roles: ['student'] },
     { label: 'Đăng ký của tôi', route: '/app/registrations/my', roles: ['student'] },
     
     // Shared

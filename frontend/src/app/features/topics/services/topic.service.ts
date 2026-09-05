@@ -52,10 +52,11 @@ export class TopicService {
     );
   }
 
-  // Lấy danh sách đăng ký mà giảng viên được phép xem/duyệt
-  fetchLecturerRegistrations(): Observable<ApiResponse<RegistrationListResponse>> {
-    // Backend tự lọc theo quyền: đề tài giảng viên đề xuất hoặc đăng ký giảng viên đang hướng dẫn.
-    return this.http.get<ApiResponse<RegistrationListResponse>>(`${this.API_URL}/registrations`).pipe(
+  // Lấy danh sách đăng ký mà giảng viên/admin được phép xem/duyệt
+  fetchLecturerRegistrations(page: number = 1, pageSize: number = 100): Observable<ApiResponse<RegistrationListResponse>> {
+    const params = new HttpParams().set('page', page.toString()).set('page_size', pageSize.toString());
+    // Backend tự lọc theo quyền: đề tài giảng viên đề xuất, đăng ký giảng viên đang hướng dẫn hoặc Admin xem toàn hệ thống.
+    return this.http.get<ApiResponse<RegistrationListResponse>>(`${this.API_URL}/registrations`, { params }).pipe(
       tap(res => {
         if (res.data) this.registrations.set(res.data.items);
       })

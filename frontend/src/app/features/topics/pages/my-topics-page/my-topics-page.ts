@@ -48,9 +48,10 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
                 <td class="p-4 font-mono text-sm">{{ topic.code }}</td>
                 <td class="p-4 font-sans font-medium text-body max-w-md truncate">{{ topic.title }}</td>
                 <td class="p-4 text-sm font-medium">
-                  <span [class.text-danger]="(topic.currentStudents || 0) >= topic.max_students" class="text-primary">
-                    {{ topic.currentStudents || 0 }} / {{ topic.max_students }}
+                  <span [class.text-danger]="getCurrentStudents(topic) >= topic.max_students" class="text-primary">
+                    {{ getCurrentStudents(topic) }} / {{ topic.max_students }} sinh viên
                   </span>
+                  <div class="text-xs text-muted mt-1">Đã duyệt / tối đa</div>
                 </td>
                 <td class="p-4">
                   <app-status-badge [type]="getStatusBadgeType(topic.status)">
@@ -59,7 +60,7 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
                 </td>
                 <td class="p-4 text-right">
                   <button class="text-muted hover:text-primary transition-colors text-sm underline mr-3" (click)="openDialog(topic)">Sửa</button>
-                  <a routerLink="/app/registrations/review" class="text-muted hover:text-primary transition-colors text-sm underline" title="Danh sách Sinh viên">DS Sinh viên</a>
+                  <a routerLink="/app/registrations/review" class="text-muted hover:text-primary transition-colors text-sm underline" title="Xem đăng ký của sinh viên">Xem đăng ký</a>
                 </td>
               </tr>
               
@@ -284,6 +285,10 @@ export class MyTopicsPageComponent implements OnInit {
     if (status === 'pending_approval') return 'warning';
     if (status === 'rejected' || status === 'cancelled') return 'danger';
     return 'neutral';
+  }
+
+  getCurrentStudents(topic: Topic): number {
+    return topic.current_students ?? topic.currentStudents ?? 0;
   }
 
   private getTopicErrorMessage(err: any, fallbackMessage: string): string {

@@ -74,7 +74,10 @@ class TopicService:
         total_pages = math.ceil(total_items / page_size) if total_items else 0
 
         return TopicListResponse(
-            items=[TopicResponse.model_validate(topic) for topic in topics],
+            items=[
+                self._build_topic_response(topic, current_students)
+                for topic, current_students in topics
+            ],
             pagination=PaginationResponse(
                 page=page,
                 page_size=page_size,
@@ -100,12 +103,12 @@ class TopicService:
         )
         await self.repository.create(topic)
         await self.db.commit()
-        return TopicResponse.model_validate(topic)
+        return await self._build_topic_response_with_count(topic)
 
     async def get_topic(self, topic_id: UUID, current_user: User) -> TopicResponse:
         topic = await self._get_topic_or_raise(topic_id)
         await self._ensure_user_can_view_topic(topic, current_user)
-        return TopicResponse.model_validate(topic)
+        return await self._build_topic_response_with_count(topic)
 
     async def update_topic(
         self,
@@ -129,7 +132,7 @@ class TopicService:
 
         await self.repository.update(topic)
         await self.db.commit()
-        return TopicResponse.model_validate(topic)
+        return await self._build_topic_response_with_count(topic)
 
     async def approve_topic(self, topic_id: UUID, admin_id: UUID) -> TopicResponse:
         topic = await self._get_topic_or_raise(topic_id)
@@ -149,7 +152,7 @@ class TopicService:
         topic.cancelled_at = None
         await self.repository.update(topic)
         await self.db.commit()
-        return TopicResponse.model_validate(topic)
+        return await self._build_topic_response_with_count(topic)
 
     async def reject_topic(
         self,
@@ -174,7 +177,7 @@ class TopicService:
         topic.cancelled_at = None
         await self.repository.update(topic)
         await self.db.commit()
-        return TopicResponse.model_validate(topic)
+        return await self._build_topic_response_with_count(topic)
 
     async def update_status(
         self,
@@ -199,7 +202,16 @@ class TopicService:
 
         await self.repository.update(topic)
         await self.db.commit()
-        return TopicResponse.model_validate(topic)
+        return await self._build_topic_response_with_count(topic)
+
+    async def _build_topic_response_with_count(self, topic: Topic) -> TopicResponse:
+        current_students = await self.repository.count_accepted_registrations(topic.id)
+        return self._build_topic_response(topic, current_students)
+
+    def _build_topic_response(self, topic: Topic, current_students: int) -> TopicResponse:
+        response = TopicResponse.model_validate(topic)
+        response.current_students = current_students
+        return response
 
     async def _get_topic_or_raise(self, topic_id: UUID) -> Topic:
         topic = await self.repository.get_by_id(topic_id)
