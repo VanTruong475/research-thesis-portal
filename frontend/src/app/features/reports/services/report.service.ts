@@ -37,4 +37,33 @@ export class ReportService {
       })
     );
   }
+
+  /**
+   * Gọi API tải xuống file báo cáo từ Backend (kèm Token xác thực tự động từ AuthInterceptor).
+   * Cần cấu hình responseType: 'blob' vì Backend trả về dữ liệu nhị phân (Binary Stream) thay vì JSON.
+   */
+  downloadReport(reportId: string): Observable<Blob> {
+    return this.http.get(`${this.API_URL}/reports/${reportId}/download`, {
+      responseType: 'blob'
+    });
+  }
+
+  /**
+   * Hàm tiện ích giúp kích hoạt trình duyệt tự động lưu file về máy tính người dùng:
+   * 1. Tạo một URL ảo trỏ vào vùng nhớ Blob (URL.createObjectURL)
+   * 2. Tạo một thẻ <a> tạm thời trong DOM
+   * 3. Gán thuộc tính download và giả lập hành động click() để tải file
+   * 4. Thu hồi bộ nhớ (revokeObjectURL) để giải phóng RAM của trình duyệt
+   */
+  triggerFileDownload(blob: Blob, fileName: string): void {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = objectUrl;
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    window.URL.revokeObjectURL(objectUrl);
+  }
 }
+

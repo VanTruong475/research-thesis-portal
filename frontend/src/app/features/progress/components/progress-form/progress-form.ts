@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Output, EventEmitter, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CreateProgressLogRequest } from '../../models/progress.model';
@@ -16,50 +16,72 @@ import { AuthService } from '../../../../core/services/auth';
       
       <div class="space-y-4">
         <div>
-          <label class="ks-label">Nội dung báo cáo</label>
+          <div class="flex justify-between items-center mb-1">
+            <label class="ks-label mb-0">Nội dung báo cáo *</label>
+            <!-- Hiển thị số ký tự đã nhập (tối thiểu 5 ký tự theo quy định của hệ thống) -->
+            <span class="text-xs font-mono" [class.text-danger]="content.trim().length > 0 && content.trim().length < 5" [class.text-muted]="content.trim().length === 0 || content.trim().length >= 5">
+              {{ content.trim().length }}/5 ký tự tối thiểu
+            </span>
+          </div>
+          
           <textarea 
             [(ngModel)]="content"
             class="ks-input min-h-[120px]" 
-            placeholder="Mô tả chi tiết những việc bạn đã làm được trong tuần qua..."
+            placeholder="Mô tả chi tiết những công việc, kết quả nghiên cứu bạn đã hoàn thành trong tuần qua..."
           ></textarea>
+
+          <!-- Báo lỗi nhắc nhở nếu chưa đủ 5 ký tự -->
+          <p *ngIf="content.trim().length > 0 && content.trim().length < 5" class="text-xs text-danger mt-1">
+            Nội dung báo cáo cần tối thiểu 5 ký tự.
+          </p>
         </div>
         
         <div class="flex justify-end">
           <button 
-            class="ks-button ks-button-primary" 
-            [disabled]="!content.trim() || !canSubmit"
+            type="button"
+            class="ks-button ks-button-primary disabled:opacity-50" 
+            [disabled]="content.trim().length < 5 || !canSubmit || isSubmitting"
             (click)="onSubmit()"
           >
-            Nộp Tiến Độ
+            {{ isSubmitting ? 'Đang gửi tiến độ...' : 'Nộp Tiến Độ' }}
           </button>
         </div>
       </div>
 
       <!-- Cảnh báo nếu không phải sinh viên -->
       <div *ngIf="!canSubmit" class="mt-4 p-3 bg-warning/10 border border-warning/20 text-warning text-sm rounded-sm">
-        Chỉ sinh viên mới có quyền nộp báo cáo tiến độ. Hệ thống sẽ kiểm tra trạng thái đăng ký và kỳ thực hiện khi nộp.
+        Chỉ sinh viên thực hiện đề tài mới có quyền nộp báo cáo tiến độ.
       </div>
     </div>
   `
 })
 export class ProgressFormComponent {
+  // Sự kiện gửi dữ liệu báo cáo lên component cha
   @Output() submitProgress = new EventEmitter<Omit<CreateProgressLogRequest, 'registration_id'>>();
   
+  // Trạng thái đang gửi (để vô hiệu hóa nút, tránh spam click)
+  @Input() isSubmitting = false;
+
   content: string = '';
   authService = inject(AuthService);
 
+  // Chỉ cho phép sinh viên nộp báo cáo
   get canSubmit(): boolean {
     const user = this.authService.currentUser();
     return !!user && user.role === 'student';
   }
 
   onSubmit() {
-    if (!this.content.trim()) return;
+    // Kiểm tra tính hợp lệ trước khi emit
+    if (this.content.trim().length < 5 || !this.canSubmit || this.isSubmitting) {
+      return;
+    }
     
     this.submitProgress.emit({
       content: this.content.trim()
     });
     
-    this.content = ''; // Reset form
+    this.content = ''; // Reset khung nhập sau khi gửi
   }
 }
+

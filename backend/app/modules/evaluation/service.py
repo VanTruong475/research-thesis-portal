@@ -386,12 +386,17 @@ class EvaluationService:
                 code="SCORE_INVALID_EVALUATION_TYPE",
             )
 
+        # Nếu client không truyền council_id, hệ thống tự động tìm từ lịch bảo vệ của đề tài
         if data.council_id is None:
-            raise AppException(
-                status_code=400,
-                message="Vui lòng cung cấp thông tin Council ID khi chấm điểm hội đồng.",
-                code="SCORE_COUNCIL_REQUIRED",
-            )
+            defense_schedule = await self._repo.get_defense_schedule_for_registration(registration.id)
+            if defense_schedule is not None:
+                data.council_id = defense_schedule.council_id
+            else:
+                raise AppException(
+                    status_code=400,
+                    message="Sinh viên này chưa được xếp lịch vào Hội đồng bảo vệ nào, chưa thể chấm điểm hội đồng.",
+                    code="SCORE_REGISTRATION_NOT_SCHEDULED",
+                )
 
         schedule = await self._repo.get_defense_schedule_for_registration_and_council(
             registration_id=registration.id,

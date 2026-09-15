@@ -30,6 +30,7 @@ import { CreateProgressLogRequest, AddTeacherCommentRequest } from '../../models
       <!-- Form nộp báo cáo (chỉ sinh viên thấy) -->
       <app-progress-form
         *ngIf="isStudent"
+        [isSubmitting]="isSubmittingProgress"
         (submitProgress)="onSubmitReport($event)">
       </app-progress-form>
 
@@ -52,6 +53,8 @@ export class ProgressListPageComponent implements OnInit {
   route = inject(ActivatedRoute);
 
   isLoading = false;
+  isSubmittingProgress = false; // Trạng thái đang gửi báo cáo tiến độ
+  isSubmittingComment = false;  // Trạng thái đang gửi nhận xét của giảng viên
   errorMessage = '';
   registrationId: string | null = null;
 
@@ -94,10 +97,15 @@ export class ProgressListPageComponent implements OnInit {
     // Gắn ID đăng ký vào payload trước khi gọi API
     const requestWithId = { ...req, registration_id: this.registrationId };
     this.errorMessage = '';
+    this.isSubmittingProgress = true; // Bật loading nộp tiến độ
 
     this.progressService.createLog(requestWithId).subscribe({
-      next: () => this.loadProgress(), // Reload sau khi tạo thành công
+      next: () => {
+        this.isSubmittingProgress = false; // Tắt loading
+        this.loadProgress(); // Reload sau khi tạo thành công
+      },
       error: (err) => {
+        this.isSubmittingProgress = false;
         this.errorMessage = this.getErrorMessage(err, 'Không thể nộp báo cáo tiến độ.');
       }
     });
@@ -105,9 +113,15 @@ export class ProgressListPageComponent implements OnInit {
 
   onCommentSubmit(logId: string, req: AddTeacherCommentRequest) {
     this.errorMessage = '';
+    this.isSubmittingComment = true; // Bật loading gửi nhận xét
+
     this.progressService.addComment(logId, req).subscribe({
-      next: () => this.loadProgress(),
+      next: () => {
+        this.isSubmittingComment = false;
+        this.loadProgress(); // Reload để cập nhật nhận xét vừa thêm
+      },
       error: (err) => {
+        this.isSubmittingComment = false;
         this.errorMessage = this.getErrorMessage(err, 'Không thể gửi nhận xét tiến độ.');
       }
     });

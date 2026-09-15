@@ -74,28 +74,26 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
         <!-- Form chấm điểm (Cột phải) -->
         <div class="w-2/3 overflow-y-auto custom-scrollbar">
           <div *ngIf="showCreateOptions" class="ks-card mt-4 mb-4">
-            <h3 class="text-lg font-display font-medium text-heading mb-4">Thông tin phiếu điểm mới</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label class="flex flex-col gap-2 text-sm text-body">
-                Loại chấm điểm
+            <h3 class="text-lg font-display font-medium text-heading mb-4">Thiết lập phiếu điểm mới</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="ks-label">Vai trò chấm điểm *</label>
                 <select class="ks-input" [(ngModel)]="newEvaluationType" (ngModelChange)="syncCreateEvaluation()">
-                  <option value="supervisor">Điểm GVHD</option>
-                  <option value="council">Điểm Hội đồng</option>
+                  <option value="supervisor">Điểm Quá Trình (Dành cho GVHD)</option>
+                  <option value="council">Điểm Bảo Vệ (Dành cho Thành viên Hội đồng)</option>
                 </select>
-              </label>
-              <label class="flex flex-col gap-2 text-sm text-body" *ngIf="newEvaluationType === 'council'">
-                Council ID
-                <input
-                  class="ks-input"
-                  [(ngModel)]="newCouncilId"
-                  (ngModelChange)="syncCreateEvaluation()"
-                  placeholder="Nhập ID hội đồng được phân công"
-                />
-              </label>
+              </div>
+
+              <!-- Hướng dẫn thông minh tự động theo loại điểm -->
+              <div class="p-3 bg-surface-deep rounded-sm border border-border-subtle text-xs text-muted">
+                <span *ngIf="newEvaluationType === 'supervisor'">
+                  📌 <strong>Điểm GVHD:</strong> Đánh giá thái độ, tiến độ và mức độ hoàn thành nhiệm vụ của sinh viên trong suốt quá trình làm đề tài.
+                </span>
+                <span *ngIf="newEvaluationType === 'council'">
+                  📌 <strong>Điểm Hội đồng:</strong> Hệ thống sẽ tự động liên kết điểm của bạn với Hội đồng bảo vệ mà sinh viên đã được xếp lịch (không cần nhập mã ID hội đồng).
+                </span>
+              </div>
             </div>
-            <p class="text-xs text-muted mt-3">
-              GVHD không cần Council ID. Thành viên hội đồng cần nhập đúng Council ID của lịch bảo vệ.
-            </p>
           </div>
 
           <div *ngIf="selectedEvalCopy; else noSelection">
@@ -129,7 +127,6 @@ export class EvaluationPageComponent implements OnInit {
   errorMessage = '';
   showCreateOptions = false;
   newEvaluationType: EvaluationType = 'supervisor';
-  newCouncilId = '';
 
   get isLecturer(): boolean {
     return this.authService.currentUser()?.role === 'lecturer';
@@ -207,18 +204,14 @@ export class EvaluationPageComponent implements OnInit {
   syncCreateEvaluation() {
     if (this.showCreateOptions && this.selectedEvalCopy) {
       this.selectedEvalCopy.evaluation_type = this.newEvaluationType;
-      this.selectedEvalCopy.council_id = this.newEvaluationType === 'council' ? (this.newCouncilId || null) : null;
+      this.selectedEvalCopy.council_id = null; // Backend sẽ tự động phân giải council_id từ lịch bảo vệ của sinh viên
     }
   }
 
   onSaveEvaluation(req: ScoreCreate) {
     this.errorMessage = '';
-    if (req.evaluation_type === 'council' && !req.council_id) {
-      this.errorMessage = 'Vui lòng nhập Council ID khi chấm điểm hội đồng.';
-      return;
-    }
-
     this.isSubmitting = true;
+    
     this.evaluationService.submitScore(req).subscribe({
       next: () => {
         this.isSubmitting = false;
@@ -229,7 +222,7 @@ export class EvaluationPageComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting = false;
-        this.errorMessage = err.error?.message || 'Không thể lưu phiếu điểm.';
+        this.errorMessage = err.error?.message || err.error?.detail || 'Không thể lưu phiếu điểm.';
       }
     });
   }

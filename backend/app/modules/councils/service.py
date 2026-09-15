@@ -207,47 +207,69 @@ class CouncilService:
         registration: Registration,
         payload: DefenseScheduleCreateRequest,
     ) -> None:
+        """
+        Kiểm tra toàn diện các điều kiện nghiệp vụ để xếp lịch bảo vệ cho sinh viên:
+        1. Hội đồng không bị hủy
+        2. Đơn đăng ký và Hội đồng phải cùng thuộc một Kỳ học
+        3. Đơn đăng ký phải ở trạng thái APPROVED và đã có Giảng viên hướng dẫn
+        4. Kỳ học phải đang ở giai đoạn thực hiện (IN_PROGRESS) hoặc bảo vệ (DEFENSE)
+        5. Đề tài này chưa từng được xếp lịch bảo vệ trong kỳ (tránh xếp trùng)
+        6. Thứ tự trình bày không bị trùng với sinh viên khác trong cùng hội đồng
+        7. Thời gian xếp lịch nằm trong khung thời gian bảo vệ của kỳ học (nếu có cấu hình)
+        """
+        # 1. Hội đồng không ở trạng thái hủy
         if council.status == CouncilStatus.CANCELLED:
             raise AppException(
                 status_code=400,
-                message="Cannot schedule defense for a cancelled council.",
+                message="Không thể xếp lịch bảo vệ cho một Hội đồng đã bị hủy.",
                 code="COUNCIL_CANCELLED",
             )
+
+        # 2. Kiểm tra cùng học kỳ
         if registration.academic_period_id != council.academic_period_id:
             raise AppException(
                 status_code=400,
-                message="Registration and council must belong to the same academic period.",
+                message="Đơn đăng ký và Hội đồng phải cùng thuộc một học kỳ / đợt thực hiện.",
                 code="COUNCIL_PERIOD_MISMATCH",
             )
+
+        # 3. Kiểm tra trạng thái duyệt của đề tài
         if registration.status != RegistrationStatus.APPROVED:
             raise AppException(
                 status_code=400,
-                message="Defense can be scheduled only for an approved registration.",
+                message="Chỉ có thể xếp lịch bảo vệ cho đơn đăng ký đề tài đã được duyệt (APPROVED).",
                 code="COUNCIL_REGISTRATION_NOT_APPROVED",
                 details={"current_status": registration.status.value},
             )
+
+        # 4. Phải có Giảng viên hướng dẫn
         if registration.supervisor_id is None:
             raise AppException(
                 status_code=400,
-                message="Defense can be scheduled only after a supervisor is assigned.",
+                message="Đề tài cần phải được phân công Giảng viên hướng dẫn trước khi xếp lịch bảo vệ.",
                 code="COUNCIL_SUPERVISOR_REQUIRED",
             )
-        if registration.academic_period.status != AcademicPeriodStatus.DEFENSE:
+
+        # 5. Kỳ học phải ở giai đoạn đang thực hiện hoặc đang bảo vệ
+        valid_period_statuses = (AcademicPeriodStatus.IN_PROGRESS, AcademicPeriodStatus.DEFENSE)
+        if registration.academic_period.status not in valid_period_statuses:
             raise AppException(
                 status_code=400,
-                message="Defense can be scheduled only while the academic period is in defense status.",
+                message="Chỉ có thể xếp lịch bảo vệ khi học kỳ đang trong giai đoạn thực hiện hoặc bảo vệ.",
                 code="COUNCIL_PERIOD_NOT_DEFENSE",
                 details={"academic_period_status": registration.academic_period.status.value},
             )
 
+        # 6. Kiểm tra xem đề tài này đã được xếp lịch ở hội đồng nào chưa
         existing_schedule = await self.repository.get_schedule_by_registration(registration.id)
         if existing_schedule is not None:
             raise AppException(
                 status_code=409,
-                message="This registration already has a defense schedule.",
+                message="Đề tài này đã được xếp lịch bảo vệ, không thể xếp lịch trùng lặp.",
                 code="COUNCIL_REGISTRATION_ALREADY_SCHEDULED",
             )
 
+        # 7. Kiểm tra thứ tự trình bày trong cùng 1 hội đồng
         if payload.presentation_order is not None:
             existing_order = await self.repository.get_schedule_by_council_and_order(
                 council.id,
@@ -256,10 +278,11 @@ class CouncilService:
             if existing_order is not None:
                 raise AppException(
                     status_code=409,
-                    message="Presentation order is already used in this council.",
+                    message=f"Thứ tự trình bày số {payload.presentation_order} đã được phân công cho sinh viên khác trong hội đồng này.",
                     code="COUNCIL_PRESENTATION_ORDER_DUPLICATED",
                 )
 
+        # 8. Kiểm tra khung giờ bảo vệ có nằm trong khoảng thời hạn của kỳ học không
         defense_start = registration.academic_period.defense_start_at
         defense_end = registration.academic_period.defense_end_at
         if (
@@ -269,8 +292,11 @@ class CouncilService:
         ):
             raise AppException(
                 status_code=400,
-                message="Defense schedule must be inside the academic period defense interval.",
-                code="COUNCIL_SCHEDULE_OUTSIDE_DEFENSE_PERIOD",
+                message=(
+                    f"Thời gian bảo vệ phải nằm trong khoảng thời hạn của kỳ học "
+                    f"({defense_start.strftime('%d/%m/%Y')} đến {defense_end.strftime('%d/%m/%Y')})."
+                ),
+                code="COUNCIL_SCHEDULE_OUT_OF_PERIOD_RANGE",
             )
 
     def _to_council_response(self, council: Council) -> CouncilResponse:

@@ -70,16 +70,36 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <h3 class="text-sm font-bold text-heading uppercase tracking-wider mb-3">Lịch bảo vệ ({{ council.schedules.length }})</h3>
               <div class="space-y-3">
                 <div *ngFor="let schedule of council.schedules" class="p-3 border border-border-subtle rounded-sm bg-surface-deep">
-                  <div class="font-medium text-body text-sm mb-1 truncate">{{ formatTopicTitle(schedule) }}</div>
-                  <div class="text-xs text-muted mb-1">SV: <span class="font-medium">{{ formatStudentName(schedule) }}</span></div>
-                  <div class="text-xs text-muted mb-2">GVHD: <span class="font-medium">{{ schedule.supervisor_full_name || 'Chưa rõ' }}</span></div>
-                  <div class="flex justify-between items-center text-xs font-mono">
+                  <div class="flex items-start justify-between gap-2 mb-1">
+                    <div class="font-medium text-body text-sm truncate flex-1">
+                      <!-- Badge số thứ tự trình bày của sinh viên trong hội đồng -->
+                      <span *ngIf="schedule.presentation_order" class="inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-xs font-bold mr-1.5">
+                        #{{ schedule.presentation_order }}
+                      </span>
+                      {{ formatTopicTitle(schedule) }}
+                    </div>
+                    <!-- Badge trạng thái lịch bảo vệ -->
+                    <span 
+                      class="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase font-semibold whitespace-nowrap"
+                      [ngClass]="{
+                        'bg-success/15 text-success border border-success/30': schedule.status === 'scheduled',
+                        'bg-primary/15 text-primary border border-primary/30': schedule.status === 'completed',
+                        'bg-danger/15 text-danger border border-danger/30': schedule.status === 'cancelled'
+                      }">
+                      {{ formatScheduleStatus(schedule.status) }}
+                    </span>
+                  </div>
+                  
+                  <div class="text-xs text-muted mb-1">SV: <span class="font-medium text-body">{{ formatStudentName(schedule) }}</span></div>
+                  <div class="text-xs text-muted mb-2">GVHD: <span class="font-medium text-body">{{ schedule.supervisor_full_name || 'Chưa rõ' }}</span></div>
+                  
+                  <div class="flex justify-between items-center text-xs font-mono pt-1 border-t border-border-subtle/50">
                     <span class="text-primary">{{ schedule.scheduled_at | date:'dd/MM/yyyy HH:mm' }} ({{ schedule.duration_minutes }}p)</span>
-                    <span class="text-muted">Phòng: {{ schedule.room }}</span>
+                    <span class="text-muted">Phòng: <strong class="text-body font-sans">{{ schedule.room }}</strong></span>
                   </div>
                 </div>
-                <div *ngIf="council.schedules.length === 0" class="text-sm text-muted italic p-3 border border-dashed border-border-subtle text-center">
-                  Chưa xếp lịch bảo vệ
+                <div *ngIf="council.schedules.length === 0" class="text-sm text-muted italic p-4 border border-dashed border-border-subtle text-center rounded-sm">
+                  Chưa xếp lịch bảo vệ nào
                 </div>
               </div>
             </div>
@@ -578,7 +598,21 @@ export class CouncilListPageComponent implements OnInit {
     this.dialogErrorMessage = '';
     this.selectedCouncilId = councilId;
     this.registrationSearchTerm = '';
-    this.scheduleForm.reset({ registration_id: '', duration_minutes: 45, presentation_order: null, note: '' });
+
+    // Lấy thông tin hội đồng để điền sẵn các giá trị thông minh
+    const currentCouncil = this.getSelectedCouncil();
+    const defaultRoom = currentCouncil?.default_room || '';
+    // Tự động tính số thứ tự trình bày tiếp theo (bằng tổng số lịch hiện có + 1)
+    const nextOrder = (currentCouncil?.schedules?.length || 0) + 1;
+
+    this.scheduleForm.reset({
+      registration_id: '',
+      scheduled_at: '',
+      duration_minutes: 45,
+      room: defaultRoom,
+      presentation_order: nextOrder,
+      note: ''
+    });
     this.activeDialog = 'schedule';
     this.loadScheduleRegistrations();
   }
@@ -658,10 +692,20 @@ export class CouncilListPageComponent implements OnInit {
 
   formatCouncilStatus(status: CouncilStatus): string {
     const statusMap: Record<CouncilStatus, string> = {
-      draft: 'Bản nháp',
+      draft: 'Dự thảo',
       scheduled: 'Đã lên lịch',
-      in_progress: 'Đang diễn ra (cũ)',
+      in_progress: 'Đang diễn ra',
       completed: 'Hoàn thành',
+      cancelled: 'Đã hủy'
+    };
+    return statusMap[status] || status;
+  }
+
+  // Định dạng nhãn trạng thái của từng lịch bảo vệ
+  formatScheduleStatus(status: string): string {
+    const statusMap: Record<string, string> = {
+      scheduled: 'Đã xếp lịch',
+      completed: 'Đã bảo vệ',
       cancelled: 'Đã hủy'
     };
     return statusMap[status] || status;
@@ -706,6 +750,6 @@ export class CouncilListPageComponent implements OnInit {
   }
 
   private getErrorMessage(err: any, fallback: string): string {
-    return err?.error?.message || err?.error?.error?.message || fallback;
+    return err?.error?.message || err?.error?.error?.message || err?.error?.detail || fallback;
   }
 }

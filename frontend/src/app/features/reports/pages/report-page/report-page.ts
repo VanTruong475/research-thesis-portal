@@ -27,7 +27,11 @@ import { AuthService } from '../../../../core/services/auth';
       </div>
 
       <!-- File Uploader (chỉ sinh viên mới được nộp báo cáo) -->
-      <app-file-uploader *ngIf="isStudent" (fileUpload)="onFileUpload($event)"></app-file-uploader>
+      <app-file-uploader 
+        *ngIf="isStudent" 
+        [isUploading]="isUploading" 
+        (fileUpload)="onFileUpload($event)">
+      </app-file-uploader>
 
       <!-- Lịch sử báo cáo -->
       <div class="mt-8 relative">
@@ -46,6 +50,7 @@ export class ReportPageComponent implements OnInit {
   authService = inject(AuthService); // Inject AuthService để lấy thông tin user
   route = inject(ActivatedRoute);
   isLoading = false;
+  isUploading = false; // Trạng thái đang tải lên file báo cáo
   errorMessage = '';
   registrationId: string | null = null;
 
@@ -87,9 +92,15 @@ export class ReportPageComponent implements OnInit {
   onFileUpload(file: File) {
     if (!this.registrationId) return;
     this.errorMessage = '';
+    this.isUploading = true; // Bật loading khi bắt đầu gửi request
+
     this.reportService.uploadReport(this.registrationId, file).subscribe({
-      next: () => this.loadReports(),
+      next: () => {
+        this.isUploading = false; // Tắt loading khi nộp thành công
+        this.loadReports(); // Tải lại danh sách lịch sử để thấy version mới
+      },
       error: (err) => {
+        this.isUploading = false; // Tắt loading khi có lỗi
         this.errorMessage = this.getErrorMessage(err, 'Không thể nộp báo cáo.');
       }
     });

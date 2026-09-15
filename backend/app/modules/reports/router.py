@@ -4,6 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi.responses import FileResponse
+
 from app.common.responses import SuccessResponse
 from app.db.enums import UserRole
 from app.db.session import get_db
@@ -65,4 +67,32 @@ async def get_registration_reports_endpoint(
     return SuccessResponse(
         data=response_data,
         message="Lấy danh sách lịch sử báo cáo thành công.",
+    )
+
+
+@router.get(
+    "/reports/{report_id}/download",
+    status_code=status.HTTP_200_OK,
+    summary="Tải xuống file báo cáo (FR-17, FR-18)",
+    description=(
+        "Cho phép tải file báo cáo đã nộp. "
+        "Hệ thống kiểm tra phân quyền nghiêm ngặt: chỉ Admin, GVHD hướng dẫn hoặc chính Sinh viên nộp mới có quyền tải."
+    ),
+)
+async def download_report_endpoint(
+    report_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    # Khởi tạo ReportService để xử lý lấy file và kiểm tra quyền
+    file_path, file_name = await ReportService(db).get_report_file_for_download(
+        report_id=report_id,
+        current_user=current_user,
+    )
+
+    # Trả về file nhị phân trực tiếp với tên file gốc để trình duyệt tải về
+    return FileResponse(
+        path=file_path,
+        filename=file_name,
+        media_type="application/octet-stream",
     )
