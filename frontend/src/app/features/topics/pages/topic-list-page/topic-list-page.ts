@@ -240,9 +240,9 @@ export class TopicListPageComponent implements OnInit {
 
   formatRegistrationStatus(status: Registration['status']): string {
     const statusMap: Record<Registration['status'], string> = {
-      pending: 'Đang chờ duyệt',
-      approved: 'Thành công',
-      rejected: 'Bị từ chối',
+      pending: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
       cancelled: 'Đã hủy',
       in_progress: 'Đang thực hiện',
       completed: 'Hoàn thành'
@@ -341,7 +341,7 @@ export class TopicListPageComponent implements OnInit {
       rejected: 'Từ chối',
       closed: 'Đã đóng',
       cancelled: 'Đã hủy',
-      completed: 'Không dùng (cũ)'
+      completed: 'Hoàn thành'
     };
     return statusMap[status] || status;
   }
