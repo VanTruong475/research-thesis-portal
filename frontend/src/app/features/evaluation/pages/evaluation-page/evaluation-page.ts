@@ -232,7 +232,7 @@ export class EvaluationPageComponent implements OnInit {
       id: 'new-score',
       registration_id: this.registrationId || '',
       evaluator_id: this.authService.currentUser()?.id || '',
-      council_id: this.newEvaluationType === 'council' ? (this.newCouncilId || null) : null,
+      council_id: null,
       evaluation_type: this.newEvaluationType,
       score: 0,
       comments: null,

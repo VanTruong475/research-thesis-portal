@@ -384,7 +384,16 @@ class LecturerService:
         self.db = db
         self.repository = RegistrationRepository(db)
 
-    async def get_lecturer_workload(self, lecturer_id: UUID) -> LecturerWorkloadResponse:
+    async def get_lecturer_workload(
+        self,
+        lecturer_id: UUID,
+        current_user: User,
+    ) -> LecturerWorkloadResponse:
+        if current_user.role == UserRole.LECTURER and current_user.id != lecturer_id:
+            raise self._permission_denied()
+        if current_user.role not in {UserRole.ADMIN, UserRole.LECTURER}:
+            raise self._permission_denied()
+
         lecturer = await self.repository.get_active_lecturer(lecturer_id)
         if lecturer is None:
             raise NotFoundException(message="Lecturer not found.", error_code="SUPERVISOR_NOT_FOUND")

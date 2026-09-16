@@ -275,7 +275,7 @@ export class MyTopicsPageComponent implements OnInit {
       rejected: 'Từ chối',
       closed: 'Đã đóng',
       cancelled: 'Đã hủy',
-      completed: 'Không dùng (cũ)'
+      completed: 'Hoàn thành'
     };
     return statusMap[status] || status;
   }

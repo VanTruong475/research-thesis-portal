@@ -27,6 +27,13 @@ export interface UserProfile {
   updated_at: string;
 }
 
+export interface UpdateUserProfileRequest {
+  full_name?: string;
+  phone?: string | null;
+  class_name?: string | null;
+  department?: string | null;
+}
+
 export interface PaginationResponse {
   page: number;
   page_size: number;

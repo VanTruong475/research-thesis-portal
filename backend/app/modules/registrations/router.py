@@ -181,8 +181,9 @@ async def assign_supervisor(
 async def get_lecturer_workload_endpoint(
     id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
-    workload_data = await LecturerService(db).get_lecturer_workload(id)
+    workload_data = await LecturerService(db).get_lecturer_workload(id, current_user)
     return create_success_response(
         data=workload_data.model_dump(mode="json"),
         message="Lấy thông tin tải hướng dẫn thành công.",

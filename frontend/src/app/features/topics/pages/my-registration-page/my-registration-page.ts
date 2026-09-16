@@ -134,11 +134,11 @@ export class MyRegistrationPageComponent implements OnInit {
 
   formatRegistrationStatus(status: RegistrationStatus): string {
     const statusMap: Record<RegistrationStatus, string> = {
-      pending: 'Đang chờ duyệt',
-      approved: 'Thành công',
-      rejected: 'Bị từ chối',
+      pending: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
       cancelled: 'Đã hủy',
-      in_progress: 'Đang thực hiện (cũ)',
+      in_progress: 'Đang thực hiện',
       completed: 'Hoàn thành'
     };
     return statusMap[status] || status;

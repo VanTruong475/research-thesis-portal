@@ -729,3 +729,75 @@ async def test_registration_validation_errors(
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_lecturer_workload_requires_authentication(client: AsyncClient):
+    response = await client.get(f"/api/v1/lecturers/{uuid4()}/workload")
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_student_cannot_view_lecturer_workload(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    student = await create_user(test_session, role=UserRole.STUDENT)
+    headers = await auth_headers(client, student)
+
+    response = await client.get(f"/api/v1/lecturers/{lecturer.id}/workload", headers=headers)
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "PERMISSION_DENIED"
+
+
+@pytest.mark.asyncio
+async def test_lecturer_can_view_own_workload(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    headers = await auth_headers(client, lecturer)
+
+    response = await client.get(f"/api/v1/lecturers/{lecturer.id}/workload", headers=headers)
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["lecturer_id"] == str(lecturer.id)
+    assert data["current_assigned_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_lecturer_cannot_view_other_lecturer_workload(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    other_lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    headers = await auth_headers(client, lecturer)
+
+    response = await client.get(
+        f"/api/v1/lecturers/{other_lecturer.id}/workload",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "PERMISSION_DENIED"
+
+
+@pytest.mark.asyncio
+async def test_admin_can_view_any_lecturer_workload(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    headers = await auth_headers(client, admin)
+
+    response = await client.get(f"/api/v1/lecturers/{lecturer.id}/workload", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["data"]["lecturer_id"] == str(lecturer.id)

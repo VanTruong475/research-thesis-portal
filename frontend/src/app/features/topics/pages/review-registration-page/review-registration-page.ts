@@ -250,11 +250,11 @@ export class ReviewRegistrationPageComponent implements OnInit {
 
   formatRegistrationStatus(status: RegistrationStatus): string {
     const statusMap: Record<RegistrationStatus, string> = {
-      pending: 'Đang chờ',
+      pending: 'Chờ duyệt',
       approved: 'Đã duyệt',
       rejected: 'Từ chối',
       cancelled: 'Đã hủy',
-      in_progress: 'Đang thực hiện (cũ)',
+      in_progress: 'Đang thực hiện',
       completed: 'Hoàn thành'
     };
     return statusMap[status] || status;
