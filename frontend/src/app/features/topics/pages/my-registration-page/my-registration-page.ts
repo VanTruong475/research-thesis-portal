@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
@@ -9,7 +10,7 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
 @Component({
   selector: 'app-my-registration-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, StatusBadge],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadge],
   template: `
     <div class="p-8 max-w-5xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-8">
@@ -19,6 +20,21 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
           </h1>
           <p class="text-muted mt-2">Theo dõi trạng thái các đề tài bạn đã xin hướng dẫn</p>
         </div>
+      </div>
+
+      <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
+        {{ successMessage }}
+      </div>
+      <div *ngIf="errorMessage" class="mb-4 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+        {{ errorMessage }}
+      </div>
+
+      <div class="mb-4">
+        <input
+          type="text"
+          class="ks-input"
+          placeholder="Tìm theo đề tài, kỳ học, giảng viên hoặc trạng thái..."
+          [(ngModel)]="registrationKeyword">
       </div>
 
       <div class="ks-card flex-1 overflow-hidden flex flex-col p-0 relative">
@@ -38,7 +54,7 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr *ngFor="let reg of topicService.registrations()" class="hover:bg-surface-raised transition-colors align-top">
+              <tr *ngFor="let reg of getFilteredRegistrations()" class="hover:bg-surface-raised transition-colors align-top">
                 <td class="p-4 text-sm font-mono text-muted">{{ (reg.registered_at || reg.created_at) | date:'dd/MM/yyyy' }}</td>
                 <td class="p-4">
                   <div class="font-medium text-body">{{ getTopicLabel(reg) }}</div>
@@ -98,9 +114,9 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
                 </td>
               </tr>
               
-              <tr *ngIf="topicService.registrations().length === 0 && !isLoading">
+              <tr *ngIf="getFilteredRegistrations().length === 0 && !isLoading">
                 <td colspan="5" class="p-8 text-center text-muted italic">
-                  Bạn chưa đăng ký đề tài nào. Hãy quay lại trang Danh sách Đề tài để đăng ký.
+                  {{ getEmptyRegistrationMessage() }}
                 </td>
               </tr>
             </tbody>
@@ -116,6 +132,9 @@ export class MyRegistrationPageComponent implements OnInit {
   
   isLoading = false;
   isCancelling: string | null = null;
+  successMessage = '';
+  errorMessage = '';
+  registrationKeyword = '';
 
   ngOnInit() {
     this.loadRegistrations();
@@ -127,9 +146,34 @@ export class MyRegistrationPageComponent implements OnInit {
       this.isLoading = true;
       this.topicService.fetchMyRegistrations().subscribe({
         next: () => this.isLoading = false,
-        error: () => this.isLoading = false
+        error: (err) => {
+          this.isLoading = false;
+          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Không thể tải danh sách đăng ký của bạn.');
+        }
       });
     }
+  }
+
+  getFilteredRegistrations(): Registration[] {
+    const keyword = this.normalizeSearchText(this.registrationKeyword);
+    return this.topicService.registrations().filter(registration => {
+      const searchableText = this.normalizeSearchText([
+        this.getTopicLabel(registration),
+        this.getAcademicPeriodLabel(registration),
+        this.getSupervisorLabel(registration),
+        registration.supervisor_institutional_code,
+        this.formatRegistrationStatus(registration.status),
+        registration.review_reason
+      ].join(' '));
+      return !keyword || searchableText.includes(keyword);
+    });
+  }
+
+  getEmptyRegistrationMessage(): string {
+    if (this.topicService.registrations().length === 0) {
+      return 'Bạn chưa đăng ký đề tài nào. Hãy quay lại trang Danh sách Đề tài để đăng ký.';
+    }
+    return 'Không tìm thấy đăng ký phù hợp với từ khóa hiện tại.';
   }
 
   formatRegistrationStatus(status: RegistrationStatus): string {
@@ -169,17 +213,34 @@ export class MyRegistrationPageComponent implements OnInit {
     return registration.status === 'approved' && registration.academic_period_status === 'in_progress';
   }
 
+  private normalizeSearchText(value: string | null | undefined): string {
+    return (value || '').toLowerCase().trim();
+  }
+
+  private getRegistrationActionErrorMessage(err: any, fallbackMessage: string): string {
+    const code = err.error?.error?.code;
+    if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền thực hiện thao tác này.';
+    if (code === 'REGISTRATION_NOT_FOUND') return 'Không tìm thấy đăng ký cần xử lý.';
+    if (code === 'REGISTRATION_CANNOT_CANCEL') return 'Chỉ có thể hủy đăng ký đang chờ duyệt.';
+    if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
+    return err.error?.message || fallbackMessage;
+  }
+
   cancelRegistration(registrationId: string) {
     if (confirm('Bạn có chắc chắn muốn hủy đăng ký đề tài này không? Hành động này không thể hoàn tác.')) {
       this.isCancelling = registrationId;
+      this.successMessage = '';
+      this.errorMessage = '';
       this.topicService.cancelRegistration(registrationId).subscribe({
         next: () => {
           this.isCancelling = null;
+          this.successMessage = 'Hủy đăng ký thành công.';
           this.loadRegistrations();
         },
         error: (err) => {
           this.isCancelling = null;
-          alert(err.error?.message || 'Có lỗi xảy ra khi hủy đăng ký.');
+          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi hủy đăng ký.');
         }
       });
     }

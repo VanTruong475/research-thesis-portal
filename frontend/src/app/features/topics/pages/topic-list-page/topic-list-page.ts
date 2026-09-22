@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { Registration, Topic, TopicStatus } from '../../models/topic.model';
 import { TopicService } from '../../services/topic.service';
@@ -11,7 +12,7 @@ type TopicFilterTab = 'pending_approval' | 'approved' | 'closed' | 'all';
 @Component({
   selector: 'app-topic-list-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge],
+  imports: [CommonModule, FormsModule, StatusBadge],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-6">
@@ -21,6 +22,22 @@ type TopicFilterTab = 'pending_approval' | 'approved' | 'closed' | 'all';
           </h1>
           <p class="text-muted mt-2">{{ getTopicListSubtitle() }}</p>
         </div>
+      </div>
+
+      <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
+        {{ successMessage }}
+      </div>
+      <div *ngIf="errorMessage" class="mb-4 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+        {{ errorMessage }}
+      </div>
+
+      <div class="mb-4">
+        <input
+          type="text"
+          class="ks-input"
+          placeholder="Tìm theo mã, tên, mô tả hoặc giảng viên..."
+          [(ngModel)]="topicKeyword"
+          (ngModelChange)="onTopicKeywordChange()">
       </div>
 
       <div *ngIf="userRole === 'admin'" class="flex flex-wrap gap-2 mb-6">
@@ -132,8 +149,11 @@ export class TopicListPageComponent implements OnInit {
   userRole: string = 'student';
   isLoading = false;
   isRegistering = false;
+  successMessage = '';
+  errorMessage = '';
   isProcessingTopic: string | null = null;
   selectedTopicTab: TopicFilterTab = 'pending_approval';
+  topicKeyword = '';
   topicCurrentPage = 1;
   readonly adminTopicPageSize = 4;
 
@@ -154,7 +174,10 @@ export class TopicListPageComponent implements OnInit {
         this.topicService.fetchMyRegistrations()
       ]).subscribe({
         next: () => this.isLoading = false,
-        error: () => this.isLoading = false
+        error: (err) => {
+          this.isLoading = false;
+          this.errorMessage = this.getTopicActionErrorMessage(err, 'Không thể tải danh sách đề tài đang mở đăng ký.');
+        }
       });
     } else {
       this.topicService.fetchTopics(1, 100).subscribe({
@@ -162,7 +185,10 @@ export class TopicListPageComponent implements OnInit {
           this.isLoading = false;
           this.ensureValidTopicPage();
         },
-        error: () => this.isLoading = false
+        error: (err) => {
+          this.isLoading = false;
+          this.errorMessage = this.getTopicActionErrorMessage(err, 'Không thể tải danh sách đề tài.');
+        }
       });
     }
   }
@@ -176,6 +202,10 @@ export class TopicListPageComponent implements OnInit {
 
   selectTopicTab(tab: TopicFilterTab) {
     this.selectedTopicTab = tab;
+    this.topicCurrentPage = 1;
+  }
+
+  onTopicKeywordChange() {
     this.topicCurrentPage = 1;
   }
 
@@ -196,9 +226,19 @@ export class TopicListPageComponent implements OnInit {
   }
 
   getFilteredTopics(): Topic[] {
-    const topics = this.topicService.topics();
-    if (this.userRole !== 'admin' || this.selectedTopicTab === 'all') return topics;
-    return topics.filter(topic => this.matchesTopicTab(topic, this.selectedTopicTab));
+    const keyword = this.normalizeSearchText(this.topicKeyword);
+    return this.topicService.topics().filter(topic => {
+      const matchesTab = this.userRole !== 'admin' || this.selectedTopicTab === 'all' || this.matchesTopicTab(topic, this.selectedTopicTab);
+      const searchableText = this.normalizeSearchText([
+        topic.code,
+        topic.title,
+        topic.description,
+        topic.requirements,
+        topic.lecturerName,
+        this.formatTopicStatus(topic.status)
+      ].join(' '));
+      return matchesTab && (!keyword || searchableText.includes(keyword));
+    });
   }
 
   getPaginatedTopics(): Topic[] {
@@ -229,6 +269,8 @@ export class TopicListPageComponent implements OnInit {
   }
 
   getEmptyTopicMessage(): string {
+    if (this.topicKeyword.trim()) return 'Không tìm thấy đề tài phù hợp với từ khóa hiện tại.';
+
     if (this.userRole === 'admin') {
       if (this.selectedTopicTab === 'pending_approval') return 'Không có đề tài nào đang chờ duyệt.';
       if (this.selectedTopicTab === 'approved') return 'Không có đề tài nào đã được duyệt.';
@@ -281,15 +323,17 @@ export class TopicListPageComponent implements OnInit {
   registerTopic(topicId: string) {
     if (confirm('Bạn có chắc chắn muốn đăng ký đề tài này?')) {
       this.isRegistering = true;
+      this.successMessage = '';
+      this.errorMessage = '';
       this.topicService.createRegistration({ topic_id: topicId }).subscribe({
         next: () => {
           this.isRegistering = false;
-          alert('Đăng ký đề tài thành công! Vui lòng chờ Giảng viên duyệt.');
+          this.successMessage = 'Đăng ký đề tài thành công. Vui lòng chờ Giảng viên duyệt.';
           this.loadTopics();
         },
         error: (err) => {
           this.isRegistering = false;
-          alert(err.error?.message || 'Có lỗi xảy ra khi đăng ký đề tài.');
+          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi đăng ký đề tài.');
         }
       });
     }
@@ -299,15 +343,17 @@ export class TopicListPageComponent implements OnInit {
     if (!confirm('Bạn có chắc chắn muốn duyệt đề tài này?')) return;
 
     this.isProcessingTopic = topicId;
+    this.successMessage = '';
+    this.errorMessage = '';
     this.topicService.approveTopic(topicId).subscribe({
       next: () => {
         this.isProcessingTopic = null;
-        alert('Duyệt đề tài thành công.');
+        this.successMessage = 'Duyệt đề tài thành công.';
         this.loadTopics();
       },
       error: (err) => {
         this.isProcessingTopic = null;
-        alert(this.getTopicActionErrorMessage(err));
+        this.errorMessage = this.getTopicActionErrorMessage(err);
       }
     });
   }
@@ -316,20 +362,22 @@ export class TopicListPageComponent implements OnInit {
     const reason = prompt('Vui lòng nhập lý do từ chối đề tài:');
     if (reason === null) return;
     if (!reason.trim()) {
-      alert('Lý do từ chối không được để trống.');
+      this.errorMessage = 'Lý do từ chối không được để trống.';
       return;
     }
 
     this.isProcessingTopic = topicId;
+    this.successMessage = '';
+    this.errorMessage = '';
     this.topicService.rejectTopic(topicId, { rejection_reason: reason.trim() }).subscribe({
       next: () => {
         this.isProcessingTopic = null;
-        alert('Từ chối đề tài thành công.');
+        this.successMessage = 'Từ chối đề tài thành công.';
         this.loadTopics();
       },
       error: (err) => {
         this.isProcessingTopic = null;
-        alert(this.getTopicActionErrorMessage(err));
+        this.errorMessage = this.getTopicActionErrorMessage(err);
       }
     });
   }
@@ -368,13 +416,31 @@ export class TopicListPageComponent implements OnInit {
     return true;
   }
 
-  private getTopicActionErrorMessage(err: any): string {
+  private normalizeSearchText(value: string | null | undefined): string {
+    return (value || '').toLowerCase().trim();
+  }
+
+  private getTopicActionErrorMessage(err: any, fallbackMessage = 'Có lỗi xảy ra khi xử lý đề tài.'): string {
     const code = err.error?.error?.code;
     if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
     if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền thực hiện thao tác này.';
+    if (code === 'TOPIC_NOT_FOUND') return 'Không tìm thấy đề tài cần xử lý.';
     if (code === 'TOPIC_INVALID_STATUS_TRANSITION') return 'Trạng thái đề tài hiện tại không cho phép thao tác này.';
     if (code === 'TOPIC_REJECTION_REASON_REQUIRED') return 'Vui lòng nhập lý do từ chối đề tài.';
     if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
-    return err.error?.message || 'Có lỗi xảy ra khi xử lý đề tài.';
+    return err.error?.message || fallbackMessage;
+  }
+
+  private getRegistrationActionErrorMessage(err: any, fallbackMessage = 'Có lỗi xảy ra khi xử lý đăng ký.'): string {
+    const code = err.error?.error?.code;
+    if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền thực hiện thao tác này.';
+    if (code === 'TOPIC_NOT_APPROVED') return 'Đề tài chưa được duyệt nên chưa thể đăng ký.';
+    if (code === 'TOPIC_FULL' || code === 'REGISTRATION_TOPIC_FULL') return 'Đề tài đã đủ số lượng sinh viên.';
+    if (code === 'REGISTRATION_ALREADY_EFFECTIVE') return 'Bạn đã có đăng ký hiệu lực trong kỳ học này.';
+    if (code === 'REGISTRATION_PERIOD_CLOSED') return 'Hiện không nằm trong thời gian đăng ký đề tài.';
+    if (code === 'REGISTRATION_NOT_FOUND') return 'Không tìm thấy đăng ký cần xử lý.';
+    if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu đăng ký không hợp lệ. Vui lòng kiểm tra lại.';
+    return err.error?.message || fallbackMessage;
   }
 }
