@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
@@ -8,10 +8,12 @@ import { PeriodService } from '../../../academic-periods/services/period.service
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model';
 
+type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
+
 @Component({
   selector: 'app-my-topics-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, StatusBadge, ReactiveFormsModule],
+  imports: [CommonModule, RouterModule, StatusBadge, FormsModule, ReactiveFormsModule],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col relative">
       <div class="flex justify-between items-end mb-8">
@@ -21,10 +23,39 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
           </h1>
           <p class="text-muted mt-2">Quản lý các đề tài do bạn hướng dẫn</p>
         </div>
-        
+
         <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="proposalPeriodMessage">
           + Thêm Đề Tài Mới
         </button>
+      </div>
+
+      <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
+        {{ successMessage }}
+      </div>
+      <div *ngIf="errorMessage" class="mb-4 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+        {{ errorMessage }}
+      </div>
+      <div class="mb-4 p-3 bg-surface-raised border border-border-subtle text-muted text-sm rounded-sm">
+        {{ proposalPeriodMessage }}
+      </div>
+
+      <div class="mb-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+        <input
+          type="text"
+          class="ks-input"
+          placeholder="Tìm theo mã, tên, mô tả hoặc yêu cầu đề tài..."
+          [(ngModel)]="topicKeyword">
+        <div class="flex flex-wrap gap-2">
+          <button
+            *ngFor="let tab of getTopicFilterTabs()"
+            type="button"
+            class="px-4 py-2 rounded-sm border text-sm font-medium transition-colors"
+            [ngClass]="selectedTopicFilter === tab.key ? 'border-primary bg-primary/10 text-primary' : 'border-border-subtle text-muted hover:text-primary hover:border-primary/40'"
+            (click)="selectTopicFilter(tab.key)">
+            {{ tab.label }}
+            <span class="ml-2 text-xs opacity-70">{{ tab.count }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="ks-card flex-1 overflow-hidden flex flex-col p-0 relative">
@@ -44,7 +75,7 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr *ngFor="let topic of topicService.topics()" class="hover:bg-surface-raised transition-colors">
+              <tr *ngFor="let topic of getFilteredTopics()" class="hover:bg-surface-raised transition-colors">
                 <td class="p-4 font-mono text-sm">{{ topic.code }}</td>
                 <td class="p-4 font-sans font-medium text-body max-w-md truncate">{{ topic.title }}</td>
                 <td class="p-4 text-sm font-medium">
@@ -64,9 +95,9 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
                 </td>
               </tr>
               
-              <tr *ngIf="topicService.topics().length === 0 && !isLoading">
+              <tr *ngIf="getFilteredTopics().length === 0 && !isLoading">
                 <td colspan="5" class="p-8 text-center text-muted italic">
-                  Bạn chưa đăng ký hướng dẫn đề tài nào.
+                  {{ getEmptyTopicMessage() }}
                 </td>
               </tr>
             </tbody>
@@ -80,6 +111,9 @@ import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model
           <h2 class="text-2xl font-display font-bold text-heading mb-6">
             {{ editingTopicId ? 'Chỉnh Sửa Đề Tài' : 'Đề Xuất Đề Tài Mới' }}
           </h2>
+          <div *ngIf="dialogErrorMessage" class="mb-4 p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+            {{ dialogErrorMessage }}
+          </div>
           <form [formGroup]="topicForm" (ngSubmit)="onSubmit()" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
@@ -129,8 +163,13 @@ export class MyTopicsPageComponent implements OnInit {
   isLoading = false;
   isSubmitting = false;
   isDialogOpen = false;
+  successMessage = '';
+  errorMessage = '';
+  dialogErrorMessage = '';
   editingTopicId: string | null = null;
   editingTopicPeriodId: string | null = null;
+  topicKeyword = '';
+  selectedTopicFilter: MyTopicFilterTab = 'all';
   topicForm!: FormGroup;
 
   // Biến lưu ID thật của học kỳ đang mở đề xuất đề tài thay vì dùng DUMMY
@@ -163,7 +202,8 @@ export class MyTopicsPageComponent implements OnInit {
       },
       error: (err) => {
         this.activePeriodId = null;
-        this.proposalPeriodMessage = this.getTopicErrorMessage(err, 'Không thể tải danh sách đợt đề xuất đề tài.');
+        this.proposalPeriodMessage = 'Không thể kiểm tra đợt mở đề xuất đề tài.';
+        this.errorMessage = this.getTopicErrorMessage(err, 'Không thể tải danh sách đợt đề xuất đề tài.');
       }
     });
   }
@@ -174,7 +214,10 @@ export class MyTopicsPageComponent implements OnInit {
       this.isLoading = true;
       this.topicService.fetchMyTopics().subscribe({
         next: () => this.isLoading = false,
-        error: () => this.isLoading = false
+        error: (err) => {
+          this.isLoading = false;
+          this.errorMessage = this.getTopicErrorMessage(err, 'Không thể tải danh sách đề tài của bạn.');
+        }
       });
     }
   }
@@ -190,8 +233,12 @@ export class MyTopicsPageComponent implements OnInit {
   }
 
   openDialog(topic?: Topic) {
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.dialogErrorMessage = '';
+
     if (!topic && !this.activePeriodId) {
-      alert(this.proposalPeriodMessage || 'Hiện chưa có đợt mở đề xuất đề tài.');
+      this.errorMessage = this.proposalPeriodMessage || 'Hiện chưa có đợt mở đề xuất đề tài.';
       return;
     }
 
@@ -217,21 +264,27 @@ export class MyTopicsPageComponent implements OnInit {
     this.isDialogOpen = false;
     this.editingTopicId = null;
     this.editingTopicPeriodId = null;
+    this.dialogErrorMessage = '';
     this.topicForm.reset();
   }
 
   onSubmit() {
-    // Không cho phép lưu nếu form không hợp lệ hoặc chưa có học kỳ
+    // Không cho phép lưu nếu form không hợp lệ hoặc chưa xác định được kỳ học
     if (this.topicForm.invalid) return;
-    if (!this.activePeriodId) {
-      alert(this.proposalPeriodMessage || 'Hiện chưa có đợt mở đề xuất đề tài.');
+
+    const periodId = this.editingTopicPeriodId || this.activePeriodId;
+    if (!periodId) {
+      this.dialogErrorMessage = this.proposalPeriodMessage || 'Hiện chưa có đợt mở đề xuất đề tài.';
       return;
     }
 
     this.isSubmitting = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.dialogErrorMessage = '';
     const formValue = this.topicForm.value;
     const payload: TopicCreateRequest = {
-      academic_period_id: this.editingTopicPeriodId || this.activePeriodId,
+      academic_period_id: periodId,
       code: formValue.code,
       title: formValue.title,
       description: formValue.description,
@@ -244,12 +297,12 @@ export class MyTopicsPageComponent implements OnInit {
         next: () => {
           this.isSubmitting = false;
           this.closeDialog();
-          alert('Cập nhật đề tài thành công.');
+          this.successMessage = 'Cập nhật đề tài thành công.';
           this.loadTopics();
         },
         error: (err) => {
           this.isSubmitting = false;
-          alert(this.getTopicErrorMessage(err, 'Có lỗi xảy ra khi cập nhật đề tài.'));
+          this.dialogErrorMessage = this.getTopicErrorMessage(err, 'Có lỗi xảy ra khi cập nhật đề tài.');
         }
       });
     } else {
@@ -257,15 +310,55 @@ export class MyTopicsPageComponent implements OnInit {
         next: () => {
           this.isSubmitting = false;
           this.closeDialog();
-          alert('Tạo đề tài thành công. Đề tài đang chờ Admin duyệt.');
+          this.successMessage = 'Tạo đề tài thành công. Đề tài đang chờ Admin duyệt.';
           this.loadTopics();
         },
         error: (err) => {
           this.isSubmitting = false;
-          alert(this.getTopicErrorMessage(err, 'Có lỗi xảy ra khi tạo đề tài.'));
+          this.dialogErrorMessage = this.getTopicErrorMessage(err, 'Có lỗi xảy ra khi tạo đề tài.');
         }
       });
     }
+  }
+
+  selectTopicFilter(filter: MyTopicFilterTab) {
+    this.selectedTopicFilter = filter;
+  }
+
+  getTopicFilterTabs(): Array<{ key: MyTopicFilterTab; label: string; count: number }> {
+    const topics = this.topicService.topics();
+    const labels: Record<MyTopicFilterTab, string> = {
+      all: 'Tất cả',
+      pending_approval: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      closed: 'Đã đóng / khác'
+    };
+
+    return (['all', 'pending_approval', 'approved', 'closed'] as MyTopicFilterTab[]).map(key => ({
+      key,
+      label: labels[key],
+      count: key === 'all' ? topics.length : topics.filter(topic => this.matchesTopicFilter(topic, key)).length
+    }));
+  }
+
+  getFilteredTopics(): Topic[] {
+    const keyword = this.normalizeSearchText(this.topicKeyword);
+    return this.topicService.topics().filter(topic => {
+      const matchesFilter = this.selectedTopicFilter === 'all' || this.matchesTopicFilter(topic, this.selectedTopicFilter);
+      const searchableText = this.normalizeSearchText([
+        topic.code,
+        topic.title,
+        topic.description,
+        topic.requirements,
+        this.formatTopicStatus(topic.status)
+      ].join(' '));
+      return matchesFilter && (!keyword || searchableText.includes(keyword));
+    });
+  }
+
+  getEmptyTopicMessage(): string {
+    if (this.topicService.topics().length === 0) return 'Bạn chưa đăng ký hướng dẫn đề tài nào.';
+    return 'Không tìm thấy đề tài phù hợp với bộ lọc hiện tại.';
   }
 
   formatTopicStatus(status: TopicStatus): string {
@@ -289,6 +382,17 @@ export class MyTopicsPageComponent implements OnInit {
 
   getCurrentStudents(topic: Topic): number {
     return topic.current_students ?? topic.currentStudents ?? 0;
+  }
+
+  private matchesTopicFilter(topic: Topic, filter: MyTopicFilterTab): boolean {
+    if (filter === 'pending_approval') return topic.status === 'pending_approval';
+    if (filter === 'approved') return topic.status === 'approved';
+    if (filter === 'closed') return topic.status === 'closed' || topic.status === 'rejected' || topic.status === 'cancelled' || topic.status === 'completed';
+    return true;
+  }
+
+  private normalizeSearchText(value: string | null | undefined): string {
+    return (value || '').toLowerCase().trim();
   }
 
   private getTopicErrorMessage(err: any, fallbackMessage: string): string {
