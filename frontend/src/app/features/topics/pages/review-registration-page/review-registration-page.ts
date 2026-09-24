@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
@@ -11,7 +12,7 @@ type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
 @Component({
   selector: 'app-review-registration-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, StatusBadge],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadge],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-6">
@@ -21,6 +22,22 @@ type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
           </h1>
           <p class="text-muted mt-2">{{ getPageSubtitle() }}</p>
         </div>
+      </div>
+
+      <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
+        {{ successMessage }}
+      </div>
+      <div *ngIf="errorMessage" class="mb-4 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
+        {{ errorMessage }}
+      </div>
+
+      <div class="mb-4">
+        <input
+          type="text"
+          class="ks-input"
+          placeholder="Tìm theo sinh viên, mã sinh viên, đề tài, kỳ học hoặc giảng viên..."
+          [(ngModel)]="registrationKeyword"
+          (ngModelChange)="onRegistrationKeywordChange()">
       </div>
 
       <div class="flex flex-wrap gap-2 mb-4">
@@ -137,7 +154,10 @@ export class ReviewRegistrationPageComponent implements OnInit {
 
   isLoading = false;
   isProcessing: string | null = null;
+  successMessage = '';
+  errorMessage = '';
   selectedRegistrationTab: RegistrationTab = 'pending';
+  registrationKeyword = '';
   registrationCurrentPage = 1;
   readonly registrationPageSize = 8;
 
@@ -154,7 +174,10 @@ export class ReviewRegistrationPageComponent implements OnInit {
           this.isLoading = false;
           this.ensureValidRegistrationPage();
         },
-        error: () => this.isLoading = false
+        error: (err) => {
+          this.isLoading = false;
+          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Không thể tải danh sách đăng ký.');
+        }
       });
     }
   }
@@ -176,6 +199,10 @@ export class ReviewRegistrationPageComponent implements OnInit {
 
   selectRegistrationTab(tab: RegistrationTab) {
     this.selectedRegistrationTab = tab;
+    this.registrationCurrentPage = 1;
+  }
+
+  onRegistrationKeywordChange() {
     this.registrationCurrentPage = 1;
   }
 
@@ -203,9 +230,21 @@ export class ReviewRegistrationPageComponent implements OnInit {
   }
 
   getFilteredRegistrations(): Registration[] {
-    const registrations = this.topicService.registrations();
-    if (this.selectedRegistrationTab === 'all') return registrations;
-    return registrations.filter(registration => this.matchesRegistrationTab(registration, this.selectedRegistrationTab));
+    const keyword = this.normalizeSearchText(this.registrationKeyword);
+    return this.topicService.registrations().filter(registration => {
+      const matchesTab = this.selectedRegistrationTab === 'all' || this.matchesRegistrationTab(registration, this.selectedRegistrationTab);
+      const searchableText = this.normalizeSearchText([
+        this.getStudentLabel(registration),
+        registration.student_institutional_code,
+        registration.student_id,
+        this.getTopicLabel(registration),
+        this.getAcademicPeriodLabel(registration),
+        this.getSupervisorLabel(registration),
+        this.formatRegistrationStatus(registration.status),
+        registration.review_reason
+      ].join(' '));
+      return matchesTab && (!keyword || searchableText.includes(keyword));
+    });
   }
 
   getPaginatedRegistrations(): Registration[] {
@@ -235,6 +274,8 @@ export class ReviewRegistrationPageComponent implements OnInit {
   }
 
   getEmptyRegistrationMessage(): string {
+    if (this.registrationKeyword.trim()) return 'Không tìm thấy đăng ký phù hợp với từ khóa hiện tại.';
+
     if (this.isAdmin) {
       if (this.selectedRegistrationTab === 'pending') return 'Không có đăng ký nào đang chờ xử lý.';
       if (this.selectedRegistrationTab === 'active') return 'Không có đăng ký nào đang thực hiện.';
@@ -289,14 +330,17 @@ export class ReviewRegistrationPageComponent implements OnInit {
   approveRegistration(registrationId: string) {
     if (confirm('Bạn có chắc chắn muốn duyệt cho sinh viên này thực hiện đề tài?')) {
       this.isProcessing = registrationId;
+      this.successMessage = '';
+      this.errorMessage = '';
       this.topicService.approveRegistration(registrationId).subscribe({
         next: () => {
           this.isProcessing = null;
+          this.successMessage = 'Duyệt đăng ký thành công.';
           this.loadRegistrations();
         },
         error: (err) => {
           this.isProcessing = null;
-          alert(err.error?.message || 'Có lỗi xảy ra khi duyệt.');
+          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi duyệt đăng ký.');
         }
       });
     }
@@ -306,18 +350,21 @@ export class ReviewRegistrationPageComponent implements OnInit {
     const reason = prompt('Vui lòng nhập lý do từ chối (bắt buộc):');
     if (reason !== null) {
       if (!reason.trim()) {
-        alert('Lý do từ chối không được để trống.');
+        this.errorMessage = 'Lý do từ chối không được để trống.';
         return;
       }
       this.isProcessing = registrationId;
+      this.successMessage = '';
+      this.errorMessage = '';
       this.topicService.rejectRegistration(registrationId, { review_reason: reason.trim() }).subscribe({
         next: () => {
           this.isProcessing = null;
+          this.successMessage = 'Từ chối đăng ký thành công.';
           this.loadRegistrations();
         },
         error: (err) => {
           this.isProcessing = null;
-          alert(err.error?.message || 'Có lỗi xảy ra khi từ chối.');
+          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi từ chối đăng ký.');
         }
       });
     }
@@ -328,5 +375,23 @@ export class ReviewRegistrationPageComponent implements OnInit {
     if (tab === 'active') return registration.status === 'approved' || registration.status === 'in_progress';
     if (tab === 'closed') return registration.status === 'rejected' || registration.status === 'cancelled' || registration.status === 'completed';
     return true;
+  }
+
+  private normalizeSearchText(value: string | null | undefined): string {
+    return (value || '').toLowerCase().trim();
+  }
+
+  private getRegistrationActionErrorMessage(err: any, fallbackMessage: string): string {
+    const code = err.error?.error?.code;
+    if (err.status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    if (err.status === 403 || code === 'PERMISSION_DENIED') return 'Bạn không có quyền thực hiện thao tác này.';
+    if (code === 'REGISTRATION_NOT_FOUND') return 'Không tìm thấy đăng ký cần xử lý.';
+    if (code === 'REGISTRATION_INVALID_STATUS_TRANSITION') return 'Trạng thái đăng ký hiện tại không cho phép thao tác này.';
+    if (code === 'REGISTRATION_REJECTION_REASON_REQUIRED') return 'Vui lòng nhập lý do từ chối đăng ký.';
+    if (code === 'REGISTRATION_ALREADY_EFFECTIVE') return 'Sinh viên đã có đăng ký hiệu lực trong kỳ học này.';
+    if (code === 'REGISTRATION_TOPIC_FULL' || code === 'TOPIC_FULL') return 'Đề tài đã đủ số lượng sinh viên.';
+    if (code === 'REGISTRATION_PERIOD_CLOSED') return 'Hiện không nằm trong thời gian đăng ký đề tài.';
+    if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
+    return err.error?.message || fallbackMessage;
   }
 }
