@@ -87,6 +87,10 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['student'] },
         loadComponent: () => import('./features/topics/pages/my-registration-page/my-registration-page').then(m => m.MyRegistrationPageComponent)
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/pages/dashboard-page/dashboard-page').then(m => m.DashboardPageComponent)
       }
       // Các tính năng của Member A/B sẽ được lazy load tiếp ở đây
     ]

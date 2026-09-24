@@ -9,7 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.db.enums import (
     CouncilMemberRole,
     CouncilMemberStatus,
+    CouncilMemberStatus,
     CouncilStatus,
+    CouncilType,
     DefenseScheduleStatus,
 )
 
@@ -172,6 +174,10 @@ class CouncilCreateRequest(BaseModel):
         max_length=100,
         description="Phòng bảo vệ mặc định",
     )
+    council_type: CouncilType = Field(
+        default=CouncilType.DEFENSE,
+        description="Loại hội đồng: defense hoặc acceptance",
+    )
 
     @field_validator("code", "name")
     @classmethod
@@ -194,6 +200,7 @@ class CouncilResponse(BaseModel):
     name: str
     description: str | None = None
     default_room: str | None = None
+    council_type: CouncilType
     status: CouncilStatus
     created_at: datetime
     members: list[CouncilMemberResponse] = Field(default_factory=list)

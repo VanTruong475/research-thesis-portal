@@ -79,6 +79,7 @@ class ScoreResponse(BaseModel):
     topic_id: UUID | None = None
     topic_code: str | None = None
     topic_title: str | None = None
+    topic_type: str | None = None
     student_id: UUID | None = None
     student_full_name: str | None = None
     student_institutional_code: str | None = None
@@ -116,6 +117,7 @@ class ScoreResponse(BaseModel):
         if topic is not None:
             data.topic_code = topic.code
             data.topic_title = topic.title
+            data.topic_type = getattr(topic, "topic_type", None)
         if student is not None:
             data.student_full_name = student.full_name
             data.student_institutional_code = student.institutional_code

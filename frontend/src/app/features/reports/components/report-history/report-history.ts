@@ -24,6 +24,7 @@ import { ReportService } from '../../services/report.service';
           <thead class="text-xs text-muted uppercase bg-surface-deep border-b border-border-subtle">
             <tr>
               <th scope="col" class="px-6 py-4 font-medium">Phiên bản</th>
+              <th scope="col" class="px-6 py-4 font-medium">Loại tài liệu</th>
               <th scope="col" class="px-6 py-4 font-medium">Tên file</th>
               <th scope="col" class="px-6 py-4 font-medium">Dung lượng</th>
               <th scope="col" class="px-6 py-4 font-medium">Thời gian nộp</th>
@@ -37,6 +38,13 @@ import { ReportService } from '../../services/report.service';
                 <span class="inline-flex items-center px-2 py-1 rounded bg-surface-deep text-primary text-xs font-mono border border-primary/20">
                   v{{ report.version }}.0
                   <span *ngIf="first" title="Phiên bản mới nhất" class="ml-2 w-2 h-2 rounded-full bg-success"></span>
+                </span>
+              </td>
+              
+              <!-- Loại tài liệu -->
+              <td class="px-6 py-4 text-body text-xs">
+                <span class="px-2 py-1 rounded bg-surface-deep border border-border-subtle inline-block">
+                  {{ formatReportType(report.report_type) }}
                 </span>
               </td>
 
@@ -113,6 +121,16 @@ export class ReportHistoryComponent {
         this.downloadError = err?.error?.message || 'Không thể tải file báo cáo. Bạn có thể không có quyền hoặc file không tồn tại.';
       }
     });
+  }
+  
+  formatReportType(type?: string): string {
+    switch (type) {
+      case 'progress_report': return 'Báo cáo tiến độ';
+      case 'final_report': return 'Báo cáo cuối kỳ';
+      case 'product': return 'Sản phẩm';
+      case 'evidence': return 'Minh chứng';
+      default: return 'Báo cáo chung';
+    }
   }
 
   // Chuyển đổi bytes thành KB, MB dễ đọc

@@ -27,6 +27,7 @@ from app.db.enums import (
     CouncilMemberRole,
     CouncilMemberStatus,
     CouncilStatus,
+    CouncilType,
     DefenseScheduleStatus,
 )
 
@@ -62,6 +63,13 @@ class Council(BaseModel):
 
     # Phòng bảo vệ mặc định (VD: Phòng A201, Hội trường B)
     default_room: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
+    # Loại hội đồng: defense (Bảo vệ), acceptance (Nghiệm thu)
+    council_type: Mapped[CouncilType] = mapped_column(
+        Enum(CouncilType, native_enum=False),
+        default=CouncilType.DEFENSE,
+        nullable=False,
+    )
 
     # Trạng thái của hội đồng: draft, scheduled, in_progress, completed, cancelled
     status: Mapped[CouncilStatus] = mapped_column(

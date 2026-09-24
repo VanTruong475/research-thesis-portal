@@ -82,7 +82,7 @@ export class LoginPageComponent {
       next: () => {
         this.isLoading = false;
         // Đăng nhập thành công, chuyển hướng vào app
-        this.router.navigate(['/app/profile']);
+        this.router.navigate(['/app/dashboard']);
       },
       error: (err) => {
         this.isLoading = false;

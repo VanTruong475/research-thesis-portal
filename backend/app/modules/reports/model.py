@@ -8,7 +8,7 @@ from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String,
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel, utc_now
-
+from app.db.enums import ReportType
 if TYPE_CHECKING:
     from app.modules.registrations.model import Registration
     from app.modules.topics.model import Topic
@@ -44,6 +44,8 @@ class Report(BaseModel):
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     # Kích thước file tính bằng Bytes
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # Loại file sinh viên nộp (Task B6)
+    report_type: Mapped[ReportType] = mapped_column(String(50), nullable=False, default=ReportType.PROGRESS_REPORT)
     # Số phiên bản (Tự động tăng: 1, 2, 3...) cho từng lần nộp lại của đơn đăng ký
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     # Thời điểm nộp file

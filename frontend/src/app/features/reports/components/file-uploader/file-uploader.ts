@@ -1,15 +1,29 @@
 import { Component, Output, EventEmitter, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth';
 
 @Component({
   selector: 'app-file-uploader',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="ks-card mb-8">
       <div class="ks-card-header">
         <h3 class="ks-card-title">Tải lên Báo cáo Mới</h3>
+      </div>
+
+      <!-- Form chọn loại tài liệu -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-body mb-2">Loại tài liệu</label>
+        <select 
+          [(ngModel)]="selectedReportType" 
+          class="ks-input w-full"
+        >
+          <option *ngFor="let type of reportTypes" [value]="type.value">
+            {{ type.label }}
+          </option>
+        </select>
       </div>
       
       <!-- Khung Kéo / Thả file -->
@@ -83,7 +97,15 @@ import { AuthService } from '../../../../core/services/auth';
 })
 export class FileUploaderComponent {
   // Output phát sự kiện khi người dùng bấm nút Tải lên
-  @Output() fileUpload = new EventEmitter<File>();
+  @Output() fileUpload = new EventEmitter<{file: File, type: string}>();
+
+  selectedReportType: string = 'progress_report';
+  reportTypes = [
+    { value: 'progress_report', label: 'Báo cáo tiến độ' },
+    { value: 'final_report', label: 'Báo cáo cuối kỳ' },
+    { value: 'product', label: 'Sản phẩm nghiên cứu' },
+    { value: 'evidence', label: 'Minh chứng' }
+  ];
 
   // Input nhận trạng thái đang tải lên từ component cha (để disable nút)
   @Input() isUploading = false;
@@ -175,7 +197,7 @@ export class FileUploaderComponent {
 
   upload() {
     if (this.selectedFile && this.canUpload) {
-      this.fileUpload.emit(this.selectedFile);
+      this.fileUpload.emit({ file: this.selectedFile, type: this.selectedReportType });
       this.selectedFile = null;
       this.validationError = null;
     }

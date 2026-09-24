@@ -46,6 +46,11 @@ class RegistrationStatus(StrEnum):
 
 
 # Enums dành riêng cho Module Hội đồng đánh giá & Lịch bảo vệ (Councils Module)
+class CouncilType(StrEnum):
+    DEFENSE = "defense"        # Hội đồng bảo vệ khóa luận
+    ACCEPTANCE = "acceptance"  # Hội đồng nghiệm thu đề tài NCKH
+
+
 class CouncilStatus(StrEnum):
     DRAFT = "draft"                # Bản nháp hội đồng
     SCHEDULED = "scheduled"        # Đã lên lịch
@@ -100,4 +105,18 @@ class ResultClassification(StrEnum):
     FAIR = "fair"                  # Khá
     AVERAGE = "average"            # Trung bình
     FAILED = "failed"              # Không đạt
+
+
+class ReportType(StrEnum):
+    # Loại file: Báo cáo tiến độ trong quá trình làm đề tài
+    PROGRESS_REPORT = "progress_report"
+    
+    # Loại file: Báo cáo cuối kỳ để nghiệm thu/bảo vệ
+    FINAL_REPORT = "final_report"
+    
+    # Loại file: Sản phẩm nghiên cứu khoa học (code, mô hình, v.v.)
+    PRODUCT = "product"
+    
+    # Loại file: Minh chứng bài báo, chứng nhận, v.v.
+    EVIDENCE = "evidence"
 

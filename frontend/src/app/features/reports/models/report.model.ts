@@ -14,4 +14,5 @@ export interface ReportResponse {
   academic_period_name?: string | null;
   student_full_name?: string | null;
   supervisor_full_name?: string | null;
+  report_type?: string;
 }

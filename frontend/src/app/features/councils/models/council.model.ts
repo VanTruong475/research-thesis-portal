@@ -2,6 +2,7 @@ export type CouncilMemberRole = 'chairperson' | 'secretary' | 'reviewer' | 'memb
 export type CouncilMemberStatus = 'active' | 'inactive' | 'removed';
 export type CouncilStatus = 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 export type DefenseScheduleStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed';
+export type CouncilType = 'defense' | 'acceptance';
 
 export interface CouncilMember {
   id: string;
@@ -44,6 +45,7 @@ export interface Council {
   name: string;
   description?: string | null;
   default_room?: string | null;
+  council_type: CouncilType;
   status: CouncilStatus;
   created_at: string;
   members: CouncilMember[];
@@ -56,6 +58,7 @@ export interface CreateCouncilRequest {
   name: string;
   description?: string | null;
   default_room?: string | null;
+  council_type: CouncilType;
 }
 
 export interface CouncilMemberAssignRequest {

@@ -45,14 +45,22 @@ import { ScoreResponse, ScoreCreate } from '../../models/evaluation.model';
 
         <!-- Nhận xét chung -->
         <div class="flex flex-col gap-2">
-          <label class="font-sans text-sm font-medium text-body">
-            Nhận xét chung
+          <label class="font-sans text-sm font-medium text-body flex justify-between items-end">
+            <span>Nhận xét chung</span>
           </label>
+          
+          <div class="bg-surface-deep p-3 rounded-sm border border-border-subtle mb-1" *ngIf="!isLocked">
+            <p class="text-xs font-bold text-secondary mb-1">Gợi ý tiêu chí đánh giá:</p>
+            <ul class="text-xs text-muted list-disc list-inside space-y-0.5">
+              <li *ngFor="let criteria of getEvaluationCriteria()">{{ criteria }}</li>
+            </ul>
+          </div>
+
           <textarea
             class="ks-input h-32 resize-none"
             [(ngModel)]="evaluation.comments"
             [disabled]="isLocked"
-            placeholder="Nhập nhận xét đánh giá..."
+            placeholder="Nhập nhận xét đánh giá dựa trên các tiêu chí gợi ý..."
           ></textarea>
         </div>
 
@@ -89,6 +97,26 @@ export class EvaluationFormComponent {
 
   get topicTitle(): string {
     return this.evaluation.topic_title || this.evaluation.topicName || this.evaluation.registration_id;
+  }
+
+  getEvaluationCriteria(): string[] {
+    const topicType = (this.evaluation as any).topic_type;
+    
+    if (topicType === 'scientific_research') {
+      return [
+        'Tính mới và tính sáng tạo',
+        'Phương pháp nghiên cứu',
+        'Sản phẩm/Minh chứng đạt được',
+        'Khả năng ứng dụng thực tiễn'
+      ];
+    }
+    
+    return [
+      'Nội dung chuyên môn',
+      'Kỹ thuật thực hiện',
+      'Báo cáo và tài liệu',
+      'Kỹ năng trình bày/Bảo vệ'
+    ];
   }
 
   private buildRequest(isSubmit: boolean): ScoreCreate {

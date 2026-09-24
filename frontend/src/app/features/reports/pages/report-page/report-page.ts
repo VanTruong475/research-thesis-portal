@@ -89,12 +89,12 @@ export class ReportPageComponent implements OnInit {
     });
   }
 
-  onFileUpload(file: File) {
+  onFileUpload(event: { file: File, type: string }) {
     if (!this.registrationId) return;
     this.errorMessage = '';
     this.isUploading = true; // Bật loading khi bắt đầu gửi request
 
-    this.reportService.uploadReport(this.registrationId, file).subscribe({
+    this.reportService.uploadReport(this.registrationId, event.file, event.type).subscribe({
       next: () => {
         this.isUploading = false; // Tắt loading khi nộp thành công
         this.loadReports(); // Tải lại danh sách lịch sử để thấy version mới

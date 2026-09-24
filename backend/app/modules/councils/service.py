@@ -60,6 +60,7 @@ class CouncilService:
             name=payload.name,
             description=payload.description,
             default_room=payload.default_room,
+            council_type=payload.council_type,
             status=CouncilStatus.DRAFT,
             created_by_id=admin_id,
         )
@@ -309,6 +310,7 @@ class CouncilService:
             name=council.name,
             description=council.description,
             default_room=council.default_room,
+            council_type=council.council_type,
             status=council.status,
             created_at=council.created_at,
             members=[CouncilMemberResponse.model_validate(m) for m in members],

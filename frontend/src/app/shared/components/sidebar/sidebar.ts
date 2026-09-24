@@ -66,6 +66,7 @@ export class SidebarComponent {
     { label: 'Đăng ký của tôi', route: '/app/registrations/my', roles: ['student'] },
     
     // Shared
+    { label: 'Bảng điều khiển', route: '/app/dashboard', roles: ['student', 'lecturer', 'admin'] },
     { label: 'Hồ sơ cá nhân', route: '/app/profile', roles: ['student', 'lecturer', 'admin'] },
   ];
 

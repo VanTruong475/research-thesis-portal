@@ -154,6 +154,13 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
               <input type="text" formControlName="default_room" class="ks-input" placeholder="VD: Phòng A101">
             </div>
             <div>
+              <label class="ks-label">Loại Hội đồng *</label>
+              <select formControlName="council_type" class="ks-input">
+                <option value="defense">Hội đồng bảo vệ Khóa luận</option>
+                <option value="acceptance">Hội đồng nghiệm thu NCKH</option>
+              </select>
+            </div>
+            <div>
               <label class="ks-label">Mô tả thêm</label>
               <textarea formControlName="description" class="ks-input h-20"></textarea>
             </div>
@@ -558,7 +565,8 @@ export class CouncilListPageComponent implements OnInit {
       code: ['', Validators.required],
       name: ['', Validators.required],
       description: [''],
-      default_room: ['']
+      default_room: [''],
+      council_type: ['defense', Validators.required]
     });
 
     this.memberForm = this.fb.group({
@@ -579,7 +587,7 @@ export class CouncilListPageComponent implements OnInit {
   openCreateCouncilDialog() {
     this.errorMessage = '';
     this.dialogErrorMessage = '';
-    this.councilForm.reset();
+    this.councilForm.reset({ council_type: 'defense' });
     this.activeDialog = 'council';
   }
 

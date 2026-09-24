@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+from app.db.enums import ReportType
 
 
 # DTO Trả về thông tin chi tiết một bản ghi nộp báo cáo
@@ -15,6 +16,7 @@ class ReportResponse(BaseModel):
     file_name: str = Field(..., description="Tên gốc của file báo cáo")
     file_path: str = Field(..., description="Đường dẫn lưu file trên máy chủ")
     file_size: int = Field(..., description="Dung lượng file tính theo bytes")
+    report_type: ReportType = Field(ReportType.PROGRESS_REPORT, description="Loại báo cáo/sản phẩm")
     version: int = Field(..., description="Số phiên bản báo cáo (1, 2, 3...)")
     submitted_at: datetime = Field(..., description="Thời điểm nộp file")
     topic_code: str | None = None

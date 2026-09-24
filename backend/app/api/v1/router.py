@@ -10,6 +10,7 @@ from app.modules.registrations.router import router as registrations_router
 from app.modules.reports.router import router as reports_router
 from app.modules.topics.router import router as topics_router
 from app.modules.users.router import router as users_router
+from app.modules.dashboard.router import router as dashboard_router
 
 router = APIRouter()
 
@@ -26,3 +27,4 @@ router.include_router(progress_router, tags=["Progress"])
 # Đăng ký các API Module Nộp file Báo cáo & Lịch sử phiên bản (Reports - FR-16, FR-17, FR-18)
 router.include_router(reports_router, tags=["Reports & Submissions"])
 router.include_router(topics_router)
+router.include_router(dashboard_router)

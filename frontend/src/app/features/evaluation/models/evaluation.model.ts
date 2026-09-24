@@ -34,6 +34,7 @@ export interface ScoreResponse {
   topic_id?: string | null;
   topic_code?: string | null;
   topic_title?: string | null;
+  topic_type?: string | null;
   student_id?: string | null;
   student_full_name?: string | null;
   student_institutional_code?: string | null;

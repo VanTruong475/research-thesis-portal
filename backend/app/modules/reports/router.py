@@ -10,6 +10,7 @@ from app.common.responses import SuccessResponse
 from app.db.enums import UserRole
 from app.db.session import get_db
 from app.modules.auth.dependencies import get_current_user, require_roles
+from app.db.enums import UserRole, ReportType
 from app.modules.reports.schemas import ReportResponse
 from app.modules.reports.service import ReportService
 from app.modules.users.model import User
@@ -32,11 +33,13 @@ async def upload_report_endpoint(
     file: Annotated[UploadFile, File(description="File báo cáo cần upload (tối đa 20MB)")],
     db: Annotated[AsyncSession, Depends(get_db)],
     current_student: Annotated[User, Depends(require_roles(UserRole.STUDENT))],
+    report_type: Annotated[ReportType, Form(description="Loại file nộp")] = ReportType.PROGRESS_REPORT,
 ):
     report_record = await ReportService(db).upload_report(
         registration_id=registration_id,
         current_student=current_student,
         file=file,
+        report_type=report_type,
     )
 
     return SuccessResponse(

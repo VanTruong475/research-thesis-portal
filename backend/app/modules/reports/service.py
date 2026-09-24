@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.exceptions import AppException, NotFoundException
 from app.core.security import utc_now
-from app.db.enums import AcademicPeriodStatus, RegistrationStatus, UserRole
+from app.db.enums import AcademicPeriodStatus, RegistrationStatus, UserRole, ReportType
 from app.modules.registrations.model import Registration
 from app.modules.reports.model import Report
 from app.modules.reports.repository import ReportRepository
@@ -35,6 +35,7 @@ class ReportService:
         registration_id: UUID,
         current_student: User,
         file: UploadFile,
+        report_type: ReportType = ReportType.PROGRESS_REPORT,
     ) -> Report:
         """
         Xử lý nghiệp vụ Nộp file báo cáo / sản phẩm (FR-16, FR-17, FR-18).
@@ -63,6 +64,7 @@ class ReportService:
             file_path=file_path,
             file_size=file_size,
             version=next_version,
+            report_type=report_type,
             submitted_at=utc_now(),
         )
 

@@ -18,10 +18,11 @@ export class ReportService {
   constructor() {}
 
   // Sinh viên upload file báo cáo theo đơn đăng ký (Sử dụng FormData để đính kèm file)
-  uploadReport(registrationId: string, file: File): Observable<ApiResponse<ReportResponse>> {
+  uploadReport(registrationId: string, file: File, reportType: string): Observable<ApiResponse<ReportResponse>> {
     const formData = new FormData();
     formData.append('registration_id', registrationId);
     formData.append('file', file);
+    formData.append('report_type', reportType);
 
     // Ghi chú: HttpClient sẽ tự động cấu hình Content-Type thành multipart/form-data khi gửi FormData
     return this.http.post<ApiResponse<ReportResponse>>(`${this.API_URL}/reports`, formData);

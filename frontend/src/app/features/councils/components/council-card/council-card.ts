@@ -12,7 +12,12 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
       <!-- Header Hội đồng -->
       <div class="flex items-center justify-between mb-4 pb-4 border-b border-border-subtle">
         <div>
-          <h3 class="text-xl font-display font-medium text-heading">{{ council.name }}</h3>
+          <h3 class="text-xl font-display font-medium text-heading">
+            {{ council.name }}
+            <span class="ml-2 text-xs px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded-sm inline-block align-middle">
+              {{ formatCouncilType(council.council_type) }}
+            </span>
+          </h3>
           <p class="text-xs text-muted font-mono mt-1">ID: {{ council.id }}</p>
         </div>
         <app-status-badge [type]="getCouncilStatusBadgeType(council.status)">
@@ -91,6 +96,11 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 })
 export class CouncilCardComponent {
   @Input() council!: Council;
+
+  formatCouncilType(type: string | undefined): string {
+    if (type === 'acceptance') return 'Nghiệm thu NCKH';
+    return 'Bảo vệ Khóa luận';
+  }
 
   formatCouncilStatus(status: CouncilStatus): string {
     const statusMap: Record<CouncilStatus, string> = {
