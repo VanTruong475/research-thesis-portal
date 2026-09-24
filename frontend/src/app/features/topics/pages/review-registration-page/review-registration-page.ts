@@ -14,14 +14,18 @@ type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, StatusBadge],
   template: `
-    <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
-      <div class="flex justify-between items-end mb-6">
+    <div class="p-4 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
         <div>
-          <h1 class="text-3xl font-display font-bold text-heading uppercase tracking-wider">
+          <h1 class="text-2xl md:text-3xl font-display font-bold text-heading uppercase tracking-wider">
             {{ getPageTitle() }}
           </h1>
           <p class="text-muted mt-2">{{ getPageSubtitle() }}</p>
         </div>
+        
+        <button class="ks-button ks-button-secondary w-full md:w-auto" (click)="exportRegistrationsToCsv()">
+          <span class="material-symbols-outlined text-sm mr-2">download</span> Xuất CSV
+        </button>
       </div>
 
       <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
@@ -34,7 +38,7 @@ type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
       <div class="mb-4">
         <input
           type="text"
-          class="ks-input"
+          class="ks-input w-full"
           placeholder="Tìm theo sinh viên, mã sinh viên, đề tài, kỳ học hoặc giảng viên..."
           [(ngModel)]="registrationKeyword"
           (ngModelChange)="onRegistrationKeywordChange()">
@@ -57,8 +61,8 @@ type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
           <span class="text-primary font-medium">Đang tải dữ liệu...</span>
         </div>
 
-        <div class="overflow-y-auto custom-scrollbar">
-          <table class="w-full text-left border-collapse">
+        <div class="overflow-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse min-w-[800px]">
             <thead class="sticky top-0 bg-surface-deep z-10 shadow-sm">
               <tr>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Ngày ĐK</th>
@@ -393,5 +397,43 @@ export class ReviewRegistrationPageComponent implements OnInit {
     if (code === 'REGISTRATION_PERIOD_CLOSED') return 'Hiện không nằm trong thời gian đăng ký đề tài.';
     if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
     return err.error?.message || fallbackMessage;
+  }
+
+  exportRegistrationsToCsv() {
+    const registrations = this.getFilteredRegistrations();
+    if (registrations.length === 0) {
+      alert('Không có dữ liệu đăng ký để xuất!');
+      return;
+    }
+
+    // CSV Header
+    let csvContent = 'Ngày ĐK,Mã SV,Tên SV,Mã Đề Tài,Tên Đề Tài,GVHD,Trạng Thái\n';
+
+    // CSV Rows
+    registrations.forEach(r => {
+      const dateStr = (r.registered_at || r.created_at)?.substring(0, 10) || '';
+      const ms = r.student_institutional_code || r.student_id || '';
+      const ts = this.getStudentLabel(r);
+      const mt = r.topic_code || '';
+      const tt = this.getTopicLabel(r);
+      const gv = r.supervisor_full_name || '';
+      const statusStr = this.formatRegistrationStatus(r.status);
+      
+      csvContent += `"${dateStr}","${ms}","${ts}","${mt}","${tt}","${gv}","${statusStr}"\n`;
+    });
+
+    this.downloadCsv(csvContent, 'DanhSachDangKy.csv');
+  }
+
+  private downloadCsv(csvContent: string, fileName: string) {
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }

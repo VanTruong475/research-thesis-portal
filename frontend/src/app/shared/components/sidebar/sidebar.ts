@@ -2,6 +2,7 @@ import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService, UserRole } from '../../../core/services/auth';
+import { LayoutService } from '../../services/layout.service';
 
 interface MenuItem {
   label: string;
@@ -27,6 +28,7 @@ interface MenuItem {
           <a
             [routerLink]="item.route"
             routerLinkActive="bg-primary/10 text-primary border-primary"
+            (click)="layout.closeSidebar()"
             class="flex items-center px-4 py-2.5 rounded-sm font-sans text-sm text-body hover:text-primary hover:bg-raised-surface transition-colors border border-transparent"
           >
             {{ item.label }}
@@ -48,6 +50,7 @@ interface MenuItem {
 })
 export class SidebarComponent {
   auth = inject(AuthService);
+  layout = inject(LayoutService);
 
   private readonly allMenus: MenuItem[] = [
     // Admin

@@ -2,15 +2,24 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth';
 import { ThemeService } from '../../../core/services/theme.service';
+import { LayoutService } from '../../services/layout.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <header class="h-16 flex items-center justify-between px-6 border-b border-border-subtle bg-surface">
-      <div>
-        <!-- Trống, có thể để Breadcrumb ở đây sau này -->
+    <header class="h-16 flex items-center justify-between px-4 md:px-6 border-b border-border-subtle bg-surface shrink-0">
+      <div class="flex items-center gap-3">
+        <!-- Hamburger Menu Button (Mobile) -->
+        <button 
+          (click)="layout.toggleSidebar()"
+          class="md:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5 rounded-sm hover:bg-surface-raised transition-colors text-muted hover:text-primary">
+          <span class="w-5 h-0.5 bg-current rounded-full transition-all" [ngClass]="layout.isSidebarOpen() ? 'rotate-45 translate-y-2' : ''"></span>
+          <span class="w-5 h-0.5 bg-current rounded-full transition-all" [ngClass]="layout.isSidebarOpen() ? 'opacity-0' : ''"></span>
+          <span class="w-5 h-0.5 bg-current rounded-full transition-all" [ngClass]="layout.isSidebarOpen() ? '-rotate-45 -translate-y-2' : ''"></span>
+        </button>
+        <!-- Breadcrumb / Tiêu đề phụ (nếu có) -->
       </div>
       
       <!-- Thông tin user góc phải -->
@@ -39,4 +48,5 @@ import { ThemeService } from '../../../core/services/theme.service';
 export class HeaderComponent {
   auth = inject(AuthService);
   themeService = inject(ThemeService);
+  layout = inject(LayoutService);
 }

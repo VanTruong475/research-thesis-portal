@@ -9,8 +9,8 @@ import { AuthService } from '../../../../core/services/auth';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen bg-surface flex items-center justify-center p-4">
-      <div class="ks-card w-full max-w-md p-8">
+    <div class="min-h-screen bg-surface flex items-center justify-center p-4 md:p-8">
+      <div class="ks-card w-full max-w-md p-6 md:p-8 shadow-lg md:shadow-xl">
         <div class="text-center mb-8">
           <h1 class="text-3xl font-display font-bold text-primary tracking-widest uppercase mb-2">Thesis Portal</h1>
           <p class="text-muted">Hệ thống Quản lý Đề tài Nghiên cứu</p>

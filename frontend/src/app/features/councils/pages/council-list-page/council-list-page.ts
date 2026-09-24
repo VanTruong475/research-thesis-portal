@@ -24,10 +24,14 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           </h1>
           <p class="text-muted mt-2">Thành lập hội đồng, phân công giảng viên và xếp lịch bảo vệ</p>
         </div>
-        
-        <button class="ks-button ks-button-primary" (click)="openCreateCouncilDialog()">
-          + Thành lập Hội đồng
-        </button>
+        <div class="flex gap-3">
+          <button class="ks-button ks-button-secondary" (click)="exportCouncilsToCsv()">
+            <span class="material-symbols-outlined text-sm mr-2">download</span> Xuất CSV
+          </button>
+          <button class="ks-button ks-button-primary" (click)="openCreateCouncilDialog()">
+            + Thành lập Hội đồng
+          </button>
+        </div>
       </div>
 
       <div *ngIf="errorMessage" class="mb-6 p-4 bg-danger/10 border border-danger/20 text-danger text-sm rounded-sm">
@@ -759,5 +763,37 @@ export class CouncilListPageComponent implements OnInit {
 
   private getErrorMessage(err: any, fallback: string): string {
     return err?.error?.message || err?.error?.error?.message || err?.error?.detail || fallback;
+  }
+
+  exportCouncilsToCsv() {
+    const councils = this.councilService.councils();
+    if (councils.length === 0) {
+      alert('Không có dữ liệu hội đồng để xuất!');
+      return;
+    }
+
+    // CSV Header
+    let csvContent = 'Mã Hội Đồng,Tên Hội Đồng,Loại Hội Đồng,Trạng Thái,Số Thành Viên,Số Lịch Bảo Vệ\n';
+
+    // CSV Rows
+    councils.forEach(c => {
+      const type = c.council_type === 'acceptance' ? 'Nghiệm thu' : 'Bảo vệ';
+      const statusStr = this.formatCouncilStatus(c.status);
+      csvContent += `"${c.code}","${c.name}","${type}","${statusStr}",${c.members.length},${c.schedules.length}\n`;
+    });
+
+    this.downloadCsv(csvContent, 'DanhSachHoiDong.csv');
+  }
+
+  private downloadCsv(csvContent: string, fileName: string) {
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }

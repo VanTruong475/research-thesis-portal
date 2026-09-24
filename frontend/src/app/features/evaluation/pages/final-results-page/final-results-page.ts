@@ -11,28 +11,31 @@ import { FinalResultResponse, FinalResultStatus, ResultClassification } from '..
   standalone: true,
   imports: [CommonModule, RouterModule, StatusBadge],
   template: `
-    <div class="p-8 max-w-4xl mx-auto h-full flex flex-col">
-      <div class="mb-8 flex justify-between items-center">
+    <div class="p-4 md:p-8 max-w-4xl mx-auto h-full flex flex-col">
+      <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <a
             [routerLink]="getBackRoute()"
             class="inline-flex items-center rounded-sm border border-border-subtle px-3 py-1.5 text-sm font-medium text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors mb-4">
             ← {{ getBackLabel() }}
           </a>
-          <h1 class="text-3xl font-display font-bold text-heading uppercase tracking-wider text-left">
+          <h1 class="text-2xl md:text-3xl font-display font-bold text-heading uppercase tracking-wider text-left">
             Kết Quả Tổng Kết
           </h1>
           <p class="text-muted mt-2 text-left">Bảng điểm và đánh giá cuối cùng dành cho Đồ án</p>
         </div>
 
         <!-- Các nút chức năng dành cho Admin -->
-        <div class="flex gap-4" *ngIf="isAdmin">
-          <button class="ks-button ks-button-secondary" (click)="onCalculate()" [disabled]="isProcessing || !registrationId || result()?.status === 'published'">
+        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto" *ngIf="isAdmin">
+          <button class="ks-button ks-button-secondary w-full md:w-auto" (click)="exportResultToCsv()" [disabled]="!result()">
+            <span class="material-symbols-outlined text-sm mr-2">download</span> Xuất CSV
+          </button>
+          <button class="ks-button ks-button-secondary w-full md:w-auto" (click)="onCalculate()" [disabled]="isProcessing || !registrationId || result()?.status === 'published'">
             <span class="material-symbols-outlined text-sm mr-2">calculate</span>
             Tính Điểm
           </button>
           <button
-            class="ks-button ks-button-primary"
+            class="ks-button ks-button-primary w-full md:w-auto"
             (click)="onPublish()"
             [disabled]="isProcessing || !registrationId || (result()?.status === 'published')">
             <span class="material-symbols-outlined text-sm mr-2">campaign</span>
@@ -242,5 +245,33 @@ export class FinalResultsPageComponent implements OnInit {
     if (classification === 'good' || classification === 'fair' || classification === 'average') return 'warning';
     if (classification === 'failed') return 'danger';
     return 'neutral';
+  }
+
+  exportResultToCsv() {
+    const res = this.result();
+    if (!res) return;
+
+    let csvContent = 'Mã SV,Tên SV,Đề Tài,GVHD,Điểm GVHD,Điểm Hội Đồng,Điểm Tổng Kết,Xếp Loại\n';
+    
+    const ms = res.student_institutional_code || '';
+    const ts = res.student_full_name || '';
+    const mt = res.topic_title ? `"${res.topic_title.replace(/"/g, '""')}"` : '';
+    const gv = res.supervisor_full_name || '';
+    const dgv = res.supervisor_score || '';
+    const dhd = res.council_average_score || '';
+    const dt = res.final_score || '';
+    const xl = this.formatClassification(res.classification);
+
+    csvContent += `"${ms}","${ts}",${mt},"${gv}","${dgv}","${dhd}","${dt}","${xl}"\n`;
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `KetQua_${ms || 'SV'}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
