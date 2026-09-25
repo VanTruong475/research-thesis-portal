@@ -41,6 +41,27 @@ class UserRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def list_by_emails_or_codes(
+        self,
+        *,
+        emails: set[str],
+        institutional_codes: set[str],
+    ) -> list[User]:
+        conditions = []
+        if emails:
+            conditions.append(func.lower(User.email).in_(emails))
+        if institutional_codes:
+            conditions.append(
+                func.lower(User.institutional_code).in_(institutional_codes)
+            )
+
+        if not conditions:
+            return []
+
+        stmt = select(User).where(or_(*conditions))
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
+
     async def list_users(self, *, page: int, page_size: int) -> tuple[list[User], int]:
         total_items = await self.db.scalar(select(func.count(User.id)))
         stmt = (
@@ -57,6 +78,11 @@ class UserRepository:
         await self.db.flush()
         await self.db.refresh(user)
         return user
+
+    async def create_users(self, users: list[User]) -> list[User]:
+        self.db.add_all(users)
+        await self.db.flush()
+        return users
 
     async def update_user(self, user: User) -> User:
         await self.db.flush()

@@ -6,13 +6,15 @@ import { Registration, Topic, TopicStatus } from '../../models/topic.model';
 import { TopicService } from '../../services/topic.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { AuthService } from '../../../../core/services/auth';
+import { ActionDialogComponent } from '../../../../shared/components/action-dialog/action-dialog';
 
 type TopicFilterTab = 'pending_approval' | 'approved' | 'closed' | 'all';
+type TopicActionType = 'register' | 'approve' | 'reject';
 
 @Component({
   selector: 'app-topic-list-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusBadge],
+  imports: [CommonModule, FormsModule, StatusBadge, ActionDialogComponent],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-6">
@@ -22,6 +24,10 @@ type TopicFilterTab = 'pending_approval' | 'approved' | 'closed' | 'all';
           </h1>
           <p class="text-muted mt-2">{{ getTopicListSubtitle() }}</p>
         </div>
+
+        <button *ngIf="userRole === 'admin'" class="ks-button ks-button-secondary" (click)="exportTopicsToCsv()">
+          <span class="material-symbols-outlined text-sm mr-2">download</span> Xuất CSV
+        </button>
       </div>
 
       <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
@@ -139,6 +145,20 @@ type TopicFilterTab = 'pending_approval' | 'approved' | 'closed' | 'all';
           Sau ›
         </button>
       </div>
+
+      <app-action-dialog
+        [open]="!!pendingTopicAction"
+        [title]="getTopicActionDialogTitle()"
+        [message]="getTopicActionDialogMessage()"
+        [confirmLabel]="getTopicActionConfirmLabel()"
+        cancelLabel="Hủy"
+        [variant]="getTopicActionVariant()"
+        [textareaLabel]="pendingTopicAction?.type === 'reject' ? 'Lý do từ chối *' : ''"
+        textareaPlaceholder="Nhập lý do từ chối đề tài"
+        [textareaRequired]="pendingTopicAction?.type === 'reject'"
+        (confirmed)="confirmTopicAction($event)"
+        (cancelled)="closeTopicActionDialog()">
+      </app-action-dialog>
     </div>
   `
 })
@@ -153,6 +173,7 @@ export class TopicListPageComponent implements OnInit {
   errorMessage = '';
   isProcessingTopic: string | null = null;
   selectedTopicTab: TopicFilterTab = 'pending_approval';
+  pendingTopicAction: { type: TopicActionType; topicId: string } | null = null;
   topicKeyword = '';
   topicCurrentPage = 1;
   readonly adminTopicPageSize = 4;
@@ -321,27 +342,88 @@ export class TopicListPageComponent implements OnInit {
   }
 
   registerTopic(topicId: string) {
-    if (confirm('Bạn có chắc chắn muốn đăng ký đề tài này?')) {
-      this.isRegistering = true;
-      this.successMessage = '';
-      this.errorMessage = '';
-      this.topicService.createRegistration({ topic_id: topicId }).subscribe({
-        next: () => {
-          this.isRegistering = false;
-          this.successMessage = 'Đăng ký đề tài thành công. Vui lòng chờ Giảng viên duyệt.';
-          this.loadTopics();
-        },
-        error: (err) => {
-          this.isRegistering = false;
-          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi đăng ký đề tài.');
-        }
-      });
-    }
+    this.openTopicActionDialog('register', topicId);
   }
 
   approveTopic(topicId: string) {
-    if (!confirm('Bạn có chắc chắn muốn duyệt đề tài này?')) return;
+    this.openTopicActionDialog('approve', topicId);
+  }
 
+  rejectTopic(topicId: string) {
+    this.openTopicActionDialog('reject', topicId);
+  }
+
+  openTopicActionDialog(type: TopicActionType, topicId: string) {
+    this.pendingTopicAction = { type, topicId };
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  closeTopicActionDialog() {
+    this.pendingTopicAction = null;
+  }
+
+  getTopicActionDialogTitle(): string {
+    if (this.pendingTopicAction?.type === 'register') return 'Xác nhận đăng ký đề tài';
+    if (this.pendingTopicAction?.type === 'approve') return 'Xác nhận duyệt đề tài';
+    if (this.pendingTopicAction?.type === 'reject') return 'Từ chối đề tài';
+    return 'Xác nhận thao tác';
+  }
+
+  getTopicActionDialogMessage(): string {
+    if (this.pendingTopicAction?.type === 'register') return 'Bạn có chắc chắn muốn đăng ký đề tài này?';
+    if (this.pendingTopicAction?.type === 'approve') return 'Bạn có chắc chắn muốn duyệt đề tài này?';
+    if (this.pendingTopicAction?.type === 'reject') return 'Vui lòng nhập lý do từ chối đề tài.';
+    return '';
+  }
+
+  getTopicActionConfirmLabel(): string {
+    if (this.pendingTopicAction?.type === 'register') return 'Đăng ký';
+    if (this.pendingTopicAction?.type === 'approve') return 'Duyệt';
+    if (this.pendingTopicAction?.type === 'reject') return 'Từ chối';
+    return 'Xác nhận';
+  }
+
+  getTopicActionVariant(): 'primary' | 'danger' | 'warning' {
+    if (this.pendingTopicAction?.type === 'reject') return 'danger';
+    if (this.pendingTopicAction?.type === 'approve') return 'warning';
+    return 'primary';
+  }
+
+  confirmTopicAction(reason: string) {
+    if (!this.pendingTopicAction) return;
+
+    const { type, topicId } = this.pendingTopicAction;
+    this.closeTopicActionDialog();
+    if (type === 'register') {
+      this.performRegisterTopic(topicId);
+      return;
+    }
+    if (type === 'approve') {
+      this.performApproveTopic(topicId);
+      return;
+    }
+    this.performRejectTopic(topicId, reason);
+  }
+
+  private performRegisterTopic(topicId: string) {
+    this.isRegistering = true;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.topicService.createRegistration({ topic_id: topicId }).subscribe({
+      next: () => {
+        this.isRegistering = false;
+        this.successMessage = 'Đăng ký đề tài thành công. Vui lòng chờ Giảng viên duyệt.';
+        this.loadTopics();
+      },
+      error: (err) => {
+        this.isRegistering = false;
+        this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi đăng ký đề tài.');
+      }
+    });
+  }
+
+  private performApproveTopic(topicId: string) {
     this.isProcessingTopic = topicId;
     this.successMessage = '';
     this.errorMessage = '';
@@ -358,18 +440,11 @@ export class TopicListPageComponent implements OnInit {
     });
   }
 
-  rejectTopic(topicId: string) {
-    const reason = prompt('Vui lòng nhập lý do từ chối đề tài:');
-    if (reason === null) return;
-    if (!reason.trim()) {
-      this.errorMessage = 'Lý do từ chối không được để trống.';
-      return;
-    }
-
+  private performRejectTopic(topicId: string, reason: string) {
     this.isProcessingTopic = topicId;
     this.successMessage = '';
     this.errorMessage = '';
-    this.topicService.rejectTopic(topicId, { rejection_reason: reason.trim() }).subscribe({
+    this.topicService.rejectTopic(topicId, { rejection_reason: reason }).subscribe({
       next: () => {
         this.isProcessingTopic = null;
         this.successMessage = 'Từ chối đề tài thành công.';
@@ -403,6 +478,46 @@ export class TopicListPageComponent implements OnInit {
 
   getCurrentStudents(topic: Topic): number {
     return topic.current_students ?? topic.currentStudents ?? 0;
+  }
+
+  exportTopicsToCsv() {
+    const topics = this.getFilteredTopics();
+    if (topics.length === 0) {
+      this.errorMessage = 'Không có dữ liệu đề tài để xuất.';
+      return;
+    }
+
+    let csvContent = 'Mã Đề Tài,Tên Đề Tài,Giảng Viên,Sinh Viên,Trạng Thái\n';
+    topics.forEach(topic => {
+      const studentCount = `${this.getCurrentStudents(topic)} / ${topic.max_students}`;
+      const row = [
+        topic.code,
+        topic.title,
+        topic.lecturerName || 'Đang cập nhật',
+        studentCount,
+        this.formatTopicStatus(topic.status)
+      ];
+      csvContent += row.map(value => this.escapeCsvValue(value)).join(',') + '\n';
+    });
+
+    this.downloadCsv(csvContent, 'DanhSachDeTai.csv');
+  }
+
+  private escapeCsvValue(value: string | number): string {
+    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  }
+
+  private downloadCsv(csvContent: string, fileName: string) {
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   private isEffectiveRegistration(registration: Registration): boolean {

@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.responses import create_success_response
@@ -103,6 +103,27 @@ async def create_user_by_admin(
         data=user_data.model_dump(mode="json"),
         message="User created successfully.",
         status_code=status.HTTP_201_CREATED,
+    )
+
+
+@router.post(
+    "/import",
+    status_code=status.HTTP_200_OK,
+    summary="Admin import users from CSV",
+)
+async def import_users_by_admin(
+    file: Annotated[UploadFile, File(description="CSV file containing users to import")],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_admin: Annotated[User, Depends(require_roles(UserRole.ADMIN))],
+):
+    file_content = await file.read()
+    import_result = await UserService(db).import_users_csv(
+        file_content=file_content,
+        filename=file.filename,
+    )
+    return create_success_response(
+        data=import_result.model_dump(mode="json"),
+        message="Users imported successfully.",
     )
 
 

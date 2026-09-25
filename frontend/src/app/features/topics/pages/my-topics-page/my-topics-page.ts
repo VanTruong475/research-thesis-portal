@@ -24,9 +24,14 @@ type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
           <p class="text-muted mt-2">Quản lý các đề tài do bạn hướng dẫn</p>
         </div>
 
-        <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="proposalPeriodMessage">
-          + Thêm Đề Tài Mới
-        </button>
+        <div class="flex flex-wrap justify-end gap-3">
+          <button class="ks-button ks-button-secondary" (click)="exportTopicsToCsv()">
+            <span class="material-symbols-outlined text-sm mr-2">download</span> Xuất CSV
+          </button>
+          <button class="ks-button ks-button-primary" (click)="openDialog()" [disabled]="!activePeriodId" [title]="proposalPeriodMessage">
+            + Thêm Đề Tài Mới
+          </button>
+        </div>
       </div>
 
       <div *ngIf="successMessage" class="mb-4 p-4 bg-success/10 border border-success/20 text-success text-sm rounded-sm">
@@ -382,6 +387,47 @@ export class MyTopicsPageComponent implements OnInit {
 
   getCurrentStudents(topic: Topic): number {
     return topic.current_students ?? topic.currentStudents ?? 0;
+  }
+
+  exportTopicsToCsv() {
+    const topics = this.getFilteredTopics();
+    if (topics.length === 0) {
+      this.errorMessage = 'Không có dữ liệu đề tài để xuất.';
+      return;
+    }
+
+    let csvContent = 'Mã Đề Tài,Tên Đề Tài,Sinh Viên,Trạng Thái,Mô Tả,Yêu Cầu\n';
+    topics.forEach(topic => {
+      const studentCount = `${this.getCurrentStudents(topic)} / ${topic.max_students}`;
+      const row = [
+        topic.code,
+        topic.title,
+        studentCount,
+        this.formatTopicStatus(topic.status),
+        topic.description,
+        topic.requirements || ''
+      ];
+      csvContent += row.map(value => this.escapeCsvValue(value)).join(',') + '\n';
+    });
+
+    this.downloadCsv(csvContent, 'DanhSachDeTaiCuaToi.csv');
+  }
+
+  private escapeCsvValue(value: string | number): string {
+    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  }
+
+  private downloadCsv(csvContent: string, fileName: string) {
+    const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   private matchesTopicFilter(topic: Topic, filter: MyTopicFilterTab): boolean {

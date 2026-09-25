@@ -5,12 +5,13 @@ import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { ActionDialogComponent } from '../../../../shared/components/action-dialog/action-dialog';
 import { Registration, RegistrationStatus } from '../../models/topic.model';
 
 @Component({
   selector: 'app-my-registration-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, StatusBadge],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadge, ActionDialogComponent],
   template: `
     <div class="p-8 max-w-5xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-8">
@@ -123,6 +124,17 @@ import { Registration, RegistrationStatus } from '../../models/topic.model';
           </table>
         </div>
       </div>
+
+      <app-action-dialog
+        [open]="!!pendingCancelRegistrationId"
+        title="Xác nhận hủy đăng ký"
+        message="Bạn có chắc chắn muốn hủy đăng ký đề tài này không? Hành động này không thể hoàn tác."
+        confirmLabel="Hủy đăng ký"
+        cancelLabel="Quay lại"
+        variant="danger"
+        (confirmed)="confirmCancelRegistration()"
+        (cancelled)="closeCancelRegistrationDialog()">
+      </app-action-dialog>
     </div>
   `
 })
@@ -132,6 +144,7 @@ export class MyRegistrationPageComponent implements OnInit {
   
   isLoading = false;
   isCancelling: string | null = null;
+  pendingCancelRegistrationId: string | null = null;
   successMessage = '';
   errorMessage = '';
   registrationKeyword = '';
@@ -228,21 +241,33 @@ export class MyRegistrationPageComponent implements OnInit {
   }
 
   cancelRegistration(registrationId: string) {
-    if (confirm('Bạn có chắc chắn muốn hủy đăng ký đề tài này không? Hành động này không thể hoàn tác.')) {
-      this.isCancelling = registrationId;
-      this.successMessage = '';
-      this.errorMessage = '';
-      this.topicService.cancelRegistration(registrationId).subscribe({
-        next: () => {
-          this.isCancelling = null;
-          this.successMessage = 'Hủy đăng ký thành công.';
-          this.loadRegistrations();
-        },
-        error: (err) => {
-          this.isCancelling = null;
-          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi hủy đăng ký.');
-        }
-      });
-    }
+    this.pendingCancelRegistrationId = registrationId;
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  closeCancelRegistrationDialog() {
+    this.pendingCancelRegistrationId = null;
+  }
+
+  confirmCancelRegistration() {
+    if (!this.pendingCancelRegistrationId) return;
+
+    const registrationId = this.pendingCancelRegistrationId;
+    this.closeCancelRegistrationDialog();
+    this.isCancelling = registrationId;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.topicService.cancelRegistration(registrationId).subscribe({
+      next: () => {
+        this.isCancelling = null;
+        this.successMessage = 'Hủy đăng ký thành công.';
+        this.loadRegistrations();
+      },
+      error: (err) => {
+        this.isCancelling = null;
+        this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi hủy đăng ký.');
+      }
+    });
   }
 }

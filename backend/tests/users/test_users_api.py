@@ -45,6 +45,10 @@ async def auth_headers(client: AsyncClient, user: User, password: str = "StrongP
     return {"Authorization": f"Bearer {access_token}"}
 
 
+def csv_upload(content: str, filename: str = "users.csv") -> dict:
+    return {"file": (filename, content.encode("utf-8"), "text/csv")}
+
+
 @pytest.mark.asyncio
 async def test_users_me_returns_current_user(
     client: AsyncClient,
@@ -310,3 +314,177 @@ async def test_update_user_status_rejects_invalid_status(
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_import_users_requires_authentication(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/users/import",
+        files=csv_upload("institutional_code,email,password,full_name,role,status\n"),
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_non_admin_cannot_import_users(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    student = await create_user(test_session, role=UserRole.STUDENT)
+    headers = await auth_headers(client, student)
+
+    response = await client.post(
+        "/api/v1/users/import",
+        headers=headers,
+        files=csv_upload("institutional_code,email,password,full_name,role,status\n"),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "PERMISSION_DENIED"
+
+
+@pytest.mark.asyncio
+async def test_admin_can_import_student_and_lecturer_users(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    headers = await auth_headers(client, admin)
+    csv_content = (
+        "institutional_code,email,password,full_name,role,status,phone,class_name,department\n"
+        "SV9001,sv9001@example.edu.vn,InitialPassword123!,Sinh Vien 9001,student,active,0901000001,D21CQCN01,\n"
+        "GV9001,gv9001@example.edu.vn,InitialPassword123!,Giang Vien 9001,lecturer,inactive,0901000002,,Khoa CNTT\n"
+    )
+
+    response = await client.post(
+        "/api/v1/users/import",
+        headers=headers,
+        files=csv_upload(csv_content),
+    )
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["created_count"] == 2
+    assert data["skipped_count"] == 0
+    assert data["errors"] == []
+
+    student_result = await test_session.execute(select(User).where(User.email == "sv9001@example.edu.vn"))
+    imported_student = student_result.scalar_one()
+    assert imported_student.role == UserRole.STUDENT
+    assert imported_student.status == UserStatus.ACTIVE
+    assert imported_student.class_name == "D21CQCN01"
+    assert imported_student.department is None
+    assert imported_student.phone == "0901000001"
+    assert imported_student.password_hash != "InitialPassword123!"
+    assert verify_password("InitialPassword123!", imported_student.password_hash) is True
+
+    lecturer_result = await test_session.execute(select(User).where(User.email == "gv9001@example.edu.vn"))
+    imported_lecturer = lecturer_result.scalar_one()
+    assert imported_lecturer.role == UserRole.LECTURER
+    assert imported_lecturer.status == UserStatus.INACTIVE
+    assert imported_lecturer.class_name is None
+    assert imported_lecturer.department == "Khoa CNTT"
+
+
+@pytest.mark.asyncio
+async def test_import_users_rejects_admin_role(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    headers = await auth_headers(client, admin)
+    csv_content = (
+        "institutional_code,email,password,full_name,role,status,phone,class_name,department\n"
+        "AD9001,ad9001@example.edu.vn,InitialPassword123!,Admin 9001,admin,active,0901000003,,Khoa CNTT\n"
+    )
+
+    response = await client.post(
+        "/api/v1/users/import",
+        headers=headers,
+        files=csv_upload(csv_content),
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "USER_IMPORT_VALIDATION_ERROR"
+    assert body["error"]["details"]["errors"][0]["field"] == "role"
+
+
+@pytest.mark.asyncio
+async def test_import_users_rejects_existing_email_or_code(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    existing = await create_user(test_session, role=UserRole.STUDENT)
+    headers = await auth_headers(client, admin)
+    csv_content = (
+        "institutional_code,email,password,full_name,role,status,phone,class_name,department\n"
+        f"{existing.institutional_code},new-user@example.edu.vn,"
+        "InitialPassword123!,Duplicate Code,student,active,,D21CQCN01,\n"
+    )
+
+    response = await client.post(
+        "/api/v1/users/import",
+        headers=headers,
+        files=csv_upload(csv_content),
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "USER_IMPORT_VALIDATION_ERROR"
+    assert body["error"]["details"]["errors"][0]["field"] == "institutional_code"
+
+
+@pytest.mark.asyncio
+async def test_import_users_rejects_duplicate_rows_inside_csv(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    headers = await auth_headers(client, admin)
+    csv_content = (
+        "institutional_code,email,password,full_name,role,status,phone,class_name,department\n"
+        "SV9002,duplicate@example.edu.vn,InitialPassword123!,Sinh Vien 9002,student,active,,D21CQCN01,\n"
+        "SV9003,duplicate@example.edu.vn,InitialPassword123!,Sinh Vien 9003,student,active,,D21CQCN01,\n"
+    )
+
+    response = await client.post(
+        "/api/v1/users/import",
+        headers=headers,
+        files=csv_upload(csv_content),
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "USER_IMPORT_VALIDATION_ERROR"
+    assert body["error"]["details"]["errors"][0]["field"] == "email"
+
+
+@pytest.mark.asyncio
+async def test_import_users_is_atomic_when_one_row_is_invalid(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    headers = await auth_headers(client, admin)
+    csv_content = (
+        "institutional_code,email,password,full_name,role,status,phone,class_name,department\n"
+        "SV9004,sv9004@example.edu.vn,InitialPassword123!,Sinh Vien 9004,student,active,,D21CQCN01,\n"
+        "GV9004,not-an-email,InitialPassword123!,Giang Vien 9004,lecturer,active,,,Khoa CNTT\n"
+    )
+
+    response = await client.post(
+        "/api/v1/users/import",
+        headers=headers,
+        files=csv_upload(csv_content),
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "USER_IMPORT_VALIDATION_ERROR"
+
+    student_result = await test_session.execute(select(User).where(User.email == "sv9004@example.edu.vn"))
+    assert student_result.scalar_one_or_none() is None

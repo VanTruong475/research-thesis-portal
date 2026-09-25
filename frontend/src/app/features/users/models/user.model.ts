@@ -45,3 +45,15 @@ export interface UserListResponse {
   items: UserProfile[];
   pagination: PaginationResponse;
 }
+
+export interface UserImportRowError {
+  row_number: number;
+  field: string;
+  message: string;
+}
+
+export interface UserImportResponse {
+  created_count: number;
+  skipped_count: number;
+  errors: UserImportRowError[];
+}
