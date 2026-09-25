@@ -75,6 +75,18 @@ class UserListResponse(BaseModel):
     pagination: PaginationResponse
 
 
+class UserImportRowError(BaseModel):
+    row_number: int
+    field: str
+    message: str
+
+
+class UserImportResponse(BaseModel):
+    created_count: int
+    skipped_count: int = 0
+    errors: list[UserImportRowError] = Field(default_factory=list)
+
+
 class LecturerWorkloadResponse(BaseModel):
     lecturer_id: UUID = Field(..., description="ID của Giảng viên")
     lecturer_name: str = Field(..., description="Họ và tên Giảng viên")

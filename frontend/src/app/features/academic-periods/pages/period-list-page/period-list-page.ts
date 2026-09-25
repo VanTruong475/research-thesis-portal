@@ -4,11 +4,12 @@ import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validatio
 import { PeriodService } from '../../services/period.service';
 import { AcademicPeriod, AcademicPeriodStatus, CreatePeriodRequest } from '../../models/period.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { ActionDialogComponent } from '../../../../shared/components/action-dialog/action-dialog';
 
 @Component({
   selector: 'app-period-list-page',
   standalone: true,
-  imports: [CommonModule, StatusBadge, DatePipe, ReactiveFormsModule],
+  imports: [CommonModule, StatusBadge, DatePipe, ReactiveFormsModule, ActionDialogComponent],
   template: `
     <div class="p-8 max-w-6xl mx-auto h-full flex flex-col relative">
       <div class="flex justify-between items-end mb-8">
@@ -113,6 +114,17 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
           Sau ›
         </button>
       </div>
+
+      <app-action-dialog
+        [open]="!!pendingStatusChange"
+        title="Xác nhận chuyển trạng thái"
+        [message]="getStatusChangeConfirmMessage()"
+        confirmLabel="Chuyển trạng thái"
+        cancelLabel="Hủy"
+        variant="warning"
+        (confirmed)="confirmStatusChange()"
+        (cancelled)="closeStatusChangeDialog()">
+      </app-action-dialog>
 
       <div *ngIf="isDialogOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-deep/80 backdrop-blur-sm p-4">
         <div class="ks-card w-full max-w-3xl p-6 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -222,6 +234,7 @@ export class PeriodListPageComponent implements OnInit {
   readonly pageSize = 4;
   successMessage = '';
   errorMessage = '';
+  pendingStatusChange: { id: string; status: AcademicPeriodStatus; statusLabel: string } | null = null;
 
   ngOnInit() {
     this.initForm();
@@ -414,9 +427,27 @@ export class PeriodListPageComponent implements OnInit {
   }
 
   changeStatus(id: string, status: AcademicPeriodStatus) {
-    const statusLabel = this.formatStatus(status);
-    if (!confirm(`Bạn có chắc chắn muốn chuyển trạng thái kỳ học sang "${statusLabel}"?`)) return;
+    this.pendingStatusChange = {
+      id,
+      status,
+      statusLabel: this.formatStatus(status)
+    };
+  }
 
+  getStatusChangeConfirmMessage(): string {
+    if (!this.pendingStatusChange) return '';
+    return `Bạn có chắc chắn muốn chuyển trạng thái kỳ học sang "${this.pendingStatusChange.statusLabel}"?`;
+  }
+
+  closeStatusChangeDialog() {
+    this.pendingStatusChange = null;
+  }
+
+  confirmStatusChange() {
+    if (!this.pendingStatusChange) return;
+
+    const { id, status, statusLabel } = this.pendingStatusChange;
+    this.closeStatusChangeDialog();
     this.clearMessages();
     this.periodService.updatePeriodStatus(id, status).subscribe({
       next: () => {

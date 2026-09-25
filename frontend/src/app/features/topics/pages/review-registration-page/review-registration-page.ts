@@ -5,14 +5,16 @@ import { RouterModule } from '@angular/router';
 import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { ActionDialogComponent } from '../../../../shared/components/action-dialog/action-dialog';
 import { Registration, RegistrationStatus } from '../../models/topic.model';
 
 type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
+type RegistrationActionType = 'approve' | 'reject';
 
 @Component({
   selector: 'app-review-registration-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, StatusBadge],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadge, ActionDialogComponent],
   template: `
     <div class="p-4 md:p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
@@ -149,6 +151,20 @@ type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
           Sau ›
         </button>
       </div>
+
+      <app-action-dialog
+        [open]="!!pendingRegistrationAction"
+        [title]="getRegistrationActionDialogTitle()"
+        [message]="getRegistrationActionDialogMessage()"
+        [confirmLabel]="getRegistrationActionConfirmLabel()"
+        cancelLabel="Hủy"
+        [variant]="pendingRegistrationAction?.type === 'reject' ? 'danger' : 'warning'"
+        [textareaLabel]="pendingRegistrationAction?.type === 'reject' ? 'Lý do từ chối *' : ''"
+        textareaPlaceholder="Nhập lý do từ chối đăng ký"
+        [textareaRequired]="pendingRegistrationAction?.type === 'reject'"
+        (confirmed)="confirmRegistrationAction($event)"
+        (cancelled)="closeRegistrationActionDialog()">
+      </app-action-dialog>
     </div>
   `
 })
@@ -161,6 +177,7 @@ export class ReviewRegistrationPageComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
   selectedRegistrationTab: RegistrationTab = 'pending';
+  pendingRegistrationAction: { type: RegistrationActionType; registrationId: string } | null = null;
   registrationKeyword = '';
   registrationCurrentPage = 1;
   readonly registrationPageSize = 8;
@@ -332,46 +349,83 @@ export class ReviewRegistrationPageComponent implements OnInit {
   }
 
   approveRegistration(registrationId: string) {
-    if (confirm('Bạn có chắc chắn muốn duyệt cho sinh viên này thực hiện đề tài?')) {
-      this.isProcessing = registrationId;
-      this.successMessage = '';
-      this.errorMessage = '';
-      this.topicService.approveRegistration(registrationId).subscribe({
-        next: () => {
-          this.isProcessing = null;
-          this.successMessage = 'Duyệt đăng ký thành công.';
-          this.loadRegistrations();
-        },
-        error: (err) => {
-          this.isProcessing = null;
-          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi duyệt đăng ký.');
-        }
-      });
-    }
+    this.openRegistrationActionDialog('approve', registrationId);
   }
 
   rejectRegistration(registrationId: string) {
-    const reason = prompt('Vui lòng nhập lý do từ chối (bắt buộc):');
-    if (reason !== null) {
-      if (!reason.trim()) {
-        this.errorMessage = 'Lý do từ chối không được để trống.';
-        return;
-      }
-      this.isProcessing = registrationId;
-      this.successMessage = '';
-      this.errorMessage = '';
-      this.topicService.rejectRegistration(registrationId, { review_reason: reason.trim() }).subscribe({
-        next: () => {
-          this.isProcessing = null;
-          this.successMessage = 'Từ chối đăng ký thành công.';
-          this.loadRegistrations();
-        },
-        error: (err) => {
-          this.isProcessing = null;
-          this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi từ chối đăng ký.');
-        }
-      });
+    this.openRegistrationActionDialog('reject', registrationId);
+  }
+
+  openRegistrationActionDialog(type: RegistrationActionType, registrationId: string) {
+    this.pendingRegistrationAction = { type, registrationId };
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  closeRegistrationActionDialog() {
+    this.pendingRegistrationAction = null;
+  }
+
+  getRegistrationActionDialogTitle(): string {
+    if (this.pendingRegistrationAction?.type === 'approve') return 'Xác nhận duyệt đăng ký';
+    if (this.pendingRegistrationAction?.type === 'reject') return 'Từ chối đăng ký';
+    return 'Xác nhận thao tác';
+  }
+
+  getRegistrationActionDialogMessage(): string {
+    if (this.pendingRegistrationAction?.type === 'approve') return 'Bạn có chắc chắn muốn duyệt cho sinh viên này thực hiện đề tài?';
+    if (this.pendingRegistrationAction?.type === 'reject') return 'Vui lòng nhập lý do từ chối đăng ký.';
+    return '';
+  }
+
+  getRegistrationActionConfirmLabel(): string {
+    return this.pendingRegistrationAction?.type === 'reject' ? 'Từ chối' : 'Duyệt';
+  }
+
+  confirmRegistrationAction(reason: string) {
+    if (!this.pendingRegistrationAction) return;
+
+    const { type, registrationId } = this.pendingRegistrationAction;
+    this.closeRegistrationActionDialog();
+    if (type === 'approve') {
+      this.performApproveRegistration(registrationId);
+      return;
     }
+    this.performRejectRegistration(registrationId, reason);
+  }
+
+  private performApproveRegistration(registrationId: string) {
+    this.isProcessing = registrationId;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.topicService.approveRegistration(registrationId).subscribe({
+      next: () => {
+        this.isProcessing = null;
+        this.successMessage = 'Duyệt đăng ký thành công.';
+        this.loadRegistrations();
+      },
+      error: (err) => {
+        this.isProcessing = null;
+        this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi duyệt đăng ký.');
+      }
+    });
+  }
+
+  private performRejectRegistration(registrationId: string, reason: string) {
+    this.isProcessing = registrationId;
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.topicService.rejectRegistration(registrationId, { review_reason: reason }).subscribe({
+      next: () => {
+        this.isProcessing = null;
+        this.successMessage = 'Từ chối đăng ký thành công.';
+        this.loadRegistrations();
+      },
+      error: (err) => {
+        this.isProcessing = null;
+        this.errorMessage = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi từ chối đăng ký.');
+      }
+    });
   }
 
   private matchesRegistrationTab(registration: Registration, tab: RegistrationTab): boolean {
@@ -402,7 +456,7 @@ export class ReviewRegistrationPageComponent implements OnInit {
   exportRegistrationsToCsv() {
     const registrations = this.getFilteredRegistrations();
     if (registrations.length === 0) {
-      alert('Không có dữ liệu đăng ký để xuất!');
+      this.errorMessage = 'Không có dữ liệu đăng ký để xuất.';
       return;
     }
 
