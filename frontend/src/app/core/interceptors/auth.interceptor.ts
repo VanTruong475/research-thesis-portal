@@ -1,36 +1,69 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, finalize, Observable, shareReplay, switchMap, throwError } from 'rxjs';
+import { ApiResponse } from '../models/api.model';
+import { AuthService, TokenResponse } from '../services/auth';
+
+let refreshRequest$: Observable<ApiResponse<TokenResponse>> | null = null;
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const router = inject(Router);
-  
-  // Lấy token từ LocalStorage
+  const authService = inject(AuthService);
+  const isRefreshManagedEndpoint = isAuthEndpoint(req.url);
   const token = localStorage.getItem('access_token');
-  
-  let clonedRequest = req;
-  
-  // Nếu có token, đính kèm vào Header
-  if (token) {
-    clonedRequest = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-  }
+  const requestWithToken = token && !isRefreshManagedEndpoint ? addAuthHeader(req, token) : req;
 
-  // Bắt lỗi HTTP 401 (Unauthorized - Token hết hạn hoặc không hợp lệ)
-  return next(clonedRequest).pipe(
+  return next(requestWithToken).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        // Xóa thông tin cũ và đá về trang đăng nhập
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user_data');
-        router.navigate(['/auth/login']);
+      if (error.status !== 401 || isRefreshManagedEndpoint) {
+        return throwError(() => error);
       }
-      return throwError(() => error);
+
+      if (!localStorage.getItem('refresh_token')) {
+        authService.clearLocalSession();
+        return throwError(() => error);
+      }
+
+      if (!refreshRequest$) {
+        refreshRequest$ = authService.refreshSession().pipe(
+          shareReplay(1),
+          finalize(() => {
+            refreshRequest$ = null;
+          })
+        );
+      }
+
+      const currentRefreshRequest$ = refreshRequest$;
+      if (!currentRefreshRequest$) {
+        authService.clearLocalSession();
+        return throwError(() => error);
+      }
+
+      return currentRefreshRequest$.pipe(
+        catchError(refreshError => {
+          authService.clearLocalSession();
+          return throwError(() => refreshError);
+        }),
+        switchMap(() => {
+          const newToken = localStorage.getItem('access_token');
+          if (!newToken) {
+            authService.clearLocalSession();
+            return throwError(() => error);
+          }
+          return next(addAuthHeader(req, newToken));
+        })
+      );
     })
   );
 };
+
+function addAuthHeader(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
+  return req.clone({
+    setHeaders: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
+function isAuthEndpoint(url: string): boolean {
+  return url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout');
+}

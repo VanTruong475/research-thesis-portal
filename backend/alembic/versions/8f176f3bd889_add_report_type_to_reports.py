@@ -23,7 +23,9 @@ def upgrade() -> None:
     op.create_check_constraint(op.f('ck_defense_schedules_defense_schedule_presentation_order_positive'), 'defense_schedules', 'presentation_order IS NULL OR presentation_order >= 1')
     op.drop_constraint(op.f('ck_registrations_supervisor_required_when_approved_or_i_ba70'), 'registrations', type_='check')
     op.create_check_constraint(op.f('ck_registrations_supervisor_required_when_approved_or_in_progress'), 'registrations', "status NOT IN ('approved', 'in_progress') OR supervisor_id IS NOT NULL")
-    op.add_column('reports', sa.Column('report_type', sa.String(length=50), nullable=False))
+    op.add_column('reports', sa.Column('report_type', sa.String(length=50), nullable=True))
+    op.execute("UPDATE reports SET report_type = 'progress_report' WHERE report_type IS NULL")
+    op.alter_column('reports', 'report_type', nullable=False)
     # ### end Alembic commands ###
 
 

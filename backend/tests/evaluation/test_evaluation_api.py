@@ -16,6 +16,7 @@ from app.db.enums import (
     FinalResultStatus,
     RegistrationStatus,
     TopicStatus,
+    TopicType,
     UserRole,
     UserStatus,
 )
@@ -109,6 +110,7 @@ async def create_topic(
         title="Artificial Intelligence Thesis",
         description="Research on applied artificial intelligence.",
         requirements="Python basics.",
+        topic_type=TopicType.GRADUATION_THESIS,
         max_students=2,
         proposed_by_id=lecturer_id,
         approved_by_id=admin_id if status in {TopicStatus.APPROVED, TopicStatus.CLOSED} else None,
