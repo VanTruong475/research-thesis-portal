@@ -224,14 +224,24 @@ async def get_dashboard_member_b_stats(
         
     elif current_user.role == UserRole.LECTURER:
         # Số tiến độ chưa nhận xét (do sinh viên hướng dẫn gửi)
-        # Giả định tiến độ cần nhận xét là progress chưa có comment
         res = await db.execute(
-            select(func.count(ProgressLog.id)).where(ProgressLog.comments.is_(None))
+            select(func.count(ProgressLog.id))
+            .join(Registration, ProgressLog.registration_id == Registration.id)
+            .where(
+                Registration.supervisor_id == current_user.id,
+                ProgressLog.comments.is_(None)
+            )
         )
         stats["pending_progress"] = res.scalar_one()
         
-        # Số báo cáo nộp
-        res = await db.execute(select(func.count(Report.id)))
+        # Số báo cáo nộp của sinh viên mình hướng dẫn
+        res = await db.execute(
+            select(func.count(Report.id))
+            .join(Registration, Report.registration_id == Registration.id)
+            .where(
+                Registration.supervisor_id == current_user.id
+            )
+        )
         stats["new_reports"] = res.scalar_one()
         
         # Số hội đồng được phân công
@@ -242,7 +252,19 @@ async def get_dashboard_member_b_stats(
         )
         stats["assigned_councils"] = res.scalar_one()
         
-        stats["upcoming_schedules"] = 0
+        # Lịch bảo vệ/nghiệm thu sắp tới
+        now = utc_now()
+        res = await db.execute(
+            select(func.count(DefenseSchedule.id))
+            .join(Council, DefenseSchedule.council_id == Council.id)
+            .join(CouncilMember, Council.id == CouncilMember.council_id)
+            .where(
+                CouncilMember.lecturer_id == current_user.id,
+                DefenseSchedule.status == "scheduled",
+                DefenseSchedule.scheduled_at >= now
+            )
+        )
+        stats["upcoming_schedules"] = res.scalar_one()
         
     elif current_user.role == UserRole.STUDENT:
         # Số báo cáo đã nộp
@@ -251,8 +273,47 @@ async def get_dashboard_member_b_stats(
         )
         stats["submitted_reports"] = res.scalar_one()
         
+        # Lấy thông tin Registration của sinh viên
+        reg_res = await db.execute(
+            select(Registration).where(
+                Registration.student_id == current_user.id,
+                Registration.status.in_([RegistrationStatus.APPROVED, RegistrationStatus.IN_PROGRESS, RegistrationStatus.COMPLETED])
+            ).order_by(Registration.created_at.desc()).limit(1)
+        )
+        active_reg = reg_res.scalar_one_or_none()
+
         stats["next_deadline"] = "Chưa có"
         stats["defense_schedule"] = "Chưa có"
         stats["final_result"] = "Chưa công bố"
+
+        if active_reg:
+            # Deadline: có thể lấy từ in_progress_end_at hoặc report_deadline của kỳ học. Lấy từ AcademicPeriod
+            period_res = await db.execute(
+                select(AcademicPeriod)
+                .join(Topic, AcademicPeriod.id == Topic.academic_period_id)
+                .where(Topic.id == active_reg.topic_id)
+            )
+            period = period_res.scalar_one_or_none()
+            if period and period.in_progress_end_at:
+                stats["next_deadline"] = period.in_progress_end_at.strftime("%d/%m/%Y")
+
+            # Lịch bảo vệ
+            schedule_res = await db.execute(
+                select(DefenseSchedule).where(DefenseSchedule.registration_id == active_reg.id).order_by(DefenseSchedule.created_at.desc()).limit(1)
+            )
+            schedule = schedule_res.scalar_one_or_none()
+            if schedule and schedule.scheduled_at:
+                stats["defense_schedule"] = schedule.scheduled_at.strftime("%d/%m/%Y %H:%M")
+
+            # Kết quả cuối
+            result_res = await db.execute(
+                select(FinalResult).where(
+                    FinalResult.registration_id == active_reg.id,
+                    FinalResult.status == FinalResultStatus.PUBLISHED
+                )
+            )
+            final_res = result_res.scalar_one_or_none()
+            if final_res:
+                stats["final_result"] = final_res.total_score if final_res.total_score is not None else "Đã có"
 
     return create_success_response(data=stats, message="Lấy thống kê thành công")

@@ -67,8 +67,37 @@ import { RouterModule } from '@angular/router';
           </div>
         </ng-container>
 
+        <!-- Các card bổ sung cho Admin (Phase 3) -->
+        <ng-container *ngIf="auth.currentUser()?.role === 'admin'">
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Số hội đồng đã lập</p>
+              <h2 class="text-4xl font-display font-bold text-primary mt-2">{{ stats.councils_count || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Số lịch bảo vệ</p>
+              <h2 class="text-4xl font-display font-bold text-secondary mt-2">{{ stats.schedules_count || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Kết quả đã tính</p>
+              <h2 class="text-4xl font-display font-bold text-success mt-2">{{ stats.calculated_results || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Kết quả đã công bố</p>
+              <h2 class="text-4xl font-display font-bold text-info mt-2">{{ stats.published_results || 0 }}</h2>
+            </div>
+          </div>
+        </ng-container>
+
         <!-- Dành cho Giảng viên -->
         <ng-container *ngIf="auth.currentUser()?.role === 'lecturer'">
+          <!-- Member A -->
           <div class="ks-card p-6 flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-muted uppercase">Đề tài của tôi</p>
@@ -99,10 +128,36 @@ import { RouterModule } from '@angular/router';
               <h2 class="text-4xl font-display font-bold text-secondary mt-2">{{ stats.supervising_registrations_count || 0 }}</h2>
             </div>
           </div>
+          <!-- Member B -->
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Tiến độ chờ nhận xét</p>
+              <h2 class="text-4xl font-display font-bold text-warning mt-2">{{ stats.pending_progress || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Báo cáo mới nộp</p>
+              <h2 class="text-4xl font-display font-bold text-primary mt-2">{{ stats.new_reports || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Hội đồng phân công</p>
+              <h2 class="text-4xl font-display font-bold text-info mt-2">{{ stats.assigned_councils || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Lịch bảo vệ sắp tới</p>
+              <h2 class="text-4xl font-display font-bold text-success mt-2">{{ stats.upcoming_schedules || 0 }}</h2>
+            </div>
+          </div>
         </ng-container>
 
         <!-- Dành cho Sinh viên -->
         <ng-container *ngIf="auth.currentUser()?.role === 'student'">
+          <!-- Member A -->
           <div class="ks-card p-6 flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-muted uppercase">Đề tài có thể đăng ký</p>
@@ -127,6 +182,31 @@ import { RouterModule } from '@angular/router';
               <h2 class="text-4xl font-display font-bold text-success mt-2">{{ stats.active_registrations_count || 0 }}</h2>
             </div>
           </div>
+          <!-- Member B -->
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Số báo cáo đã nộp</p>
+              <h2 class="text-4xl font-display font-bold text-primary mt-2">{{ stats.submitted_reports || 0 }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Deadline kết thúc</p>
+              <h2 class="text-xl font-mono font-bold text-warning mt-3 truncate">{{ stats.next_deadline || 'Chưa có' }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Lịch bảo vệ</p>
+              <h2 class="text-xl font-mono font-bold text-info mt-3 truncate">{{ stats.defense_schedule || 'Chưa có' }}</h2>
+            </div>
+          </div>
+          <div class="ks-card p-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted uppercase">Kết quả tổng kết</p>
+              <h2 class="text-2xl font-display font-bold text-success mt-3 truncate">{{ stats.final_result || 'Chưa công bố' }}</h2>
+            </div>
+          </div>
         </ng-container>
 
       </div>
@@ -147,12 +227,29 @@ export class DashboardPageComponent implements OnInit {
 
   loadStats() {
     this.isLoading = true;
+    this.stats = {};
+    
+    // Load Member A stats
     this.dashboardService.getMemberAStats().subscribe({
       next: (res) => {
-        this.isLoading = false;
         if (res.data) {
-          this.stats = res.data;
+          this.stats = { ...this.stats, ...res.data };
         }
+        
+        // Then Load Member B stats
+        this.dashboardService.getMemberBStats().subscribe({
+          next: (resB) => {
+            if (resB.data) {
+              this.stats = { ...this.stats, ...resB.data };
+            }
+            this.isLoading = false;
+          },
+          error: (err) => {
+            this.isLoading = false;
+            this.errorMessage = 'Không thể tải toàn bộ thống kê lúc này.';
+          }
+        });
+
       },
       error: (err) => {
         this.isLoading = false;
