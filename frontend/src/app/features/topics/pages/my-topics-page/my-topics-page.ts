@@ -6,7 +6,7 @@ import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { PeriodService } from '../../../academic-periods/services/period.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
-import { Topic, TopicCreateRequest, TopicStatus } from '../../models/topic.model';
+import { Topic, TopicCreateRequest, TopicStatus, TopicType } from '../../models/topic.model';
 
 type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
 
@@ -74,6 +74,7 @@ type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
               <tr>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Mã số</th>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Tên đề tài</th>
+                <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Loại đề tài</th>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Sinh viên</th>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle">Trạng thái</th>
                 <th class="p-4 font-sans font-medium text-muted text-sm border-b border-border-subtle text-right">Thao tác</th>
@@ -83,6 +84,7 @@ type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
               <tr *ngFor="let topic of getFilteredTopics()" class="hover:bg-surface-raised transition-colors">
                 <td class="p-4 font-mono text-sm">{{ topic.code }}</td>
                 <td class="p-4 font-sans font-medium text-body max-w-md truncate">{{ topic.title }}</td>
+                <td class="p-4 text-sm text-body">{{ formatTopicType(topic.topic_type) }}</td>
                 <td class="p-4 text-sm font-medium">
                   <span [class.text-danger]="getCurrentStudents(topic) >= topic.max_students" class="text-primary">
                     {{ getCurrentStudents(topic) }} / {{ topic.max_students }} sinh viên
@@ -95,13 +97,14 @@ type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
                   </app-status-badge>
                 </td>
                 <td class="p-4 text-right">
+                  <a [routerLink]="['/app/topics', topic.id]" class="text-muted hover:text-primary transition-colors text-sm underline mr-3">Chi tiết</a>
                   <button class="text-muted hover:text-primary transition-colors text-sm underline mr-3" (click)="openDialog(topic)">Sửa</button>
                   <a routerLink="/app/registrations/review" class="text-muted hover:text-primary transition-colors text-sm underline" title="Xem đăng ký của sinh viên">Xem đăng ký</a>
                 </td>
               </tr>
               
               <tr *ngIf="getFilteredTopics().length === 0 && !isLoading">
-                <td colspan="5" class="p-8 text-center text-muted italic">
+                <td colspan="6" class="p-8 text-center text-muted italic">
                   {{ getEmptyTopicMessage() }}
                 </td>
               </tr>
@@ -134,6 +137,14 @@ type MyTopicFilterTab = 'all' | 'pending_approval' | 'approved' | 'closed';
             <div>
               <label class="ks-label">Tên Đề Tài *</label>
               <input type="text" formControlName="title" class="ks-input" placeholder="Nhập tên đề tài nghiên cứu">
+            </div>
+
+            <div>
+              <label class="ks-label">Loại Đề Tài *</label>
+              <select formControlName="topic_type" class="ks-input">
+                <option value="graduation_thesis">Khóa luận tốt nghiệp</option>
+                <option value="scientific_research">Nghiên cứu khoa học</option>
+              </select>
             </div>
 
             <div>
@@ -233,6 +244,7 @@ export class MyTopicsPageComponent implements OnInit {
       title: ['', Validators.required],
       description: ['', Validators.required],
       requirements: [''],
+      topic_type: ['graduation_thesis', Validators.required],
       max_students: [1, [Validators.required, Validators.min(1)]]
     });
   }
@@ -256,12 +268,13 @@ export class MyTopicsPageComponent implements OnInit {
         title: topic.title,
         description: topic.description,
         requirements: topic.requirements,
+        topic_type: topic.topic_type,
         max_students: topic.max_students
       });
     } else {
       this.editingTopicId = null;
       this.editingTopicPeriodId = null;
-      this.topicForm.reset({ max_students: 1 });
+      this.topicForm.reset({ topic_type: 'graduation_thesis', max_students: 1 });
     }
   }
 
@@ -294,6 +307,7 @@ export class MyTopicsPageComponent implements OnInit {
       title: formValue.title,
       description: formValue.description,
       requirements: formValue.requirements || undefined,
+      topic_type: formValue.topic_type,
       max_students: formValue.max_students
     };
 
@@ -355,6 +369,7 @@ export class MyTopicsPageComponent implements OnInit {
         topic.title,
         topic.description,
         topic.requirements,
+        this.formatTopicType(topic.topic_type),
         this.formatTopicStatus(topic.status)
       ].join(' '));
       return matchesFilter && (!keyword || searchableText.includes(keyword));
@@ -364,6 +379,14 @@ export class MyTopicsPageComponent implements OnInit {
   getEmptyTopicMessage(): string {
     if (this.topicService.topics().length === 0) return 'Bạn chưa đăng ký hướng dẫn đề tài nào.';
     return 'Không tìm thấy đề tài phù hợp với bộ lọc hiện tại.';
+  }
+
+  formatTopicType(topicType: TopicType): string {
+    const typeMap: Record<TopicType, string> = {
+      graduation_thesis: 'Khóa luận tốt nghiệp',
+      scientific_research: 'Nghiên cứu khoa học'
+    };
+    return typeMap[topicType] || topicType;
   }
 
   formatTopicStatus(status: TopicStatus): string {
@@ -396,12 +419,13 @@ export class MyTopicsPageComponent implements OnInit {
       return;
     }
 
-    let csvContent = 'Mã Đề Tài,Tên Đề Tài,Sinh Viên,Trạng Thái,Mô Tả,Yêu Cầu\n';
+    let csvContent = 'Mã Đề Tài,Tên Đề Tài,Loại Đề Tài,Sinh Viên,Trạng Thái,Mô Tả,Yêu Cầu\n';
     topics.forEach(topic => {
       const studentCount = `${this.getCurrentStudents(topic)} / ${topic.max_students}`;
       const row = [
         topic.code,
         topic.title,
+        this.formatTopicType(topic.topic_type),
         studentCount,
         this.formatTopicStatus(topic.status),
         topic.description,

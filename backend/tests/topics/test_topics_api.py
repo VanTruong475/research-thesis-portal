@@ -2,14 +2,12 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.security import hash_password, utc_now
 from app.db.enums import (
     AcademicPeriodStatus,
     RegistrationStatus,
     TopicStatus,
+    TopicType,
     UserRole,
     UserStatus,
 )
@@ -17,6 +15,8 @@ from app.modules.academic_periods.model import AcademicPeriod
 from app.modules.registrations.model import Registration
 from app.modules.topics.model import Topic
 from app.modules.users.model import User
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def topic_payload(period_id, code: str | None = None) -> dict:
@@ -27,6 +27,7 @@ def topic_payload(period_id, code: str | None = None) -> dict:
         "title": "Artificial Intelligence Thesis",
         "description": "Research on applied artificial intelligence.",
         "requirements": "Python and machine learning basics.",
+        "topic_type": "graduation_thesis",
         "max_students": 2,
     }
 
@@ -113,6 +114,7 @@ async def create_topic(
     code: str | None = None,
     title: str = "Artificial Intelligence Thesis",
     status: TopicStatus = TopicStatus.PENDING_APPROVAL,
+    topic_type: TopicType = TopicType.GRADUATION_THESIS,
     max_students: int = 2,
 ) -> Topic:
     suffix = uuid4().hex[:8]
@@ -122,6 +124,7 @@ async def create_topic(
         title=title,
         description="Research on applied artificial intelligence.",
         requirements="Python and machine learning basics.",
+        topic_type=topic_type,
         max_students=max_students,
         proposed_by_id=lecturer_id,
         approved_by_id=admin_id if status in {TopicStatus.APPROVED, TopicStatus.CLOSED} else None,
@@ -183,9 +186,65 @@ async def test_lecturer_can_create_topic_during_proposal_window(
     assert body["success"] is True
     assert body["message"] == "Topic created successfully."
     assert body["data"]["code"] == payload["code"]
+    assert body["data"]["topic_type"] == "graduation_thesis"
     assert body["data"]["status"] == "pending_approval"
     assert body["data"]["proposed_by_id"] == str(lecturer.id)
     assert body["data"]["approved_by_id"] is None
+
+
+
+@pytest.mark.asyncio
+async def test_lecturer_can_create_scientific_research_topic(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    period = await create_period(test_session, admin_id=admin.id)
+    headers = await auth_headers(client, lecturer)
+    payload = topic_payload(period.id)
+    payload["topic_type"] = "scientific_research"
+
+    response = await client.post("/api/v1/topics", headers=headers, json=payload)
+
+    assert response.status_code == 201
+    assert response.json()["data"]["topic_type"] == "scientific_research"
+
+
+@pytest.mark.asyncio
+async def test_create_topic_requires_topic_type(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    period = await create_period(test_session, admin_id=admin.id)
+    headers = await auth_headers(client, lecturer)
+    payload = topic_payload(period.id)
+    payload.pop("topic_type")
+
+    response = await client.post("/api/v1/topics", headers=headers, json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_create_topic_rejects_invalid_topic_type(
+    client: AsyncClient,
+    test_session: AsyncSession,
+):
+    admin = await create_user(test_session, role=UserRole.ADMIN)
+    lecturer = await create_user(test_session, role=UserRole.LECTURER)
+    period = await create_period(test_session, admin_id=admin.id)
+    headers = await auth_headers(client, lecturer)
+    payload = topic_payload(period.id)
+    payload["topic_type"] = "research"
+
+    response = await client.post("/api/v1/topics", headers=headers, json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 @pytest.mark.asyncio
@@ -462,12 +521,14 @@ async def test_lecturer_can_update_own_pending_topic(
     headers = await auth_headers(client, lecturer)
     payload = topic_payload(period.id, code="UPDATED")
     payload["title"] = "Updated Topic Title"
+    payload["topic_type"] = "scientific_research"
 
     response = await client.put(f"/api/v1/topics/{topic.id}", headers=headers, json=payload)
 
     assert response.status_code == 200
     assert response.json()["data"]["code"] == "UPDATED"
     assert response.json()["data"]["title"] == "Updated Topic Title"
+    assert response.json()["data"]["topic_type"] == "scientific_research"
 
 
 @pytest.mark.asyncio

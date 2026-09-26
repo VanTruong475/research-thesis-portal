@@ -2,14 +2,12 @@ from datetime import timedelta
 from uuid import uuid4
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.security import hash_password, utc_now
 from app.db.enums import (
     AcademicPeriodStatus,
     RegistrationStatus,
     TopicStatus,
+    TopicType,
     UserRole,
     UserStatus,
 )
@@ -17,6 +15,8 @@ from app.modules.academic_periods.model import AcademicPeriod
 from app.modules.registrations.model import Registration
 from app.modules.topics.model import Topic
 from app.modules.users.model import User
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def create_user(
@@ -104,6 +104,7 @@ async def create_topic(
         title="Artificial Intelligence Thesis",
         description="Research on applied artificial intelligence.",
         requirements="Python basics.",
+        topic_type=TopicType.GRADUATION_THESIS,
         max_students=max_students,
         proposed_by_id=lecturer_id,
         approved_by_id=admin_id if status in {TopicStatus.APPROVED, TopicStatus.CLOSED} else None,

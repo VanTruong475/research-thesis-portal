@@ -1,8 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap, catchError, map } from 'rxjs/operators';
-import { of, Observable } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { of, Observable, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.model';
 
@@ -75,9 +75,8 @@ export class AuthService {
   }
 
   private handleAuthentication(data: LoginResponse) {
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('refresh_token', data.refresh_token);
-    
+    this.storeTokens(data);
+
     // Map UserResponse sang Frontend User interface
     const user: User = {
       id: data.user.id,
@@ -85,9 +84,35 @@ export class AuthService {
       role: data.user.role,
       email: data.user.email
     };
-    
+
     localStorage.setItem('user_data', JSON.stringify(user));
     this.currentUser.set(user);
+  }
+
+  private storeTokens(data: TokenResponse) {
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('refresh_token', data.refresh_token);
+  }
+
+  refreshSession(): Observable<ApiResponse<TokenResponse>> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      this.clearLocalSession();
+      return throwError(() => new Error('Missing refresh token'));
+    }
+
+    return this.http.post<ApiResponse<TokenResponse>>(`${this.API_URL}/auth/refresh`, { refresh_token: refreshToken }).pipe(
+      tap(res => {
+        if (res.data) {
+          this.storeTokens(res.data);
+        }
+      })
+    );
+  }
+
+  clearLocalSession() {
+    this.clearAuthData();
+    this.router.navigate(['/auth/login']);
   }
 
   logout(): Observable<any> {

@@ -1,8 +1,9 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { Registration, Topic, TopicStatus } from '../../models/topic.model';
+import { Registration, Topic, TopicStatus, TopicType } from '../../models/topic.model';
 import { TopicService } from '../../services/topic.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { AuthService } from '../../../../core/services/auth';
@@ -14,7 +15,7 @@ type TopicActionType = 'register' | 'approve' | 'reject';
 @Component({
   selector: 'app-topic-list-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusBadge, ActionDialogComponent],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadge, ActionDialogComponent],
   template: `
     <div class="p-8 max-w-7xl mx-auto h-full flex flex-col">
       <div class="flex justify-between items-end mb-6">
@@ -74,6 +75,12 @@ type TopicActionType = 'register' | 'approve' | 'reject';
 
           <p class="text-body text-sm mb-6 flex-1 line-clamp-3">{{ topic.description }}</p>
 
+          <div class="mb-4">
+            <span class="inline-flex items-center rounded-sm border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+              {{ formatTopicType(topic.topic_type) }}
+            </span>
+          </div>
+
           <div class="space-y-3 bg-surface-deep p-4 rounded-sm border border-border-subtle mb-6">
             <div class="flex justify-between text-sm">
               <span class="text-muted">Giảng viên hướng dẫn:</span>
@@ -84,6 +91,10 @@ type TopicActionType = 'register' | 'approve' | 'reject';
               <span class="font-medium text-body">{{ getCurrentStudents(topic) }} / {{ topic.max_students }}</span>
             </div>
           </div>
+
+          <a [routerLink]="['/app/topics', topic.id]" class="ks-button ks-button-secondary w-full mb-3 text-center">
+            Xem chi tiết
+          </a>
 
           <div *ngIf="userRole === 'student'" class="space-y-2">
             <div
@@ -256,6 +267,7 @@ export class TopicListPageComponent implements OnInit {
         topic.description,
         topic.requirements,
         topic.lecturerName,
+        this.formatTopicType(topic.topic_type),
         this.formatTopicStatus(topic.status)
       ].join(' '));
       return matchesTab && (!keyword || searchableText.includes(keyword));
@@ -457,6 +469,14 @@ export class TopicListPageComponent implements OnInit {
     });
   }
 
+  formatTopicType(topicType: TopicType): string {
+    const typeMap: Record<TopicType, string> = {
+      graduation_thesis: 'Khóa luận tốt nghiệp',
+      scientific_research: 'Nghiên cứu khoa học'
+    };
+    return typeMap[topicType] || topicType;
+  }
+
   formatTopicStatus(status: TopicStatus): string {
     const statusMap: Record<TopicStatus, string> = {
       pending_approval: 'Chờ duyệt',
@@ -487,12 +507,13 @@ export class TopicListPageComponent implements OnInit {
       return;
     }
 
-    let csvContent = 'Mã Đề Tài,Tên Đề Tài,Giảng Viên,Sinh Viên,Trạng Thái\n';
+    let csvContent = 'Mã Đề Tài,Tên Đề Tài,Loại Đề Tài,Giảng Viên,Sinh Viên,Trạng Thái\n';
     topics.forEach(topic => {
       const studentCount = `${this.getCurrentStudents(topic)} / ${topic.max_students}`;
       const row = [
         topic.code,
         topic.title,
+        this.formatTopicType(topic.topic_type),
         topic.lecturerName || 'Đang cập nhật',
         studentCount,
         this.formatTopicStatus(topic.status)

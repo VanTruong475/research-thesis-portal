@@ -6,7 +6,9 @@ import { TopicService } from '../../services/topic.service';
 import { AuthService } from '../../../../core/services/auth';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { ActionDialogComponent } from '../../../../shared/components/action-dialog/action-dialog';
-import { Registration, RegistrationStatus } from '../../models/topic.model';
+import { UserService } from '../../../users/services/user.service';
+import { UserProfile } from '../../../users/models/user.model';
+import { LecturerWorkload, Registration, RegistrationStatus } from '../../models/topic.model';
 
 type RegistrationTab = 'pending' | 'active' | 'closed' | 'all';
 type RegistrationActionType = 'approve' | 'reject';
@@ -110,7 +112,15 @@ type RegistrationActionType = 'approve' | 'reject';
                     </button>
                   </div>
 
-                  <div *ngIf="reg.status === 'approved' || reg.status === 'in_progress'" class="flex justify-end gap-3">
+                  <div *ngIf="reg.status === 'approved' || reg.status === 'in_progress'" class="flex justify-end gap-3 flex-wrap">
+                    <button
+                      *ngIf="isAdmin"
+                      type="button"
+                      [disabled]="isProcessing === reg.id"
+                      (click)="openSupervisorDialog(reg)"
+                      class="text-sm font-medium text-primary hover:underline disabled:opacity-50">
+                      Phân công GVHD
+                    </button>
                     <a [routerLink]="['/app/registrations', reg.id, 'progress']" class="text-sm font-medium text-primary hover:underline" title="Theo dõi tiến độ">Tiến độ</a>
                     <a [routerLink]="['/app/registrations', reg.id, 'reports']" class="text-sm font-medium text-primary hover:underline" title="Xem báo cáo sinh viên đã nộp">Báo cáo</a>
                     <a [routerLink]="['/app/registrations', reg.id, 'evaluation']" class="text-sm font-medium text-primary hover:underline" title="Chấm điểm">Chấm điểm</a>
@@ -152,6 +162,76 @@ type RegistrationActionType = 'approve' | 'reject';
         </button>
       </div>
 
+      <div *ngIf="supervisorDialogRegistration as currentRegistration" class="fixed inset-0 z-50 flex items-center justify-center bg-surface-deep/80 backdrop-blur-sm p-4">
+        <div class="ks-card w-full max-w-xl p-6 relative">
+          <h2 class="text-2xl font-display font-bold text-heading mb-3">Phân công giảng viên hướng dẫn</h2>
+          <p class="text-body text-sm leading-6 mb-5">
+            Chọn giảng viên hướng dẫn chính cho đăng ký của sinh viên
+            <span class="font-medium text-primary">{{ getStudentLabel(currentRegistration) }}</span>.
+          </p>
+
+          <div class="space-y-4">
+            <div class="rounded-sm border border-border-subtle bg-surface-deep p-4 text-sm">
+              <div class="flex justify-between gap-4">
+                <span class="text-muted">Đề tài:</span>
+                <span class="font-medium text-heading text-right">{{ getTopicLabel(currentRegistration) }}</span>
+              </div>
+              <div class="flex justify-between gap-4 mt-2">
+                <span class="text-muted">GVHD hiện tại:</span>
+                <span class="font-medium text-body text-right">{{ getSupervisorLabel(currentRegistration) }}</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="ks-label">Giảng viên hướng dẫn mới *</label>
+              <select class="ks-input" [(ngModel)]="selectedSupervisorId" (ngModelChange)="onSupervisorSelected($event)">
+                <option value="">-- Chọn giảng viên --</option>
+                <option *ngFor="let lecturer of lecturers" [value]="lecturer.id">
+                  {{ lecturer.institutional_code }} - {{ lecturer.full_name }} ({{ lecturer.email }})
+                </option>
+              </select>
+              <p *ngIf="isLoadingLecturers" class="text-xs text-muted mt-2">Đang tải danh sách giảng viên...</p>
+              <p *ngIf="!isLoadingLecturers && lecturers.length === 0" class="text-xs text-danger mt-2">Không có giảng viên đang hoạt động để phân công.</p>
+            </div>
+
+            <div *ngIf="isLoadingWorkload" class="rounded-sm border border-primary/20 bg-primary/5 p-4 text-sm text-primary">
+              Đang tải tải hướng dẫn của giảng viên...
+            </div>
+
+            <div *ngIf="selectedWorkload" class="rounded-sm border border-primary/20 bg-primary/5 p-4 text-sm">
+              <div class="font-medium text-heading mb-2">Tải hướng dẫn hiện tại</div>
+              <div class="flex justify-between gap-4">
+                <span class="text-muted">Giảng viên:</span>
+                <span class="font-medium text-body text-right">{{ selectedWorkload.lecturer_name }}</span>
+              </div>
+              <div class="flex justify-between gap-4 mt-2">
+                <span class="text-muted">Email:</span>
+                <span class="font-medium text-body text-right">{{ selectedWorkload.email }}</span>
+              </div>
+              <div class="flex justify-between gap-4 mt-2">
+                <span class="text-muted">Số đăng ký đang hướng dẫn:</span>
+                <span class="font-medium text-primary text-right">{{ selectedWorkload.current_assigned_count }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="supervisorDialogError" class="rounded-sm border border-danger/20 bg-danger/10 p-3 text-sm text-danger">
+              {{ supervisorDialogError }}
+            </div>
+          </div>
+
+          <div class="pt-5 mt-5 border-t border-border-subtle flex justify-end gap-3">
+            <button type="button" class="ks-button ks-button-secondary" (click)="closeSupervisorDialog()">Hủy</button>
+            <button
+              type="button"
+              class="ks-button ks-button-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              [disabled]="!selectedSupervisorId || isAssigningSupervisor || isLoadingWorkload"
+              (click)="assignSupervisor()">
+              {{ isAssigningSupervisor ? 'Đang phân công...' : 'Phân công' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <app-action-dialog
         [open]="!!pendingRegistrationAction"
         [title]="getRegistrationActionDialogTitle()"
@@ -171,6 +251,7 @@ type RegistrationActionType = 'approve' | 'reject';
 export class ReviewRegistrationPageComponent implements OnInit {
   topicService = inject(TopicService);
   authService = inject(AuthService);
+  userService = inject(UserService);
 
   isLoading = false;
   isProcessing: string | null = null;
@@ -181,6 +262,14 @@ export class ReviewRegistrationPageComponent implements OnInit {
   registrationKeyword = '';
   registrationCurrentPage = 1;
   readonly registrationPageSize = 8;
+  lecturers: UserProfile[] = [];
+  supervisorDialogRegistration: Registration | null = null;
+  selectedSupervisorId = '';
+  selectedWorkload: LecturerWorkload | null = null;
+  supervisorDialogError = '';
+  isLoadingLecturers = false;
+  isLoadingWorkload = false;
+  isAssigningSupervisor = false;
 
   ngOnInit() {
     this.loadRegistrations();
@@ -348,6 +437,82 @@ export class ReviewRegistrationPageComponent implements OnInit {
     return registration.supervisor_institutional_code ? `${registration.supervisor_institutional_code} - ${name}` : name;
   }
 
+  openSupervisorDialog(registration: Registration) {
+    this.supervisorDialogRegistration = registration;
+    this.selectedSupervisorId = registration.supervisor_id || '';
+    this.selectedWorkload = null;
+    this.supervisorDialogError = '';
+    this.successMessage = '';
+    this.errorMessage = '';
+    this.loadLecturersForAssignment();
+    if (this.selectedSupervisorId) {
+      this.onSupervisorSelected(this.selectedSupervisorId);
+    }
+  }
+
+  closeSupervisorDialog() {
+    this.supervisorDialogRegistration = null;
+    this.selectedSupervisorId = '';
+    this.selectedWorkload = null;
+    this.supervisorDialogError = '';
+    this.isLoadingWorkload = false;
+    this.isAssigningSupervisor = false;
+  }
+
+  loadLecturersForAssignment() {
+    if (this.lecturers.length > 0) return;
+
+    this.isLoadingLecturers = true;
+    this.userService.fetchUsers(1, 100).subscribe({
+      next: (res) => {
+        this.isLoadingLecturers = false;
+        this.lecturers = (res.data?.items || []).filter(user => user.role === 'lecturer' && user.status === 'active');
+      },
+      error: (err) => {
+        this.isLoadingLecturers = false;
+        this.supervisorDialogError = this.getRegistrationActionErrorMessage(err, 'Không thể tải danh sách giảng viên.');
+      }
+    });
+  }
+
+  onSupervisorSelected(lecturerId: string) {
+    this.selectedWorkload = null;
+    this.supervisorDialogError = '';
+    if (!lecturerId) return;
+
+    this.isLoadingWorkload = true;
+    this.topicService.getLecturerWorkload(lecturerId).subscribe({
+      next: (res) => {
+        this.isLoadingWorkload = false;
+        this.selectedWorkload = res.data;
+      },
+      error: (err) => {
+        this.isLoadingWorkload = false;
+        this.supervisorDialogError = this.getRegistrationActionErrorMessage(err, 'Không thể tải tải hướng dẫn của giảng viên.');
+      }
+    });
+  }
+
+  assignSupervisor() {
+    if (!this.supervisorDialogRegistration || !this.selectedSupervisorId) return;
+
+    const registrationId = this.supervisorDialogRegistration.id;
+    this.isAssigningSupervisor = true;
+    this.supervisorDialogError = '';
+    this.topicService.assignSupervisor(registrationId, { supervisor_id: this.selectedSupervisorId }).subscribe({
+      next: () => {
+        this.isAssigningSupervisor = false;
+        this.closeSupervisorDialog();
+        this.successMessage = 'Phân công giảng viên hướng dẫn thành công.';
+        this.loadRegistrations();
+      },
+      error: (err) => {
+        this.isAssigningSupervisor = false;
+        this.supervisorDialogError = this.getRegistrationActionErrorMessage(err, 'Có lỗi xảy ra khi phân công giảng viên hướng dẫn.');
+      }
+    });
+  }
+
   approveRegistration(registrationId: string) {
     this.openRegistrationActionDialog('approve', registrationId);
   }
@@ -449,6 +614,8 @@ export class ReviewRegistrationPageComponent implements OnInit {
     if (code === 'REGISTRATION_ALREADY_EFFECTIVE') return 'Sinh viên đã có đăng ký hiệu lực trong kỳ học này.';
     if (code === 'REGISTRATION_TOPIC_FULL' || code === 'TOPIC_FULL') return 'Đề tài đã đủ số lượng sinh viên.';
     if (code === 'REGISTRATION_PERIOD_CLOSED') return 'Hiện không nằm trong thời gian đăng ký đề tài.';
+    if (code === 'SUPERVISOR_NOT_FOUND') return 'Không tìm thấy giảng viên hướng dẫn hợp lệ.';
+    if (code === 'SUPERVISOR_ASSIGNMENT_NOT_ALLOWED') return 'Trạng thái đăng ký hoặc giảng viên hiện tại không cho phép phân công.';
     if (err.status === 422 || code === 'VALIDATION_ERROR') return 'Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại.';
     return err.error?.message || fallbackMessage;
   }

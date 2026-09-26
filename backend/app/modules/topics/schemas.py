@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.db.enums import TopicStatus
+from app.db.enums import TopicStatus, TopicType
 
 
 class TopicBase(BaseModel):
@@ -15,6 +15,7 @@ class TopicBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
     requirements: str | None = None
+    topic_type: TopicType
     max_students: int = Field(default=1, ge=1)
 
 
@@ -61,6 +62,7 @@ class TopicResponse(BaseModel):
     title: str
     description: str
     requirements: str | None = None
+    topic_type: TopicType
     max_students: int
     current_students: int = 0
     proposed_by_id: UUID

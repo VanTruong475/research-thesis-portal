@@ -1,5 +1,6 @@
 // Keep `completed` for backend compatibility only. Thesis execution completion belongs to Registration.
 export type TopicStatus = 'pending_approval' | 'approved' | 'rejected' | 'closed' | 'cancelled' | 'completed';
+export type TopicType = 'graduation_thesis' | 'scientific_research';
 
 // Keep `in_progress` for backend compatibility only. Execution is Registration approved + AcademicPeriod in_progress.
 export type RegistrationStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'in_progress' | 'completed';
@@ -11,6 +12,7 @@ export interface Topic {
   title: string;
   description: string;
   requirements?: string;
+  topic_type: TopicType;
   max_students: number;
   current_students?: number;
   proposed_by_id: string;
@@ -78,6 +80,7 @@ export interface TopicCreateRequest {
   title: string;
   description: string;
   requirements?: string;
+  topic_type: TopicType;
   max_students?: number;
 }
 
@@ -96,5 +99,13 @@ export interface TopicRejectRequest {
   rejection_reason: string;
 }
 
+export interface AssignSupervisorRequest {
+  supervisor_id: string;
+}
 
-
+export interface LecturerWorkload {
+  lecturer_id: string;
+  lecturer_name: string;
+  email: string;
+  current_assigned_count: number;
+}

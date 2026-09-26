@@ -27,6 +27,11 @@ class AcademicPeriodStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class TopicType(StrEnum):
+    GRADUATION_THESIS = "graduation_thesis"
+    SCIENTIFIC_RESEARCH = "scientific_research"
+
+
 class TopicStatus(StrEnum):
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"

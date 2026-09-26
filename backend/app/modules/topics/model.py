@@ -18,7 +18,7 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
-from app.db.enums import TopicStatus, enum_values
+from app.db.enums import TopicStatus, TopicType, enum_values
 
 if TYPE_CHECKING:
     from app.modules.academic_periods.model import AcademicPeriod
@@ -52,6 +52,17 @@ class Topic(BaseModel):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
+    topic_type: Mapped[TopicType] = mapped_column(
+        SQLEnum(
+            TopicType,
+            name="topic_type",
+            values_callable=enum_values,
+            validate_strings=True,
+        ),
+        default=TopicType.GRADUATION_THESIS,
+        server_default=TopicType.GRADUATION_THESIS.value,
+        nullable=False,
+    )
     max_students: Mapped[int] = mapped_column(
         SmallInteger, default=1, server_default="1", nullable=False
     )

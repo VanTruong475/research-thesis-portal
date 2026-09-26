@@ -77,6 +77,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/topics/pages/my-topics-page/my-topics-page').then(m => m.MyTopicsPageComponent)
       },
       {
+        path: 'topics/:topicId',
+        canActivate: [roleGuard],
+        data: { roles: ['student', 'lecturer', 'admin'] },
+        loadComponent: () => import('./features/topics/pages/topic-detail-page/topic-detail-page').then(m => m.TopicDetailPageComponent)
+      },
+      {
         path: 'registrations/review',
         canActivate: [roleGuard],
         data: { roles: ['lecturer', 'admin'] },

@@ -10,6 +10,7 @@ from app.db.enums import (
     AcademicPeriodStatus,
     RegistrationStatus,
     TopicStatus,
+    TopicType,
     UserRole,
     UserStatus,
 )
@@ -96,6 +97,7 @@ async def create_topic(
         title="Artificial Intelligence Thesis",
         description="Research on applied artificial intelligence.",
         requirements="Python basics.",
+        topic_type=TopicType.GRADUATION_THESIS,
         max_students=max_students,
         proposed_by_id=lecturer_id,
         approved_by_id=(
