@@ -15,50 +15,30 @@ flowchart LR
     Admin["Admin"]
 
     subgraph System["Research Thesis Portal"]
-        UC_Login(["Đăng nhập / đăng xuất"])
-        UC_Profile(["Quản lý hồ sơ cá nhân"])
-        UC_ViewTopics(["Xem danh sách đề tài"])
-        UC_RegisterTopic(["Đăng ký đề tài"])
-        UC_ProposeTopic(["Đề xuất đề tài"])
-        UC_ReviewTopic(["Duyệt / từ chối đề tài"])
-        UC_ReviewRegistration(["Duyệt / từ chối đăng ký"])
-        UC_AssignSupervisor(["Phân công GVHD"])
-        UC_Progress(["Cập nhật và nhận xét tiến độ"])
-        UC_Report(["Nộp và xem báo cáo"])
-        UC_Council(["Quản lý hội đồng và lịch bảo vệ"])
-        UC_Score(["Chấm điểm"])
-        UC_Result(["Tính và công bố kết quả"])
-        UC_Users(["Quản lý người dùng"])
-        UC_Periods(["Quản lý đợt học thuật"])
-        UC_Dashboard(["Xem dashboard thống kê"])
+        UC_Auth(["Xác thực và hồ sơ"])
+        UC_TopicRegistration(["Đề tài và đăng ký"])
+        UC_Execution(["Theo dõi tiến độ và báo cáo"])
+        UC_CouncilEvaluation(["Hội đồng, chấm điểm và kết quả"])
+        UC_AdminManagement(["Quản trị hệ thống"])
+        UC_Dashboard(["Dashboard thống kê"])
     end
 
-    Student --> UC_Login
-    Student --> UC_Profile
-    Student --> UC_ViewTopics
-    Student --> UC_RegisterTopic
-    Student --> UC_Progress
-    Student --> UC_Report
-    Student --> UC_Result
+    Student --> UC_Auth
+    Student --> UC_TopicRegistration
+    Student --> UC_Execution
+    Student --> UC_CouncilEvaluation
     Student --> UC_Dashboard
 
-    Lecturer --> UC_Login
-    Lecturer --> UC_Profile
-    Lecturer --> UC_ProposeTopic
-    Lecturer --> UC_ReviewRegistration
-    Lecturer --> UC_Progress
-    Lecturer --> UC_Report
-    Lecturer --> UC_Score
+    Lecturer --> UC_Auth
+    Lecturer --> UC_TopicRegistration
+    Lecturer --> UC_Execution
+    Lecturer --> UC_CouncilEvaluation
     Lecturer --> UC_Dashboard
 
-    Admin --> UC_Login
-    Admin --> UC_Profile
-    Admin --> UC_ReviewTopic
-    Admin --> UC_AssignSupervisor
-    Admin --> UC_Council
-    Admin --> UC_Result
-    Admin --> UC_Users
-    Admin --> UC_Periods
+    Admin --> UC_Auth
+    Admin --> UC_TopicRegistration
+    Admin --> UC_CouncilEvaluation
+    Admin --> UC_AdminManagement
     Admin --> UC_Dashboard
 ```
 
