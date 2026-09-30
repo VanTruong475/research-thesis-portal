@@ -10,44 +10,75 @@ File này tổng hợp các sơ đồ Mermaid dùng cho báo cáo và GitHub Mar
 
 ```mermaid
 flowchart LR
-    subgraph ActorsLeft["Tác nhân chính"]
-        Student["Sinh viên"]
-        Lecturer["Giảng viên"]
-    end
+    Admin["Admin"]
+    Lecturer["Giảng viên"]
 
     subgraph System["Research Thesis Portal"]
-        UC_Auth(["Xác thực và hồ sơ"])
-        UC_AdminBase(["Quản trị người dùng và đợt học thuật"])
-        UC_Topic(["Quản lý đề tài"])
-        UC_Registration(["Đăng ký đề tài và phân công GVHD"])
-        UC_ProgressReport(["Theo dõi tiến độ và báo cáo"])
-        UC_Council(["Hội đồng và lịch bảo vệ"])
-        UC_Result(["Chấm điểm và công bố kết quả"])
-        UC_Dashboard(["Dashboard thống kê"])
+        Auth(["Đăng nhập / đăng xuất"])
+        Profile(["Quản lý hồ sơ cá nhân"])
+
+        ManageUsers(["Quản lý người dùng"])
+        ImportUsers(["Import người dùng"])
+        ManagePeriods(["Quản lý đợt học thuật"])
+        Dashboard(["Xem dashboard thống kê"])
+
+        ManageTopics(["Quản lý đề tài"])
+        ProposeTopic(["Đề xuất đề tài"])
+        ReviewTopic(["Duyệt / từ chối đề tài"])
+        SearchTopic(["Tìm kiếm / xem đề tài"])
+
+        RegisterTopic(["Đăng ký đề tài"])
+        ReviewRegistration(["Duyệt / từ chối đăng ký"])
+        AssignSupervisor(["Phân công GVHD"])
+
+        TrackProgress(["Theo dõi tiến độ"])
+        SubmitProgress(["Nộp tiến độ"])
+        CommentProgress(["Nhận xét tiến độ"])
+        ManageReport(["Nộp / xem báo cáo"])
+
+        ManageCouncil(["Quản lý hội đồng"])
+        ScheduleDefense(["Xếp lịch bảo vệ"])
+        InputScore(["Nhập điểm đánh giá"])
+        PublishResult(["Tính và công bố kết quả"])
     end
 
-    Admin["Admin"]
+    Student["Sinh viên"]
 
-    Student --> UC_Auth
-    Student --> UC_Registration
-    Student --> UC_ProgressReport
-    Student --> UC_Result
-    Student --> UC_Dashboard
+    Admin --> Auth
+    Admin --> ManageUsers
+    Admin --> ManagePeriods
+    Admin --> ReviewTopic
+    Admin --> AssignSupervisor
+    Admin --> ManageCouncil
+    Admin --> PublishResult
+    Admin --> Dashboard
 
-    Lecturer --> UC_Auth
-    Lecturer --> UC_Topic
-    Lecturer --> UC_Registration
-    Lecturer --> UC_ProgressReport
-    Lecturer --> UC_Result
-    Lecturer --> UC_Dashboard
+    Lecturer --> Auth
+    Lecturer --> Profile
+    Lecturer --> ProposeTopic
+    Lecturer --> ReviewRegistration
+    Lecturer --> CommentProgress
+    Lecturer --> ManageReport
+    Lecturer --> InputScore
+    Lecturer --> Dashboard
 
-    Admin --> UC_Auth
-    Admin --> UC_AdminBase
-    Admin --> UC_Topic
-    Admin --> UC_Registration
-    Admin --> UC_Council
-    Admin --> UC_Result
-    Admin --> UC_Dashboard
+    Student --> Auth
+    Student --> Profile
+    Student --> SearchTopic
+    Student --> RegisterTopic
+    Student --> SubmitProgress
+    Student --> ManageReport
+    Student --> PublishResult
+    Student --> Dashboard
+
+    ManageUsers -. "<<extend>>" .-> ImportUsers
+    ManageTopics -. "<<extend>>" .-> ProposeTopic
+    ManageTopics -. "<<extend>>" .-> ReviewTopic
+    RegisterTopic -. "<<extend>>" .-> SearchTopic
+    TrackProgress -. "<<extend>>" .-> SubmitProgress
+    TrackProgress -. "<<extend>>" .-> CommentProgress
+    ManageCouncil -. "<<extend>>" .-> ScheduleDefense
+    PublishResult -. "<<extend>>" .-> InputScore
 ```
 
 ---
