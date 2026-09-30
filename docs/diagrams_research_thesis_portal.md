@@ -1,27 +1,27 @@
-# Research Thesis Portal Diagrams
+# Sơ đồ hệ thống Research Thesis Portal
 
-This file documents the current implemented project structure using Mermaid diagrams. GitHub renders Mermaid diagrams automatically in Markdown files.
+File này mô tả cấu trúc dự án hiện tại bằng Mermaid diagrams. Khi push lên GitHub, các khối Mermaid sẽ được GitHub render thành sơ đồ.
 
-> Scope: these diagrams follow the current repository implementation, not only the full future design in the planning documents.
+> Phạm vi: các sơ đồ bám sát code hiện tại trong repository, không vẽ theo toàn bộ thiết kế tương lai nếu chưa có module/UI rõ ràng trong dự án.
 
 ---
 
-## 1. Current System Architecture
+## 1. Kiến trúc hệ thống hiện tại
 
 ```mermaid
 flowchart TB
-    Browser[Web Browser] --> Angular[Angular Frontend]
+    Browser["Trình duyệt web"] --> Angular["Angular Frontend"]
 
-    subgraph Frontend[Current Angular App]
-        AuthUI[Auth]
-        DashboardUI[Dashboard]
-        UsersUI[Users]
-        PeriodsUI[Academic Periods]
-        TopicsUI[Topics and Registrations]
-        ProgressUI[Progress]
-        ReportsUI[Reports]
-        CouncilsUI[Councils]
-        EvaluationUI[Evaluation and Final Results]
+    subgraph Frontend["Ứng dụng Angular hiện tại"]
+        AuthUI["Đăng nhập"]
+        DashboardUI["Dashboard"]
+        UsersUI["Quản lý người dùng"]
+        PeriodsUI["Đợt học thuật"]
+        TopicsUI["Đề tài và đăng ký"]
+        ProgressUI["Tiến độ"]
+        ReportsUI["Báo cáo"]
+        CouncilsUI["Hội đồng"]
+        EvaluationUI["Chấm điểm và kết quả"]
     end
 
     Angular --> AuthUI
@@ -34,20 +34,20 @@ flowchart TB
     Angular --> CouncilsUI
     Angular --> EvaluationUI
 
-    Angular -->|REST JSON and multipart upload| API[FastAPI API v1]
+    Angular -->|"REST JSON và upload file"| API["FastAPI API v1"]
 
-    subgraph Backend[Current FastAPI Backend]
-        ApiRouter[app.api.v1.router]
-        AuthModule[auth]
-        UsersModule[users]
-        PeriodsModule[academic_periods]
-        TopicsModule[topics]
-        RegistrationsModule[registrations and lecturer workload]
-        ProgressModule[progress]
-        ReportsModule[reports]
-        CouncilsModule[councils]
-        EvaluationModule[evaluation]
-        DashboardModule[dashboard]
+    subgraph Backend["FastAPI Backend hiện tại"]
+        ApiRouter["app.api.v1.router"]
+        AuthModule["auth"]
+        UsersModule["users"]
+        PeriodsModule["academic_periods"]
+        TopicsModule["topics"]
+        RegistrationsModule["registrations và lecturer workload"]
+        ProgressModule["progress"]
+        ReportsModule["reports"]
+        CouncilsModule["councils"]
+        EvaluationModule["evaluation"]
+        DashboardModule["dashboard"]
     end
 
     API --> ApiRouter
@@ -62,10 +62,10 @@ flowchart TB
     ApiRouter --> EvaluationModule
     ApiRouter --> DashboardModule
 
-    subgraph Storage[Current Storage]
-        PostgreSQL[(PostgreSQL)]
-        Uploads[(Report files on filesystem)]
-        Alembic[Alembic migrations]
+    subgraph Storage["Lưu trữ hiện tại"]
+        PostgreSQL[("PostgreSQL")]
+        Uploads[("File báo cáo trên filesystem")]
+        Alembic["Alembic migrations"]
     end
 
     AuthModule --> PostgreSQL
@@ -84,81 +84,81 @@ flowchart TB
 
 ---
 
-## 2. Current Frontend Routes
+## 2. Các route frontend hiện tại
 
 ```mermaid
 flowchart TD
-    Root[/ /] --> Login[/auth/login/]
-    AnyUnknown[Unknown route] --> Login
+    Root["/"] --> Login["/auth/login"]
+    AnyUnknown["Route không tồn tại"] --> Login
 
-    Login --> App[/app/]
-    App --> Dashboard[/app/dashboard/]
-    App --> Profile[/app/profile/]
+    Login --> App["/app"]
+    App --> Dashboard["/app/dashboard"]
+    App --> Profile["/app/profile"]
 
-    App --> Users[/app/users/]
-    App --> NewUser[/app/users/new/]
-    App --> Periods[/app/academic-periods/]
+    App --> Users["/app/users"]
+    App --> NewUser["/app/users/new"]
+    App --> Periods["/app/academic-periods"]
 
-    App --> Topics[/app/topics/]
-    App --> MyTopics[/app/topics/my-topics/]
-    App --> TopicDetail[/app/topics/:topicId/]
+    App --> Topics["/app/topics"]
+    App --> MyTopics["/app/topics/my-topics"]
+    App --> TopicDetail["/app/topics/:topicId"]
 
-    App --> ReviewRegistrations[/app/registrations/review/]
-    App --> MyRegistration[/app/registrations/my/]
-    App --> Progress[/app/registrations/:registrationId/progress/]
-    App --> Reports[/app/registrations/:registrationId/reports/]
-    App --> Evaluation[/app/registrations/:registrationId/evaluation/]
-    App --> FinalResults[/app/registrations/:registrationId/final-results/]
+    App --> ReviewRegistrations["/app/registrations/review"]
+    App --> MyRegistration["/app/registrations/my"]
+    App --> Progress["/app/registrations/:registrationId/progress"]
+    App --> Reports["/app/registrations/:registrationId/reports"]
+    App --> Evaluation["/app/registrations/:registrationId/evaluation"]
+    App --> FinalResults["/app/registrations/:registrationId/final-results"]
 
-    App --> Councils[/app/councils/]
+    App --> Councils["/app/councils"]
 
-    Users -. admin .-> NewUser
-    Periods -. admin .-> Periods
-    Topics -. student or admin .-> TopicDetail
-    MyTopics -. lecturer .-> TopicDetail
-    ReviewRegistrations -. lecturer or admin .-> ReviewRegistrations
-    Councils -. admin or lecturer .-> Councils
+    Users -. "Admin" .-> NewUser
+    Periods -. "Admin" .-> Periods
+    Topics -. "Sinh viên hoặc Admin" .-> TopicDetail
+    MyTopics -. "Giảng viên" .-> TopicDetail
+    ReviewRegistrations -. "Giảng viên hoặc Admin" .-> ReviewRegistrations
+    Councils -. "Admin hoặc Giảng viên" .-> Councils
 ```
 
 ---
 
-## 3. Current API Module Map
+## 3. Bản đồ module API hiện tại
 
 ```mermaid
 flowchart LR
-    Client[Angular Frontend] --> API[/api/v1/]
+    Client["Angular Frontend"] --> API["/api/v1"]
 
-    API --> Auth[/auth login refresh logout me/]
-    API --> Users[/users and users import/]
-    API --> Periods[/academic-periods/]
-    API --> Topics[/topics/]
-    API --> Registrations[/registrations/]
-    API --> Lecturers[/lecturers id workload/]
-    API --> Progress[/progress and registration progress/]
-    API --> Reports[/reports upload list download/]
-    API --> Councils[/councils members schedules period/]
-    API --> Scores[/scores/]
-    API --> Results[/registrations id final-result/]
-    API --> Dashboard[/dashboard stats member-a member-b/]
+    API --> Auth["/auth: login, refresh, logout, me"]
+    API --> Users["/users: hồ sơ, danh sách, import"]
+    API --> Periods["/academic-periods"]
+    API --> Topics["/topics"]
+    API --> Registrations["/registrations"]
+    API --> Lecturers["/lecturers/:id/workload"]
+    API --> Progress["/progress và tiến độ theo đăng ký"]
+    API --> Reports["/reports: upload, danh sách, download"]
+    API --> Councils["/councils: hội đồng, thành viên, lịch"]
+    API --> Scores["/scores"]
+    API --> Results["/registrations/:id/final-result"]
+    API --> Dashboard["/dashboard/stats/member-a và member-b"]
 
-    Auth --> AuthDB[(users refresh_tokens)]
-    Users --> UsersDB[(users)]
-    Periods --> PeriodsDB[(academic_periods)]
-    Topics --> TopicsDB[(topics registrations)]
-    Registrations --> RegistrationsDB[(registrations topics users)]
+    Auth --> AuthDB[("users, refresh_tokens")]
+    Users --> UsersDB[("users")]
+    Periods --> PeriodsDB[("academic_periods")]
+    Topics --> TopicsDB[("topics, registrations")]
+    Registrations --> RegistrationsDB[("registrations, topics, users")]
     Lecturers --> RegistrationsDB
-    Progress --> ProgressDB[(milestones progress_logs)]
-    Reports --> ReportsDB[(reports)]
-    Reports --> Files[(uploaded report files)]
-    Councils --> CouncilsDB[(councils council_members defense_schedules)]
-    Scores --> EvalDB[(scores final_results)]
+    Progress --> ProgressDB[("milestones, progress_logs")]
+    Reports --> ReportsDB[("reports")]
+    Reports --> Files[("file báo cáo đã upload")]
+    Councils --> CouncilsDB[("councils, council_members, defense_schedules")]
+    Scores --> EvalDB[("scores, final_results")]
     Results --> EvalDB
-    Dashboard --> DashboardDB[(current module tables)]
+    Dashboard --> DashboardDB[("các bảng module hiện tại")]
 ```
 
 ---
 
-## 4. Current Implemented ERD
+## 4. ERD triển khai hiện tại
 
 ```mermaid
 erDiagram
@@ -373,171 +373,171 @@ erDiagram
 
 ---
 
-## 5. Current Topic and Registration Flow
+## 5. Luồng đề tài, đăng ký và phân công giảng viên hướng dẫn
 
 ```mermaid
 sequenceDiagram
-    actor Lecturer
-    actor Admin
-    actor Student
+    actor Lecturer as Giảng viên
+    actor Admin as Admin
+    actor Student as Sinh viên
     participant Web as Angular UI
     participant API as FastAPI
     participant DB as PostgreSQL
 
-    Lecturer->>Web: Open My Topics
+    Lecturer->>Web: Mở trang đề tài của tôi
     Web->>API: POST /api/v1/topics
-    API->>DB: Create topic with topic_type
-    DB-->>API: pending_approval topic
-    API-->>Web: Topic created
+    API->>DB: Tạo đề tài kèm topic_type
+    DB-->>API: Đề tài ở trạng thái pending_approval
+    API-->>Web: Trả về đề tài vừa tạo
 
-    Admin->>Web: Review topics
-    Web->>API: PUT /api/v1/topics/{topic_id}/approve
-    API->>DB: Set topic approved
-    API-->>Web: Topic approved
+    Admin->>Web: Duyệt đề tài
+    Web->>API: PUT /api/v1/topics/:topic_id/approve
+    API->>DB: Cập nhật trạng thái approved
+    API-->>Web: Đề tài đã được duyệt
 
-    Student->>Web: View topic list or topic detail
+    Student->>Web: Xem danh sách hoặc chi tiết đề tài
     Web->>API: GET /api/v1/topics
-    Web->>API: GET /api/v1/topics/{topic_id}
-    API-->>Web: Approved topic data
+    Web->>API: GET /api/v1/topics/:topic_id
+    API-->>Web: Trả về dữ liệu đề tài đã duyệt
 
-    Student->>Web: Register topic
+    Student->>Web: Đăng ký đề tài
     Web->>API: POST /api/v1/registrations
-    API->>DB: Create pending registration
-    API-->>Web: Registration created
+    API->>DB: Tạo đăng ký pending
+    API-->>Web: Trả về đăng ký vừa tạo
 
-    Lecturer->>Web: Review registration
-    Web->>API: PUT /api/v1/registrations/{registration_id}/approve
-    API->>DB: Check topic capacity and effective registrations
-    API->>DB: Set default supervisor to proposing lecturer
-    API-->>Web: Registration approved
+    Lecturer->>Web: Duyệt đăng ký
+    Web->>API: PUT /api/v1/registrations/:registration_id/approve
+    API->>DB: Kiểm tra sức chứa đề tài và đăng ký hiệu lực
+    API->>DB: Gán giảng viên đề xuất làm GVHD mặc định
+    API-->>Web: Đăng ký đã được duyệt
 
-    Admin->>Web: Optional supervisor reassignment
-    Web->>API: GET /api/v1/lecturers/{id}/workload
-    API-->>Web: Current assigned count
-    Web->>API: PUT /api/v1/registrations/{registration_id}/assign-supervisor
-    API->>DB: Update supervisor_id and assignment metadata
-    API-->>Web: Registration updated
+    Admin->>Web: Đổi GVHD nếu cần
+    Web->>API: GET /api/v1/lecturers/:id/workload
+    API-->>Web: Trả về tải hướng dẫn hiện tại
+    Web->>API: PUT /api/v1/registrations/:registration_id/assign-supervisor
+    API->>DB: Cập nhật supervisor_id và metadata phân công
+    API-->>Web: Trả về đăng ký đã cập nhật
 ```
 
 ---
 
-## 6. Current Student Execution Flow
+## 6. Luồng thực hiện của sinh viên
 
 ```mermaid
 flowchart TD
-    ApprovedReg[Approved registration] --> ProgressPage[Open registration progress page]
-    ProgressPage --> SubmitProgress[Student submits progress]
-    SubmitProgress --> ProgressAPI[POST /api/v1/progress]
-    ProgressAPI --> ProgressLog[(progress_logs)]
+    ApprovedReg["Đăng ký đã được duyệt"] --> ProgressPage["Mở trang tiến độ của đăng ký"]
+    ProgressPage --> SubmitProgress["Sinh viên nộp tiến độ"]
+    SubmitProgress --> ProgressAPI["POST /api/v1/progress"]
+    ProgressAPI --> ProgressLog[("progress_logs")]
 
-    ProgressLog --> LecturerComment[Lecturer adds teacher_comment]
-    LecturerComment --> CommentAPI[POST /api/v1/progress/{id}/comments]
+    ProgressLog --> LecturerComment["Giảng viên thêm nhận xét teacher_comment"]
+    LecturerComment --> CommentAPI["POST /api/v1/progress/:id/comments"]
     CommentAPI --> ProgressLog
 
-    ApprovedReg --> ReportPage[Open registration reports page]
-    ReportPage --> UploadReport[Student uploads report file]
-    UploadReport --> ReportAPI[POST /api/v1/reports]
-    ReportAPI --> ReportRow[(reports row with version number)]
-    ReportAPI --> ReportFile[(uploaded file)]
+    ApprovedReg --> ReportPage["Mở trang báo cáo của đăng ký"]
+    ReportPage --> UploadReport["Sinh viên upload file báo cáo"]
+    UploadReport --> ReportAPI["POST /api/v1/reports"]
+    ReportAPI --> ReportRow[("reports row có version")]
+    ReportAPI --> ReportFile[("file đã upload")]
 
-    ReportPage --> ReportHistory[View report history]
-    ReportHistory --> ReportListAPI[GET /api/v1/registrations/{registrationId}/reports]
+    ReportPage --> ReportHistory["Xem lịch sử báo cáo"]
+    ReportHistory --> ReportListAPI["GET /api/v1/registrations/:registrationId/reports"]
     ReportListAPI --> ReportRow
 
-    ReportHistory --> Download[Download report]
-    Download --> DownloadAPI[GET /api/v1/reports/{reportId}/download]
+    ReportHistory --> Download["Tải báo cáo"]
+    Download --> DownloadAPI["GET /api/v1/reports/:reportId/download"]
     DownloadAPI --> ReportFile
 ```
 
 ---
 
-## 7. Current Council, Scoring, and Final Result Flow
+## 7. Luồng hội đồng, chấm điểm và kết quả cuối cùng
 
 ```mermaid
 flowchart TD
-    Admin[Admin] --> CreateCouncil[Create council]
-    CreateCouncil --> CouncilAPI[POST /api/v1/councils]
-    CouncilAPI --> Councils[(councils)]
+    Admin["Admin"] --> CreateCouncil["Tạo hội đồng"]
+    CreateCouncil --> CouncilAPI["POST /api/v1/councils"]
+    CouncilAPI --> Councils[("councils")]
 
-    Admin --> AddMembers[Assign lecturers to council]
-    AddMembers --> MemberAPI[POST /api/v1/councils/{councilId}/members]
-    MemberAPI --> CouncilMembers[(council_members)]
+    Admin --> AddMembers["Phân công giảng viên vào hội đồng"]
+    AddMembers --> MemberAPI["POST /api/v1/councils/:councilId/members"]
+    MemberAPI --> CouncilMembers[("council_members")]
 
-    Admin --> ScheduleDefense[Create defense schedule]
-    ScheduleDefense --> ScheduleAPI[POST /api/v1/councils/{councilId}/schedules]
-    ScheduleAPI --> DefenseSchedules[(defense_schedules)]
+    Admin --> ScheduleDefense["Tạo lịch bảo vệ"]
+    ScheduleDefense --> ScheduleAPI["POST /api/v1/councils/:councilId/schedules"]
+    ScheduleAPI --> DefenseSchedules[("defense_schedules")]
 
-    Lecturer[Lecturer or council member] --> SubmitScore[Submit or update score]
-    SubmitScore --> ScoreAPI[POST /api/v1/scores]
-    ScoreAPI --> Scores[(scores)]
+    Lecturer["Giảng viên hoặc thành viên hội đồng"] --> SubmitScore["Nộp hoặc cập nhật điểm"]
+    SubmitScore --> ScoreAPI["POST /api/v1/scores"]
+    ScoreAPI --> Scores[("scores")]
 
-    Lecturer --> EditScore[Update score before lock]
-    EditScore --> UpdateScoreAPI[PUT /api/v1/scores/{scoreId}]
+    Lecturer --> EditScore["Sửa điểm trước khi khóa"]
+    EditScore --> UpdateScoreAPI["PUT /api/v1/scores/:scoreId"]
     UpdateScoreAPI --> Scores
 
-    Admin --> CalculateResult[Calculate final result]
-    CalculateResult --> CalculateAPI[POST /api/v1/registrations/{registrationId}/final-result/calculate]
-    CalculateAPI --> FinalResults[(final_results)]
+    Admin --> CalculateResult["Tính kết quả cuối cùng"]
+    CalculateResult --> CalculateAPI["POST /api/v1/registrations/:registrationId/final-result/calculate"]
+    CalculateAPI --> FinalResults[("final_results")]
 
-    Admin --> PublishResult[Publish final result]
-    PublishResult --> PublishAPI[POST /api/v1/registrations/{registrationId}/final-result/publish]
+    Admin --> PublishResult["Công bố kết quả cuối cùng"]
+    PublishResult --> PublishAPI["POST /api/v1/registrations/:registrationId/final-result/publish"]
     PublishAPI --> FinalResults
-    PublishAPI --> ScoresLocked[Related scores locked]
+    PublishAPI --> ScoresLocked["Khóa các điểm liên quan"]
 
-    Student[Student] --> ViewResult[View published final result]
-    ViewResult --> GetResultAPI[GET /api/v1/registrations/{registrationId}/final-result]
+    Student["Sinh viên"] --> ViewResult["Xem kết quả đã công bố"]
+    ViewResult --> GetResultAPI["GET /api/v1/registrations/:registrationId/final-result"]
     GetResultAPI --> FinalResults
 ```
 
 ---
 
-## 8. Current Authentication and Refresh Flow
+## 8. Luồng đăng nhập và refresh token hiện tại
 
 ```mermaid
 sequenceDiagram
-    actor User
+    actor User as Người dùng
     participant Web as Angular UI
     participant Interceptor as Auth Interceptor
     participant API as FastAPI Auth API
     participant DB as PostgreSQL
 
-    User->>Web: Login
+    User->>Web: Đăng nhập
     Web->>API: POST /api/v1/auth/login
-    API->>DB: Verify user and create refresh token hash
-    API-->>Web: access_token and refresh_token
-    Web->>Web: Store tokens and current user
+    API->>DB: Xác thực tài khoản và lưu hash refresh token
+    API-->>Web: access_token và refresh_token
+    Web->>Web: Lưu token và thông tin người dùng hiện tại
 
-    Web->>Interceptor: Send protected request
-    Interceptor->>API: Request with Authorization header
+    Web->>Interceptor: Gửi request cần xác thực
+    Interceptor->>API: Request kèm Authorization header
     API-->>Interceptor: 401 Unauthorized
 
     Interceptor->>API: POST /api/v1/auth/refresh
-    API->>DB: Validate refresh token hash
-    API->>DB: Revoke old refresh token
-    API->>DB: Store new refresh token hash
-    API-->>Interceptor: New access_token and refresh_token
+    API->>DB: Kiểm tra hash refresh token
+    API->>DB: Thu hồi refresh token cũ
+    API->>DB: Lưu hash refresh token mới
+    API-->>Interceptor: access_token và refresh_token mới
 
-    Interceptor->>API: Retry original request with new token
-    API-->>Web: Protected response
+    Interceptor->>API: Gửi lại request ban đầu với token mới
+    API-->>Web: Response thành công
 
-    User->>Web: Logout
+    User->>Web: Đăng xuất
     Web->>API: POST /api/v1/auth/logout
-    API->>DB: Revoke refresh token
-    Web->>Web: Clear local session
+    API->>DB: Thu hồi refresh token
+    Web->>Web: Xóa phiên đăng nhập local
 ```
 
 ---
 
-## 9. Current Backend Layering Pattern
+## 9. Mô hình phân lớp backend hiện tại
 
 ```mermaid
 flowchart TB
-    Router[router.py receives HTTP request]
-    Schema[schema or schemas.py validates request and response]
-    Service[service.py applies business rules]
-    Repository[repository.py performs queries]
-    Model[model.py maps database tables]
-    Database[(PostgreSQL)]
+    Router["router.py nhận HTTP request"]
+    Schema["schema.py hoặc schemas.py validate request/response"]
+    Service["service.py xử lý business rules"]
+    Repository["repository.py thực hiện truy vấn"]
+    Model["model.py ánh xạ bảng database"]
+    Database[("PostgreSQL")]
 
     Router --> Schema
     Router --> Service
@@ -545,32 +545,32 @@ flowchart TB
     Repository --> Model
     Model --> Database
 
-    Router -. no business logic .-> RouterRule[Router rule]
-    Service -. no direct HTTP response .-> ServiceRule[Service rule]
-    Repository -. no FastAPI HTTPException .-> RepositoryRule[Repository rule]
+    Router -. "Không chứa business logic" .-> RouterRule["Quy tắc router"]
+    Service -. "Không trả HTTP response trực tiếp" .-> ServiceRule["Quy tắc service"]
+    Repository -. "Không raise FastAPI HTTPException" .-> RepositoryRule["Quy tắc repository"]
 ```
 
 ---
 
-## 10. Current Module Completion Snapshot
+## 10. Snapshot module hiện có
 
 ```mermaid
 flowchart LR
-    subgraph Core[Member A and shared core currently present]
-        Auth[Auth]
-        Users[Users]
-        Periods[Academic Periods]
-        Topics[Topics]
-        Registrations[Registrations]
-        Dashboard[Dashboard]
+    subgraph Core["Member A và phần core/shared hiện có"]
+        Auth["Auth"]
+        Users["Users"]
+        Periods["Academic Periods"]
+        Topics["Topics"]
+        Registrations["Registrations"]
+        Dashboard["Dashboard"]
     end
 
-    subgraph Execution[Member B workflow currently present]
-        Progress[Progress]
-        Reports[Reports]
-        Councils[Councils]
-        Evaluation[Scoring]
-        Results[Final Results]
+    subgraph Execution["Workflow Member B hiện có"]
+        Progress["Progress"]
+        Reports["Reports"]
+        Councils["Councils"]
+        Evaluation["Scoring"]
+        Results["Final Results"]
     end
 
     Auth --> Users
