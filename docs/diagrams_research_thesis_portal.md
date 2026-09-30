@@ -12,73 +12,66 @@ File này tổng hợp các sơ đồ Mermaid dùng cho báo cáo và GitHub Mar
 flowchart LR
     Admin["Admin"]
     Lecturer["Giảng viên"]
-
-    subgraph System["Research Thesis Portal"]
-        Auth(["Đăng nhập / đăng xuất"])
-        Profile(["Quản lý hồ sơ cá nhân"])
-
-        ManageUsers(["Quản lý người dùng"])
-        ImportUsers(["Import người dùng"])
-        ManagePeriods(["Quản lý đợt học thuật"])
-        Dashboard(["Xem dashboard thống kê"])
-
-        ManageTopics(["Quản lý đề tài"])
-        ProposeTopic(["Đề xuất đề tài"])
-        ReviewTopic(["Duyệt / từ chối đề tài"])
-        SearchTopic(["Tìm kiếm / xem đề tài"])
-
-        RegisterTopic(["Đăng ký đề tài"])
-        ReviewRegistration(["Duyệt / từ chối đăng ký"])
-        AssignSupervisor(["Phân công GVHD"])
-
-        TrackProgress(["Theo dõi tiến độ"])
-        SubmitProgress(["Nộp tiến độ"])
-        CommentProgress(["Nhận xét tiến độ"])
-        ManageReport(["Nộp / xem báo cáo"])
-
-        ManageCouncil(["Quản lý hội đồng"])
-        ScheduleDefense(["Xếp lịch bảo vệ"])
-        InputScore(["Nhập điểm đánh giá"])
-        PublishResult(["Tính và công bố kết quả"])
-    end
-
     Student["Sinh viên"]
 
-    Admin --> Auth
-    Admin --> ManageUsers
-    Admin --> ManagePeriods
-    Admin --> ReviewTopic
-    Admin --> AssignSupervisor
-    Admin --> ManageCouncil
-    Admin --> PublishResult
-    Admin --> Dashboard
+    subgraph System["Research Thesis Portal"]
+        direction TB
 
-    Lecturer --> Auth
-    Lecturer --> Profile
-    Lecturer --> ProposeTopic
-    Lecturer --> ReviewRegistration
-    Lecturer --> CommentProgress
-    Lecturer --> ManageReport
-    Lecturer --> InputScore
-    Lecturer --> Dashboard
+        subgraph AdminLane["Nhóm chức năng Admin"]
+            direction LR
+            A_Users(["Quản lý người dùng"])
+            A_Periods(["Quản lý đợt học thuật"])
+            A_Topics(["Duyệt đề tài"])
+            A_Assign(["Phân công GVHD"])
+            A_Council(["Hội đồng & kết quả"])
+        end
 
-    Student --> Auth
-    Student --> Profile
-    Student --> SearchTopic
-    Student --> RegisterTopic
-    Student --> SubmitProgress
-    Student --> ManageReport
-    Student --> PublishResult
-    Student --> Dashboard
+        subgraph LecturerLane["Nhóm chức năng Giảng viên"]
+            direction LR
+            L_Profile(["Đăng nhập & hồ sơ"])
+            L_Topics(["Đề xuất / quản lý đề tài"])
+            L_Registrations(["Duyệt đăng ký"])
+            L_Progress(["Theo dõi tiến độ"])
+            L_Score(["Chấm điểm"])
+        end
 
-    ManageUsers -. "<<extend>>" .-> ImportUsers
-    ManageTopics -. "<<extend>>" .-> ProposeTopic
-    ManageTopics -. "<<extend>>" .-> ReviewTopic
-    RegisterTopic -. "<<extend>>" .-> SearchTopic
-    TrackProgress -. "<<extend>>" .-> SubmitProgress
-    TrackProgress -. "<<extend>>" .-> CommentProgress
-    ManageCouncil -. "<<extend>>" .-> ScheduleDefense
-    PublishResult -. "<<extend>>" .-> InputScore
+        subgraph StudentLane["Nhóm chức năng Sinh viên"]
+            direction LR
+            S_Profile(["Đăng nhập & hồ sơ"])
+            S_Topics(["Tìm kiếm / xem đề tài"])
+            S_Register(["Đăng ký đề tài"])
+            S_Progress(["Nộp tiến độ / báo cáo"])
+            S_Result(["Xem kết quả"])
+        end
+    end
+
+    Admin --> A_Users
+    Admin --> A_Periods
+    Admin --> A_Topics
+    Admin --> A_Assign
+    Admin --> A_Council
+
+    Lecturer --> L_Profile
+    Lecturer --> L_Topics
+    Lecturer --> L_Registrations
+    Lecturer --> L_Progress
+    Lecturer --> L_Score
+
+    Student --> S_Profile
+    Student --> S_Topics
+    Student --> S_Register
+    Student --> S_Progress
+    Student --> S_Result
+
+    A_Users -. "<<extend>>" .-> A_Periods
+    A_Topics -. "<<extend>>" .-> A_Assign
+    A_Council -. "<<extend>>" .-> A_Assign
+
+    L_Topics -. "<<extend>>" .-> L_Registrations
+    L_Progress -. "<<extend>>" .-> L_Score
+
+    S_Topics -. "<<extend>>" .-> S_Register
+    S_Progress -. "<<extend>>" .-> S_Result
 ```
 
 ---
