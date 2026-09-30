@@ -2,7 +2,7 @@
 
 File này tổng hợp các sơ đồ Mermaid dùng cho báo cáo và GitHub Markdown. Các sơ đồ bám theo hệ thống hiện tại của dự án Research Thesis Portal.
 
-> GitHub hỗ trợ render Mermaid trực tiếp trong file `.md`.
+> Ghi chú trình bày: các sơ đồ lớn đã được rút gọn hoặc tách theo nhóm để khi đưa vào báo cáo/GitHub không bị quá nhỏ.
 
 ---
 
@@ -73,16 +73,15 @@ flowchart LR
     subgraph StudentCases["Chức năng của Sinh viên"]
         Login(["Đăng nhập"])
         UpdateProfile(["Cập nhật hồ sơ cá nhân"])
-        ViewTopics(["Xem danh sách đề tài đã duyệt"])
+        ViewTopics(["Xem danh sách đề tài"])
         ViewTopicDetail(["Xem chi tiết đề tài"])
         RegisterTopic(["Đăng ký đề tài"])
         ViewRegistration(["Xem đăng ký của tôi"])
         CancelRegistration(["Hủy đăng ký đang chờ duyệt"])
-        SubmitProgress(["Nộp tiến độ thực hiện"])
+        SubmitProgress(["Nộp tiến độ"])
         ViewProgressComment(["Xem nhận xét tiến độ"])
-        UploadReport(["Nộp báo cáo / sản phẩm"])
+        UploadReport(["Nộp báo cáo"])
         ViewReportHistory(["Xem lịch sử báo cáo"])
-        DownloadReport(["Tải file báo cáo"])
         ViewFinalResult(["Xem kết quả đã công bố"])
     end
 
@@ -97,13 +96,11 @@ flowchart LR
     Student --> ViewProgressComment
     Student --> UploadReport
     Student --> ViewReportHistory
-    Student --> DownloadReport
     Student --> ViewFinalResult
 
     ViewTopics --> ViewTopicDetail
     ViewTopicDetail --> RegisterTopic
     UploadReport --> ViewReportHistory
-    ViewReportHistory --> DownloadReport
 ```
 
 ---
@@ -118,10 +115,9 @@ flowchart LR
         Login(["Đăng nhập"])
         UpdateProfile(["Cập nhật hồ sơ cá nhân"])
         CreateTopic(["Đề xuất đề tài"])
-        UpdateOwnTopic(["Cập nhật đề tài của mình"])
-        ViewOwnTopics(["Xem danh sách đề tài của tôi"])
-        ReviewRegistration(["Duyệt / từ chối đăng ký đề tài"])
-        ViewSupervisedRegistrations(["Xem sinh viên đang hướng dẫn"])
+        UpdateOwnTopic(["Cập nhật đề tài"])
+        ViewOwnTopics(["Xem đề tài của tôi"])
+        ReviewRegistration(["Duyệt / từ chối đăng ký"])
         ViewProgress(["Xem tiến độ sinh viên"])
         CommentProgress(["Nhận xét tiến độ"])
         ViewReports(["Xem / tải báo cáo"])
@@ -137,7 +133,6 @@ flowchart LR
     Lecturer --> UpdateOwnTopic
     Lecturer --> ViewOwnTopics
     Lecturer --> ReviewRegistration
-    Lecturer --> ViewSupervisedRegistrations
     Lecturer --> ViewProgress
     Lecturer --> CommentProgress
     Lecturer --> ViewReports
@@ -148,7 +143,6 @@ flowchart LR
 
     ViewOwnTopics --> UpdateOwnTopic
     ViewProgress --> CommentProgress
-    ViewReports --> SubmitSupervisorScore
     ViewCouncil --> SubmitCouncilScore
 ```
 
@@ -163,18 +157,18 @@ flowchart LR
     subgraph AdminCases["Chức năng của Admin"]
         Login(["Đăng nhập"])
         ManageUsers(["Quản lý người dùng"])
-        ImportUsers(["Import người dùng bằng CSV"])
+        ImportUsers(["Import người dùng CSV"])
         ManagePeriods(["Quản lý đợt học thuật"])
         ReviewTopics(["Duyệt / từ chối đề tài"])
         ViewRegistrations(["Xem danh sách đăng ký"])
         AssignSupervisor(["Phân công / đổi GVHD"])
-        ViewLecturerWorkload(["Xem tải hướng dẫn giảng viên"])
+        ViewLecturerWorkload(["Xem tải hướng dẫn"])
         ManageCouncils(["Tạo hội đồng"])
-        AssignCouncilMembers(["Phân công thành viên hội đồng"])
+        AssignCouncilMembers(["Phân công thành viên"])
         ScheduleDefense(["Xếp lịch bảo vệ"])
-        CalculateFinalResult(["Tính kết quả cuối cùng"])
+        CalculateFinalResult(["Tính kết quả"])
         PublishFinalResult(["Công bố kết quả"])
-        ViewDashboard(["Xem dashboard thống kê"])
+        ViewDashboard(["Xem dashboard"])
     end
 
     Admin --> Login
@@ -207,63 +201,44 @@ flowchart LR
 ```mermaid
 flowchart TD
     Start(["Bắt đầu"])
-    Login["Người dùng đăng nhập hệ thống"]
-    Period["Admin tạo và mở đợt học thuật"]
+    Period["Admin mở đợt học thuật"]
     Propose["Giảng viên đề xuất đề tài"]
     TopicReview{"Admin duyệt đề tài?"}
-    RejectTopic["Đề tài bị từ chối"]
     ApprovedTopic["Đề tài được công bố"]
     Register["Sinh viên đăng ký đề tài"]
-    RegistrationReview{"Giảng viên hoặc Admin duyệt đăng ký?"}
-    RejectRegistration["Đăng ký bị từ chối"]
-    ApproveRegistration["Đăng ký được duyệt"]
-    AssignDefaultSupervisor["Gán GVHD mặc định là giảng viên đề xuất"]
-    ChangeSupervisor["Admin đổi GVHD nếu cần"]
+    RegistrationReview{"Đăng ký được duyệt?"}
+    ApproveRegistration["Đăng ký được duyệt và gán GVHD"]
     Execute["Sinh viên thực hiện đề tài"]
-    SubmitProgress["Sinh viên nộp tiến độ"]
-    CommentProgress["GVHD nhận xét tiến độ"]
-    SubmitReport["Sinh viên nộp báo cáo / sản phẩm"]
-    CreateCouncil["Admin tạo hội đồng"]
-    AssignMembers["Admin phân công thành viên hội đồng"]
-    ScheduleDefense["Admin xếp lịch bảo vệ"]
+    Progress["Nộp tiến độ và nhận xét"]
+    Report["Nộp báo cáo / sản phẩm"]
+    Council["Tạo hội đồng và lịch bảo vệ"]
     Score["GVHD và hội đồng nhập điểm"]
-    Calculate["Admin tính kết quả cuối cùng"]
-    Publish["Admin công bố kết quả"]
-    StudentView["Sinh viên xem kết quả"]
+    Calculate["Tính kết quả cuối cùng"]
+    Publish["Công bố kết quả"]
     End(["Kết thúc"])
 
-    Start --> Login
-    Login --> Period
+    Start --> Period
     Period --> Propose
     Propose --> TopicReview
-    TopicReview -->|"Không duyệt"| RejectTopic
-    RejectTopic --> Propose
-    TopicReview -->|"Duyệt"| ApprovedTopic
+    TopicReview -->|"Không"| Propose
+    TopicReview -->|"Có"| ApprovedTopic
     ApprovedTopic --> Register
     Register --> RegistrationReview
-    RegistrationReview -->|"Từ chối"| RejectRegistration
-    RejectRegistration --> Register
-    RegistrationReview -->|"Duyệt"| ApproveRegistration
-    ApproveRegistration --> AssignDefaultSupervisor
-    AssignDefaultSupervisor --> ChangeSupervisor
-    AssignDefaultSupervisor --> Execute
-    ChangeSupervisor --> Execute
-    Execute --> SubmitProgress
-    SubmitProgress --> CommentProgress
-    Execute --> SubmitReport
-    SubmitReport --> CreateCouncil
-    CreateCouncil --> AssignMembers
-    AssignMembers --> ScheduleDefense
-    ScheduleDefense --> Score
+    RegistrationReview -->|"Không"| Register
+    RegistrationReview -->|"Có"| ApproveRegistration
+    ApproveRegistration --> Execute
+    Execute --> Progress
+    Execute --> Report
+    Report --> Council
+    Council --> Score
     Score --> Calculate
     Calculate --> Publish
-    Publish --> StudentView
-    StudentView --> End
+    Publish --> End
 ```
 
 ---
 
-## 4.2 — Sơ đồ quan hệ dữ liệu ERD đúng với 13 bảng hiện tại
+## 4.2 — ERD tổng quan 13 bảng hiện tại
 
 ```mermaid
 erDiagram
@@ -273,37 +248,134 @@ erDiagram
     USERS ||--o{ TOPICS : approves
     USERS ||--o{ REGISTRATIONS : registers
     USERS ||--o{ REGISTRATIONS : supervises
-    USERS ||--o{ REGISTRATIONS : reviews
     USERS ||--o{ PROGRESS_LOGS : submits
     USERS ||--o{ REPORTS : uploads
     USERS ||--o{ COUNCIL_MEMBERS : joins
     USERS ||--o{ SCORES : evaluates
-    USERS ||--o{ FINAL_RESULTS : calculates_or_publishes
+    USERS ||--o{ FINAL_RESULTS : manages
 
     ACADEMIC_PERIODS ||--o{ TOPICS : contains
     ACADEMIC_PERIODS ||--o{ REGISTRATIONS : contains
     ACADEMIC_PERIODS ||--o{ COUNCILS : organizes
 
     TOPICS ||--o{ REGISTRATIONS : receives
-    TOPICS ||--o{ REPORTS : legacy_topic_ref
-
     REGISTRATIONS ||--o{ PROGRESS_LOGS : has
     REGISTRATIONS ||--o{ REPORTS : has
     REGISTRATIONS ||--o| DEFENSE_SCHEDULES : scheduled_for
     REGISTRATIONS ||--o{ SCORES : receives
     REGISTRATIONS ||--o| FINAL_RESULTS : produces
 
-    MILESTONES ||--o{ PROGRESS_LOGS : optional_milestone
-
+    MILESTONES ||--o{ PROGRESS_LOGS : tracks
     COUNCILS ||--o{ COUNCIL_MEMBERS : contains
     COUNCILS ||--o{ DEFENSE_SCHEDULES : schedules
-    COUNCILS ||--o{ SCORES : council_scores
+    COUNCILS ||--o{ SCORES : groups
+
+    USERS {
+        uuid id PK
+        varchar email UK
+        user_role role
+    }
+
+    REFRESH_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        varchar token_hash UK
+    }
+
+    ACADEMIC_PERIODS {
+        uuid id PK
+        varchar code UK
+        academic_period_status status
+    }
+
+    TOPICS {
+        uuid id PK
+        uuid academic_period_id FK
+        uuid proposed_by_id FK
+        topic_status status
+    }
+
+    REGISTRATIONS {
+        uuid id PK
+        uuid topic_id FK
+        uuid student_id FK
+        uuid supervisor_id FK
+        registration_status status
+    }
+
+    MILESTONES {
+        uuid id PK
+        varchar title
+        timestamptz due_date
+    }
+
+    PROGRESS_LOGS {
+        uuid id PK
+        uuid registration_id FK
+        uuid student_id FK
+        uuid milestone_id FK
+    }
+
+    REPORTS {
+        uuid id PK
+        uuid registration_id FK
+        uuid student_id FK
+        integer version
+    }
+
+    COUNCILS {
+        uuid id PK
+        uuid academic_period_id FK
+        council_status status
+    }
+
+    COUNCIL_MEMBERS {
+        uuid id PK
+        uuid council_id FK
+        uuid lecturer_id FK
+    }
+
+    DEFENSE_SCHEDULES {
+        uuid id PK
+        uuid council_id FK
+        uuid registration_id FK
+    }
+
+    SCORES {
+        uuid id PK
+        uuid registration_id FK
+        uuid evaluator_id FK
+        evaluation_type evaluation_type
+    }
+
+    FINAL_RESULTS {
+        uuid id PK
+        uuid registration_id FK
+        numeric final_score
+    }
+```
+
+---
+
+## 4.2.1 — ERD nhóm người dùng, đợt học thuật, đề tài và đăng ký
+
+```mermaid
+erDiagram
+    USERS ||--o{ REFRESH_TOKENS : owns
+    USERS ||--o{ ACADEMIC_PERIODS : creates
+    USERS ||--o{ TOPICS : proposes
+    USERS ||--o{ TOPICS : approves
+    USERS ||--o{ REGISTRATIONS : registers
+    USERS ||--o{ REGISTRATIONS : supervises
+
+    ACADEMIC_PERIODS ||--o{ TOPICS : contains
+    ACADEMIC_PERIODS ||--o{ REGISTRATIONS : contains
+    TOPICS ||--o{ REGISTRATIONS : receives
 
     USERS {
         uuid id PK
         varchar institutional_code UK
         varchar email UK
-        varchar password_hash
         varchar full_name
         user_role role
         user_status status
@@ -314,7 +386,6 @@ erDiagram
         uuid user_id FK
         varchar token_hash UK
         timestamptz expires_at
-        timestamptz revoked_at
     }
 
     ACADEMIC_PERIODS {
@@ -323,7 +394,6 @@ erDiagram
         varchar name
         varchar academic_year
         academic_period_status status
-        uuid created_by_id FK
     }
 
     TOPICS {
@@ -332,10 +402,9 @@ erDiagram
         varchar code
         varchar title
         topic_type topic_type
-        smallint max_students
+        topic_status status
         uuid proposed_by_id FK
         uuid approved_by_id FK
-        topic_status status
     }
 
     REGISTRATIONS {
@@ -345,14 +414,37 @@ erDiagram
         uuid student_id FK
         uuid supervisor_id FK
         registration_status status
-        uuid reviewed_by_id FK
-        uuid supervisor_assigned_by_id FK
+    }
+```
+
+---
+
+## 4.2.2 — ERD nhóm tiến độ và báo cáo
+
+```mermaid
+erDiagram
+    USERS ||--o{ PROGRESS_LOGS : submits
+    USERS ||--o{ REPORTS : uploads
+    REGISTRATIONS ||--o{ PROGRESS_LOGS : has
+    REGISTRATIONS ||--o{ REPORTS : has
+    MILESTONES ||--o{ PROGRESS_LOGS : tracks
+
+    USERS {
+        uuid id PK
+        varchar full_name
+        user_role role
+    }
+
+    REGISTRATIONS {
+        uuid id PK
+        uuid student_id FK
+        uuid supervisor_id FK
+        registration_status status
     }
 
     MILESTONES {
         uuid id PK
         varchar title
-        text description
         timestamptz due_date
     }
 
@@ -369,13 +461,50 @@ erDiagram
     REPORTS {
         uuid id PK
         uuid registration_id FK
-        uuid topic_id FK
         uuid student_id FK
         varchar file_name
         varchar file_path
-        bigint file_size
         varchar report_type
         integer version
+    }
+```
+
+---
+
+## 4.2.3 — ERD nhóm hội đồng, chấm điểm và kết quả
+
+```mermaid
+erDiagram
+    USERS ||--o{ COUNCIL_MEMBERS : joins
+    USERS ||--o{ SCORES : evaluates
+    USERS ||--o{ FINAL_RESULTS : manages
+
+    ACADEMIC_PERIODS ||--o{ COUNCILS : organizes
+    REGISTRATIONS ||--o| DEFENSE_SCHEDULES : scheduled_for
+    REGISTRATIONS ||--o{ SCORES : receives
+    REGISTRATIONS ||--o| FINAL_RESULTS : produces
+
+    COUNCILS ||--o{ COUNCIL_MEMBERS : contains
+    COUNCILS ||--o{ DEFENSE_SCHEDULES : schedules
+    COUNCILS ||--o{ SCORES : groups
+
+    USERS {
+        uuid id PK
+        varchar full_name
+        user_role role
+    }
+
+    ACADEMIC_PERIODS {
+        uuid id PK
+        varchar code UK
+        academic_period_status status
+    }
+
+    REGISTRATIONS {
+        uuid id PK
+        uuid student_id FK
+        uuid supervisor_id FK
+        registration_status status
     }
 
     COUNCILS {
@@ -385,7 +514,6 @@ erDiagram
         varchar name
         council_type council_type
         council_status status
-        uuid created_by_id FK
     }
 
     COUNCIL_MEMBERS {
@@ -393,8 +521,6 @@ erDiagram
         uuid council_id FK
         uuid lecturer_id FK
         council_member_role member_role
-        uuid assigned_by_id FK
-        council_member_status status
     }
 
     DEFENSE_SCHEDULES {
@@ -402,10 +528,7 @@ erDiagram
         uuid council_id FK
         uuid registration_id FK
         timestamptz scheduled_at
-        integer duration_minutes
         varchar room
-        defense_schedule_status status
-        uuid created_by_id FK
     }
 
     SCORES {
@@ -413,7 +536,6 @@ erDiagram
         uuid registration_id FK
         uuid evaluator_id FK
         uuid council_id FK
-        evaluation_type evaluation_type
         numeric score
         score_status status
     }
@@ -424,7 +546,6 @@ erDiagram
         numeric supervisor_score
         numeric council_average_score
         numeric final_score
-        result_classification classification
         final_result_status status
     }
 ```
@@ -437,32 +558,31 @@ erDiagram
 stateDiagram-v2
     [*] --> pending: Sinh viên tạo đăng ký
 
-    pending --> approved: Giảng viên hoặc Admin duyệt
-    pending --> rejected: Giảng viên hoặc Admin từ chối
-    pending --> cancelled: Sinh viên hủy đăng ký
+    pending --> approved: Duyệt đăng ký
+    pending --> rejected: Từ chối đăng ký
+    pending --> cancelled: Sinh viên hủy
 
-    approved --> in_progress: Bắt đầu thực hiện đề tài
-    approved --> completed: Hoàn tất trực tiếp nếu quy trình cho phép
-
+    approved --> in_progress: Bắt đầu thực hiện
     in_progress --> completed: Hoàn thành đề tài
+    approved --> completed: Hoàn tất trực tiếp
 
     rejected --> [*]
     cancelled --> [*]
     completed --> [*]
 
     note right of pending
-        Đăng ký đang chờ xét duyệt.
-        Đây là trạng thái hiệu lực.
+        Đang chờ xét duyệt.
+        Thuộc nhóm trạng thái hiệu lực.
     end note
 
     note right of approved
-        Đăng ký đã được duyệt.
-        supervisor_id phải có giá trị.
+        Đã được duyệt.
+        Phải có supervisor_id.
     end note
 
     note right of in_progress
-        Sinh viên đang thực hiện đề tài,
-        có thể nộp tiến độ và báo cáo.
+        Sinh viên thực hiện đề tài,
+        nộp tiến độ và báo cáo.
     end note
 ```
 
@@ -472,34 +592,26 @@ stateDiagram-v2
 
 ```mermaid
 sequenceDiagram
+    autonumber
     actor Student as Sinh viên
-    participant Web as Angular Frontend
-    participant TopicAPI as Topic API
-    participant RegistrationAPI as Registration API
-    participant DB as PostgreSQL
+    participant Web as Frontend
+    participant API as Backend API
+    participant DB as Database
 
-    Student->>Web: Mở danh sách đề tài
-    Web->>TopicAPI: GET /api/v1/topics
-    TopicAPI->>DB: Lấy các đề tài phù hợp quyền xem
-    DB-->>TopicAPI: Danh sách đề tài
-    TopicAPI-->>Web: Trả về danh sách đề tài
-    Web-->>Student: Hiển thị đề tài đã duyệt
+    Student->>Web: Xem danh sách đề tài
+    Web->>API: GET /topics
+    API->>DB: Lấy đề tài được phép hiển thị
+    DB-->>API: Danh sách đề tài
+    API-->>Web: Trả dữ liệu
+    Web-->>Student: Hiển thị đề tài
 
-    Student->>Web: Xem chi tiết đề tài
-    Web->>TopicAPI: GET /api/v1/topics/:topic_id
-    TopicAPI->>DB: Lấy chi tiết đề tài
-    DB-->>TopicAPI: Dữ liệu đề tài
-    TopicAPI-->>Web: Trả về chi tiết đề tài
-
-    Student->>Web: Gửi đăng ký đề tài
-    Web->>RegistrationAPI: POST /api/v1/registrations
-    RegistrationAPI->>DB: Kiểm tra đợt đăng ký
-    RegistrationAPI->>DB: Kiểm tra đề tài đã duyệt và còn chỗ
-    RegistrationAPI->>DB: Kiểm tra sinh viên chưa có đăng ký hiệu lực
-    RegistrationAPI->>DB: Tạo đăng ký trạng thái pending
-    DB-->>RegistrationAPI: Đăng ký được tạo
-    RegistrationAPI-->>Web: Trả về đăng ký mới
-    Web-->>Student: Thông báo đăng ký thành công
+    Student->>Web: Gửi đăng ký
+    Web->>API: POST /registrations
+    API->>DB: Kiểm tra điều kiện đăng ký
+    API->>DB: Tạo đăng ký pending
+    DB-->>API: Đăng ký mới
+    API-->>Web: Kết quả đăng ký
+    Web-->>Student: Thông báo thành công
 ```
 
 ---
@@ -508,45 +620,34 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    autonumber
     actor Lecturer as Giảng viên
     actor Admin as Admin
-    participant Web as Angular Frontend
-    participant RegistrationAPI as Registration API
-    participant DB as PostgreSQL
+    participant Web as Frontend
+    participant API as Backend API
+    participant DB as Database
 
-    Lecturer->>Web: Mở trang duyệt đăng ký
-    Web->>RegistrationAPI: GET /api/v1/registrations
-    RegistrationAPI->>DB: Lấy danh sách đăng ký theo quyền truy cập
-    DB-->>RegistrationAPI: Danh sách đăng ký
-    RegistrationAPI-->>Web: Trả về danh sách đăng ký
-    Web-->>Lecturer: Hiển thị các đăng ký cần xử lý
+    Lecturer->>Web: Mở danh sách đăng ký
+    Web->>API: GET /registrations
+    API->>DB: Lấy đăng ký theo quyền
+    DB-->>API: Danh sách đăng ký
+    API-->>Web: Trả dữ liệu
 
-    Lecturer->>Web: Chọn duyệt một đăng ký
-    Web->>RegistrationAPI: PUT /api/v1/registrations/:registration_id/approve
-    RegistrationAPI->>DB: Kiểm tra đăng ký đang pending
-    RegistrationAPI->>DB: Kiểm tra quyền duyệt
-    RegistrationAPI->>DB: Kiểm tra sinh viên chưa có đăng ký hiệu lực khác
-    RegistrationAPI->>DB: Kiểm tra sức chứa đề tài
-    RegistrationAPI->>DB: Gán GVHD mặc định là giảng viên đề xuất đề tài
-    RegistrationAPI->>DB: Cập nhật trạng thái approved
-    DB-->>RegistrationAPI: Đăng ký đã duyệt
-    RegistrationAPI-->>Web: Trả về đăng ký đã cập nhật
-    Web-->>Lecturer: Thông báo duyệt thành công
+    Lecturer->>Web: Duyệt đăng ký
+    Web->>API: PUT /registrations/:id/approve
+    API->>DB: Kiểm tra quyền và sức chứa đề tài
+    API->>DB: Gán GVHD mặc định
+    API->>DB: Cập nhật approved
+    DB-->>API: Đăng ký đã duyệt
+    API-->>Web: Kết quả duyệt
+    Web-->>Lecturer: Thông báo thành công
 
     Admin->>Web: Đổi GVHD nếu cần
-    Web->>RegistrationAPI: GET /api/v1/lecturers/:id/workload
-    RegistrationAPI->>DB: Đếm số đăng ký đang hướng dẫn
-    DB-->>RegistrationAPI: Tải hướng dẫn hiện tại
-    RegistrationAPI-->>Web: Trả về workload giảng viên
-
-    Admin->>Web: Xác nhận phân công GVHD
-    Web->>RegistrationAPI: PUT /api/v1/registrations/:registration_id/assign-supervisor
-    RegistrationAPI->>DB: Kiểm tra Admin và giảng viên hợp lệ
-    RegistrationAPI->>DB: Cập nhật supervisor_id
-    RegistrationAPI->>DB: Cập nhật supervisor_assigned_by_id và supervisor_assigned_at
-    DB-->>RegistrationAPI: Đăng ký đã cập nhật GVHD
-    RegistrationAPI-->>Web: Trả về đăng ký mới
-    Web-->>Admin: Thông báo phân công thành công
+    Web->>API: PUT /registrations/:id/assign-supervisor
+    API->>DB: Kiểm tra giảng viên hợp lệ
+    API->>DB: Cập nhật supervisor_id
+    DB-->>API: Đăng ký đã cập nhật
+    API-->>Web: Kết quả phân công
 ```
 
 ---
@@ -555,48 +656,38 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
+    autonumber
     actor Lecturer as Giảng viên
     actor Admin as Admin
     actor Student as Sinh viên
-    participant Web as Angular Frontend
-    participant ScoreAPI as Score API
-    participant ResultAPI as Final Result API
-    participant DB as PostgreSQL
+    participant Web as Frontend
+    participant API as Backend API
+    participant DB as Database
 
-    Lecturer->>Web: Nhập điểm đánh giá
-    Web->>ScoreAPI: POST /api/v1/scores
-    ScoreAPI->>DB: Kiểm tra quyền chấm điểm
-    ScoreAPI->>DB: Kiểm tra thang điểm hợp lệ
-    ScoreAPI->>DB: Tạo hoặc cập nhật score
-    DB-->>ScoreAPI: Phiếu điểm đã lưu
-    ScoreAPI-->>Web: Trả về điểm đã lưu
-    Web-->>Lecturer: Thông báo lưu điểm thành công
+    Lecturer->>Web: Nhập điểm
+    Web->>API: POST /scores
+    API->>DB: Kiểm tra quyền và lưu điểm
+    DB-->>API: Điểm đã lưu
+    API-->>Web: Trả kết quả
 
-    Admin->>Web: Yêu cầu tính kết quả cuối cùng
-    Web->>ResultAPI: POST /api/v1/registrations/:registration_id/final-result/calculate
-    ResultAPI->>DB: Lấy điểm GVHD đã nộp
-    ResultAPI->>DB: Lấy các điểm hội đồng đã nộp
-    ResultAPI->>DB: Tính điểm trung bình hội đồng
-    ResultAPI->>DB: Tính final_score theo trọng số
-    ResultAPI->>DB: Tạo hoặc cập nhật final_results
-    DB-->>ResultAPI: Kết quả đã tính
-    ResultAPI-->>Web: Trả về kết quả cuối cùng
-    Web-->>Admin: Hiển thị kết quả đã tính
+    Admin->>Web: Tính kết quả
+    Web->>API: POST /registrations/:id/final-result/calculate
+    API->>DB: Lấy điểm GVHD và hội đồng
+    API->>DB: Tính final_score
+    API->>DB: Lưu final_results
+    DB-->>API: Kết quả đã tính
+    API-->>Web: Trả kết quả
 
     Admin->>Web: Công bố kết quả
-    Web->>ResultAPI: POST /api/v1/registrations/:registration_id/final-result/publish
-    ResultAPI->>DB: Kiểm tra quyền Admin
-    ResultAPI->>DB: Cập nhật trạng thái published
-    ResultAPI->>DB: Ghi published_at và published_by_id
-    ResultAPI->>DB: Khóa các điểm liên quan
-    DB-->>ResultAPI: Kết quả đã công bố
-    ResultAPI-->>Web: Trả về kết quả đã công bố
-    Web-->>Admin: Thông báo công bố thành công
+    Web->>API: POST /registrations/:id/final-result/publish
+    API->>DB: Cập nhật published và khóa điểm
+    DB-->>API: Kết quả đã công bố
+    API-->>Web: Trả kết quả
 
     Student->>Web: Xem kết quả
-    Web->>ResultAPI: GET /api/v1/registrations/:registration_id/final-result
-    ResultAPI->>DB: Lấy kết quả đã published của sinh viên
-    DB-->>ResultAPI: Dữ liệu kết quả
-    ResultAPI-->>Web: Trả về kết quả
-    Web-->>Student: Hiển thị kết quả cuối cùng
+    Web->>API: GET /registrations/:id/final-result
+    API->>DB: Lấy kết quả đã công bố
+    DB-->>API: Dữ liệu kết quả
+    API-->>Web: Trả kết quả
+    Web-->>Student: Hiển thị kết quả
 ```
