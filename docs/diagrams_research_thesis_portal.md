@@ -16,29 +16,42 @@ flowchart LR
 
     subgraph System["Research Thesis Portal"]
         UC_Auth(["Xác thực và hồ sơ"])
-        UC_TopicRegistration(["Đề tài và đăng ký"])
-        UC_Execution(["Theo dõi tiến độ và báo cáo"])
-        UC_CouncilEvaluation(["Hội đồng, chấm điểm và kết quả"])
-        UC_AdminManagement(["Quản trị hệ thống"])
+        UC_UserManagement(["Quản lý người dùng"])
+        UC_PeriodManagement(["Quản lý đợt học thuật"])
+        UC_TopicManagement(["Quản lý đề tài"])
+        UC_Registration(["Đăng ký đề tài"])
+        UC_Supervision(["Phân công / quản lý GVHD"])
+        UC_Progress(["Theo dõi tiến độ"])
+        UC_Report(["Nộp và quản lý báo cáo"])
+        UC_Council(["Quản lý hội đồng và lịch bảo vệ"])
+        UC_Evaluation(["Chấm điểm và công bố kết quả"])
         UC_Dashboard(["Dashboard thống kê"])
     end
 
     Student --> UC_Auth
-    Student --> UC_TopicRegistration
-    Student --> UC_Execution
-    Student --> UC_CouncilEvaluation
+    Student --> UC_Registration
+    Student --> UC_Progress
+    Student --> UC_Report
+    Student --> UC_Evaluation
     Student --> UC_Dashboard
 
     Lecturer --> UC_Auth
-    Lecturer --> UC_TopicRegistration
-    Lecturer --> UC_Execution
-    Lecturer --> UC_CouncilEvaluation
+    Lecturer --> UC_TopicManagement
+    Lecturer --> UC_Registration
+    Lecturer --> UC_Supervision
+    Lecturer --> UC_Progress
+    Lecturer --> UC_Report
+    Lecturer --> UC_Evaluation
     Lecturer --> UC_Dashboard
 
     Admin --> UC_Auth
-    Admin --> UC_TopicRegistration
-    Admin --> UC_CouncilEvaluation
-    Admin --> UC_AdminManagement
+    Admin --> UC_UserManagement
+    Admin --> UC_PeriodManagement
+    Admin --> UC_TopicManagement
+    Admin --> UC_Registration
+    Admin --> UC_Supervision
+    Admin --> UC_Council
+    Admin --> UC_Evaluation
     Admin --> UC_Dashboard
 ```
 
