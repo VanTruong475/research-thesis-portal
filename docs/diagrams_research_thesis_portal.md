@@ -10,48 +10,43 @@ File này tổng hợp các sơ đồ Mermaid dùng cho báo cáo và GitHub Mar
 
 ```mermaid
 flowchart LR
-    Student["Sinh viên"]
-    Lecturer["Giảng viên"]
-    Admin["Admin"]
+    subgraph ActorsLeft["Tác nhân chính"]
+        Student["Sinh viên"]
+        Lecturer["Giảng viên"]
+    end
 
     subgraph System["Research Thesis Portal"]
         UC_Auth(["Xác thực và hồ sơ"])
-        UC_UserManagement(["Quản lý người dùng"])
-        UC_PeriodManagement(["Quản lý đợt học thuật"])
-        UC_TopicManagement(["Quản lý đề tài"])
-        UC_Registration(["Đăng ký đề tài"])
-        UC_Supervision(["Phân công / quản lý GVHD"])
-        UC_Progress(["Theo dõi tiến độ"])
-        UC_Report(["Nộp và quản lý báo cáo"])
-        UC_Council(["Quản lý hội đồng và lịch bảo vệ"])
-        UC_Evaluation(["Chấm điểm và công bố kết quả"])
+        UC_AdminBase(["Quản trị người dùng và đợt học thuật"])
+        UC_Topic(["Quản lý đề tài"])
+        UC_Registration(["Đăng ký đề tài và phân công GVHD"])
+        UC_ProgressReport(["Theo dõi tiến độ và báo cáo"])
+        UC_Council(["Hội đồng và lịch bảo vệ"])
+        UC_Result(["Chấm điểm và công bố kết quả"])
         UC_Dashboard(["Dashboard thống kê"])
     end
 
+    Admin["Admin"]
+
     Student --> UC_Auth
     Student --> UC_Registration
-    Student --> UC_Progress
-    Student --> UC_Report
-    Student --> UC_Evaluation
+    Student --> UC_ProgressReport
+    Student --> UC_Result
     Student --> UC_Dashboard
 
     Lecturer --> UC_Auth
-    Lecturer --> UC_TopicManagement
+    Lecturer --> UC_Topic
     Lecturer --> UC_Registration
-    Lecturer --> UC_Supervision
-    Lecturer --> UC_Progress
-    Lecturer --> UC_Report
-    Lecturer --> UC_Evaluation
+    Lecturer --> UC_ProgressReport
+    Lecturer --> UC_Result
     Lecturer --> UC_Dashboard
 
     Admin --> UC_Auth
-    Admin --> UC_UserManagement
-    Admin --> UC_PeriodManagement
-    Admin --> UC_TopicManagement
+    Admin --> UC_AdminBase
+    Admin --> UC_Topic
     Admin --> UC_Registration
-    Admin --> UC_Supervision
     Admin --> UC_Council
-    Admin --> UC_Evaluation
+    Admin --> UC_Result
     Admin --> UC_Dashboard
 ```
 
