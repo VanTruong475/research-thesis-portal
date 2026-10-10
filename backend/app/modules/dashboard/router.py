@@ -229,7 +229,8 @@ async def get_dashboard_member_b_stats(
             .join(Registration, ProgressLog.registration_id == Registration.id)
             .where(
                 Registration.supervisor_id == current_user.id,
-                ProgressLog.comments.is_(None)
+                # Lọc các bản ghi tiến độ chưa có nhận xét của giảng viên hướng dẫn (teacher_comment là NULL)
+                ProgressLog.teacher_comment.is_(None)
             )
         )
         stats["pending_progress"] = res.scalar_one()
