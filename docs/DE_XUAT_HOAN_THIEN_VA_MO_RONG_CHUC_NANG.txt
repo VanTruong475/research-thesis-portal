@@ -1,0 +1,309 @@
+ĐỀ XUẤT HOÀN THIỆN VÀ MỞ RỘNG CHỨC NĂNG DỰ ÁN
+=================================================
+
+Tên đề tài mở rộng:
+Phát triển hệ thống hỗ trợ quản lý quy trình đăng ký, thực hiện và đánh giá đề tài nghiên cứu khoa học và khóa luận tốt nghiệp tại cơ sở đào tạo.
+
+Mục đích của file này:
+Tổng hợp hướng hoàn thiện và mở rộng chức năng để cả nhóm thống nhất phạm vi làm tiếp. Hướng đề xuất là hoàn thiện chắc các chức năng hiện có trước, sau đó mở rộng vừa đủ để hệ thống phù hợp với cả khóa luận tốt nghiệp và đề tài nghiên cứu khoa học.
+
+
+1. NHẬN XÉT HIỆN TRẠNG HỆ THỐNG
+--------------------------------
+
+Hệ thống hiện tại đã có khung chức năng chính cho quy trình quản lý khóa luận tốt nghiệp, bao gồm:
+
+- Quản lý tài khoản và đăng nhập.
+- Phân quyền theo vai trò: sinh viên, giảng viên, quản trị viên.
+- Quản lý kỳ học/đợt thực hiện.
+- Quản lý đề tài.
+- Sinh viên đăng ký đề tài.
+- Giảng viên/Admin duyệt đăng ký.
+- Theo dõi tiến độ thực hiện.
+- Nộp báo cáo.
+- Lập hội đồng bảo vệ.
+- Chấm điểm.
+- Tính và công bố kết quả cuối.
+
+Như vậy, hệ thống hiện tại đã đủ nền tảng cho phần "khóa luận tốt nghiệp". Tuy nhiên, với tên đề tài mới có thêm "đề tài nghiên cứu khoa học", hệ thống nên bổ sung một số dấu hiệu nghiệp vụ riêng để thể hiện rõ việc hỗ trợ cả hai loại quy trình.
+
+Hướng đi phù hợp:
+
+- Không nên viết lại toàn bộ quy trình.
+- Nên tái sử dụng các module hiện có như Topics, Registrations, Progress, Reports, Councils, Evaluation.
+- Chỉ mở rộng thêm các trường/chức năng cần thiết để phân biệt khóa luận tốt nghiệp và đề tài nghiên cứu khoa học.
+
+
+2. CÁC CHỨC NĂNG NÊN HOÀN THIỆN TRƯỚC
+--------------------------------------
+
+Trước khi mở rộng thêm module mới, nên ưu tiên hoàn thiện các chức năng hiện có để hệ thống ổn định, demo tốt và bảo vệ dễ hơn.
+
+2.1. Hoàn thiện phân quyền frontend
+
+Nên bổ sung route guard theo vai trò:
+
+- Admin: quản lý người dùng, kỳ học, hội đồng, cấu hình chung.
+- Giảng viên: tạo đề tài, quản lý đề tài của mình, duyệt đăng ký, nhận xét tiến độ, chấm điểm nếu được phân công.
+- Sinh viên: xem đề tài, đăng ký đề tài, nộp tiến độ, nộp báo cáo, xem kết quả.
+
+Lý do:
+- Backend vẫn là lớp bảo mật chính.
+- Frontend guard giúp trải nghiệm người dùng tốt hơn và tránh việc người dùng gõ trực tiếp URL không đúng vai trò.
+
+2.2. Kiểm tra và bổ sung bảo mật cho các endpoint còn thiếu
+
+Cần đảm bảo tất cả endpoint quan trọng đều yêu cầu đăng nhập và đúng vai trò.
+
+Ví dụ ưu tiên kiểm tra:
+- Endpoint xem workload của giảng viên.
+- Endpoint quản lý hội đồng.
+- Endpoint chấm điểm và công bố kết quả.
+- Endpoint upload/xem báo cáo.
+
+Lý do:
+- Khi bảo vệ, phần phân quyền và bảo mật rất dễ bị hỏi.
+- Hệ thống cần đảm bảo người dùng không thể xem/sửa dữ liệu không thuộc quyền của mình.
+
+2.3. Hoàn thiện trang hồ sơ người dùng
+
+Nên hoàn thiện:
+- Xem thông tin cá nhân từ API.
+- Cập nhật thông tin cá nhân.
+- Đổi mật khẩu.
+- Sau khi đổi mật khẩu nên có thông báo rõ ràng, có thể yêu cầu đăng nhập lại nếu cần.
+
+2.4. Hoàn thiện chức năng báo cáo/file
+
+Hiện tại đã có nộp báo cáo, nên bổ sung hoặc làm rõ:
+
+- Kiểm tra định dạng file cho phép, ví dụ: PDF, DOC, DOCX, ZIP.
+- Giới hạn dung lượng file.
+- Hiển thị lịch sử các lần nộp.
+- Tải xuống file đã nộp.
+- Hiển thị version báo cáo rõ ràng.
+
+Lý do:
+- Đây là phần quan trọng của giai đoạn thực hiện đề tài.
+- Phù hợp cả khóa luận tốt nghiệp và nghiên cứu khoa học.
+
+2.5. Đồng bộ trạng thái trên giao diện
+
+Cần hiển thị rõ các trạng thái:
+
+Trạng thái đề tài:
+- Chờ duyệt.
+- Đã duyệt.
+- Từ chối.
+- Đã đóng.
+- Đã hủy.
+- Hoàn thành.
+
+Trạng thái đăng ký:
+- Chờ duyệt.
+- Đã duyệt.
+- Từ chối.
+- Đã hủy.
+- Đang thực hiện.
+- Hoàn thành.
+
+Trạng thái kết quả:
+- Nháp.
+- Đã tính.
+- Đã công bố.
+- Đã hủy.
+
+Lý do:
+- Giao diện dễ hiểu hơn.
+- Quy trình rõ hơn khi đưa vào báo cáo và demo.
+
+2.6. Bổ sung test cho các điểm quan trọng
+
+Nên bổ sung test cho:
+- Phân quyền endpoint còn thiếu.
+- Đổi mật khẩu.
+- Upload file sai định dạng.
+- Sinh viên không được xem kết quả khi chưa công bố.
+- Giảng viên chỉ được chấm điểm/xem dữ liệu trong phạm vi được phân công.
+
+
+3. CÁC CHỨC NĂNG NÊN MỞ RỘNG ĐỂ PHÙ HỢP TÊN ĐỀ TÀI MỚI
+-------------------------------------------------------
+
+Để hệ thống phù hợp với cả "đề tài nghiên cứu khoa học" và "khóa luận tốt nghiệp", nên mở rộng theo hướng nhẹ, không tạo quy trình quá phức tạp.
+
+3.1. Thêm phân loại đề tài
+
+Nên thêm thuộc tính loại đề tài:
+
+- Khóa luận tốt nghiệp.
+- Nghiên cứu khoa học.
+
+Tên kỹ thuật có thể dùng:
+- graduation_thesis.
+- scientific_research.
+
+Tác dụng:
+- Giảng viên khi tạo đề tài có thể chọn loại đề tài.
+- Admin có thể lọc danh sách đề tài theo loại.
+- Sinh viên thấy rõ đề tài nào là khóa luận, đề tài nào là nghiên cứu khoa học.
+- Báo cáo có cơ sở để nói hệ thống hỗ trợ cả hai loại quy trình.
+
+Đây là chức năng nên ưu tiên cao nhất nếu muốn mở rộng đề tài.
+
+3.2. Thêm phân loại báo cáo/sản phẩm nộp
+
+Nên thêm loại file nộp:
+
+- Báo cáo tiến độ.
+- Báo cáo cuối kỳ.
+- Sản phẩm nghiên cứu.
+- Minh chứng.
+
+Tác dụng:
+- Khóa luận tốt nghiệp có thể nộp báo cáo, source code, slide.
+- Đề tài nghiên cứu khoa học có thể nộp bài báo, poster, sản phẩm, minh chứng.
+- Không cần tạo module mới, chỉ mở rộng chức năng Reports hiện có.
+
+3.3. Thêm phân loại hội đồng
+
+Hiện tại hệ thống có hội đồng bảo vệ. Nên mở rộng thành:
+
+- Hội đồng bảo vệ khóa luận.
+- Hội đồng nghiệm thu đề tài nghiên cứu khoa học.
+
+Tên kỹ thuật có thể dùng:
+- defense.
+- acceptance.
+
+Tác dụng:
+- Module Councils dùng được cho cả khóa luận và nghiên cứu khoa học.
+- Giao diện và báo cáo nghiệp vụ rõ ràng hơn.
+
+3.4. Hỗ trợ nhóm sinh viên cho đề tài nghiên cứu khoa học
+
+Đề tài nghiên cứu khoa học thường có thể có nhóm sinh viên. Hệ thống hiện tại đã có max_students và current_students, có thể tận dụng để hỗ trợ nhiều sinh viên cùng tham gia một đề tài.
+
+Nếu làm đơn giản:
+- Không cần tạo bảng nhóm mới.
+- Dùng max_students để giới hạn số sinh viên.
+- Hiển thị danh sách sinh viên đã được duyệt trong từng đề tài.
+
+Nếu còn nhiều thời gian mới cần nghiên cứu thêm bảng group/group_members.
+
+
+4. CÁC CHỨC NĂNG CÓ THỂ LÀM NẾU CÒN THỜI GIAN
+---------------------------------------------
+
+4.1. Dashboard thống kê
+
+Admin:
+- Tổng số đề tài.
+- Số đề tài chờ duyệt.
+- Số đăng ký chờ xử lý.
+- Số sinh viên đã có đề tài.
+- Số hội đồng đã lập.
+- Số kết quả đã công bố.
+
+Giảng viên:
+- Số đề tài đã đề xuất.
+- Số sinh viên đang hướng dẫn.
+- Số báo cáo mới nộp.
+- Số tiến độ chưa nhận xét.
+
+Sinh viên:
+- Trạng thái đăng ký hiện tại.
+- Deadline gần nhất.
+- Kết quả nếu đã công bố.
+
+4.2. Thông báo nội bộ
+
+Có thể thêm thông báo cho các sự kiện:
+- Đề tài được duyệt/từ chối.
+- Đăng ký được duyệt/từ chối.
+- Giảng viên nhận xét tiến độ.
+- Admin công bố kết quả.
+
+4.3. Export danh sách/kết quả
+
+Có thể thêm export Excel/PDF cho:
+- Danh sách đề tài.
+- Danh sách đăng ký.
+- Danh sách hội đồng.
+- Bảng điểm/kết quả cuối.
+
+
+5. CÁC CHỨC NĂNG KHÔNG NÊN LÀM LÚC NÀY
+--------------------------------------
+
+Nếu thời gian không còn nhiều, không nên mở rộng các chức năng quá lớn sau:
+
+- Chat real-time giữa sinh viên và giảng viên.
+- AI gợi ý đề tài.
+- Kiểm tra đạo văn tự động.
+- Quản lý kinh phí nghiên cứu chi tiết.
+- Tích hợp email thật.
+- Calendar kéo thả nâng cao.
+- Chấm điểm rubric quá chi tiết với nhiều tiêu chí và trọng số phức tạp.
+- Lưu trữ file trên cloud.
+
+Lý do:
+- Các chức năng này tốn nhiều thời gian.
+- Dễ phát sinh lỗi lúc demo.
+- Dễ làm lệch trọng tâm của đề tài.
+- Khi bảo vệ có thể bị hỏi sâu về phần kỹ thuật mà nhóm chưa chuẩn bị kịp.
+
+
+6. LỘ TRÌNH ĐỀ XUẤT
+-------------------
+
+Phase 1: Hoàn thiện hệ thống hiện có
+
+- Bổ sung route guard frontend theo role.
+- Kiểm tra lại các endpoint cần bảo mật.
+- Hoàn thiện profile người dùng.
+- Hoàn thiện upload/download báo cáo.
+- Đồng bộ trạng thái trên UI.
+- Bổ sung test cho các luồng quan trọng.
+
+Phase 2: Mở rộng để phù hợp tên đề tài mới
+
+- Thêm loại đề tài: khóa luận tốt nghiệp / nghiên cứu khoa học.
+- Thêm filter và badge loại đề tài trên giao diện.
+- Thêm loại báo cáo/sản phẩm nộp.
+- Thêm loại hội đồng: bảo vệ / nghiệm thu.
+- Tận dụng max_students để hỗ trợ đề tài nhóm.
+
+Phase 3: Làm thêm nếu còn thời gian
+
+- Dashboard thống kê.
+- Thông báo nội bộ.
+- Export danh sách và kết quả.
+
+
+7. ĐỀ XUẤT ƯU TIÊN NGẮN GỌN
+---------------------------
+
+Nếu cần chọn ít chức năng nhất để làm tiếp, nên ưu tiên theo thứ tự:
+
+1. Hoàn thiện phân quyền và các lỗi bảo mật còn thiếu.
+2. Hoàn thiện báo cáo/file và profile người dùng.
+3. Thêm loại đề tài: khóa luận tốt nghiệp / nghiên cứu khoa học.
+4. Thêm loại báo cáo/sản phẩm nộp.
+5. Thêm loại hội đồng: bảo vệ / nghiệm thu.
+6. Thêm dashboard/thông báo/export nếu còn thời gian.
+
+
+8. KẾT LUẬN
+-----------
+
+Hướng làm phù hợp nhất là:
+
+Hoàn thiện chắc các chức năng hiện có trước, sau đó mở rộng nhẹ bằng các trường phân loại nghiệp vụ.
+
+Không nên mở rộng quá lớn. Chỉ cần bổ sung rõ:
+- Loại đề tài.
+- Loại báo cáo/sản phẩm.
+- Loại hội đồng.
+
+Với cách này, hệ thống sẽ phù hợp hơn với tên đề tài mới, nhưng vẫn giữ được cấu trúc hiện có, tránh làm lại từ đầu và giảm rủi ro khi demo/bảo vệ.

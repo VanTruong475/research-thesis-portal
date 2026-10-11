@@ -668,6 +668,8 @@ Effective registrations include
 
 - approved
 
+- in_progress
+
 ### Reason
 
 Avoid duplicate participation.

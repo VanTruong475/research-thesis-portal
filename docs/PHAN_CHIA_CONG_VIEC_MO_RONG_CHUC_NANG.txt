@@ -1,0 +1,892 @@
+PHÂN CHIA CÔNG VIỆC HOÀN THIỆN VÀ MỞ RỘNG CHỨC NĂNG
+=====================================================
+
+Tên đề tài mở rộng:
+Phát triển hệ thống hỗ trợ quản lý quy trình đăng ký, thực hiện và đánh giá đề tài nghiên cứu khoa học và khóa luận tốt nghiệp tại cơ sở đào tạo.
+
+Mục tiêu phân công:
+- Hoàn thiện các chức năng hiện có để hệ thống ổn định, dễ demo và dễ bảo vệ.
+- Mở rộng vừa đủ để hệ thống hỗ trợ cả khóa luận tốt nghiệp và đề tài nghiên cứu khoa học.
+- Phân chia công việc theo đúng phạm vi module của 2 người để tránh đụng code quá nhiều.
+
+Nguyên tắc chung:
+- Không mở rộng quá lớn khi các chức năng lõi chưa ổn định.
+- Backend vẫn là lớp bảo mật chính, frontend chỉ hỗ trợ trải nghiệm người dùng.
+- Mỗi task nên làm trên branch riêng hoặc ít nhất tách commit rõ ràng.
+- Không tự ý đổi API, enum, database field nếu chưa thống nhất với nhóm.
+- Nếu có thay đổi database thì phải có Alembic migration.
+- Sau mỗi task cần test lại flow liên quan.
+
+
+I. PHẠM VI PHỤ TRÁCH CỦA 2 NGƯỜI
+=================================
+
+1. Người 1 / Member A
+---------------------
+
+Phụ trách nhóm chức năng nền tảng và giai đoạn trước khi sinh viên thực hiện đề tài:
+
+- Authentication / đăng nhập.
+- Users / quản lý người dùng.
+- Academic Periods / kỳ học, đợt thực hiện.
+- Topics / đề tài.
+- Registrations / đăng ký đề tài.
+- Các phần frontend liên quan đến:
+  + Login.
+  + Profile.
+  + Danh sách đề tài.
+  + Đề tài của giảng viên.
+  + Đăng ký của sinh viên.
+  + Duyệt đăng ký.
+
+2. Người 2 / Member B
+---------------------
+
+Phụ trách nhóm chức năng sau khi đăng ký được duyệt và giai đoạn đánh giá:
+
+- Progress / tiến độ.
+- Reports / báo cáo.
+- Councils / hội đồng.
+- Scoring / chấm điểm.
+- Final Results / kết quả cuối.
+- Các phần frontend liên quan đến:
+  + Nộp tiến độ.
+  + Nhận xét tiến độ.
+  + Nộp báo cáo.
+  + Lập hội đồng.
+  + Lập lịch bảo vệ/nghiệm thu.
+  + Chấm điểm.
+  + Tính và công bố kết quả.
+
+
+II. PHASE 1 - HOÀN THIỆN CHỨC NĂNG HIỆN CÓ
+==========================================
+
+Mục tiêu Phase 1:
+- Sửa các điểm còn thiếu của hệ thống hiện tại.
+- Làm cho workflow khóa luận tốt nghiệp chạy ổn định từ đầu đến cuối.
+- Đảm bảo demo không bị vướng lỗi UX hoặc lỗi phân quyền cơ bản.
+
+
+A. TASK CHO MEMBER A - PHASE 1
+==============================
+
+TASK A1. Hoàn thiện route guard frontend theo role
+--------------------------------------------------
+
+Mục tiêu:
+- Người chưa đăng nhập không vào được các route bên trong /app.
+- Người dùng đã đăng nhập nhưng sai vai trò không vào được trang không thuộc quyền.
+- Sidebar ẩn menu là chưa đủ, cần guard route để tránh gõ URL trực tiếp.
+
+Phạm vi chức năng:
+- Tạo hoặc hoàn thiện AuthGuard.
+- Tạo hoặc hoàn thiện RoleGuard.
+- Gắn guard vào các route trong frontend.
+
+Route gợi ý cần phân quyền:
+
+1. Admin:
+- /app/users
+- /app/users/new
+- /app/academic-periods
+- /app/councils
+
+2. Lecturer:
+- /app/topics/my-topics
+- /app/registrations/review
+- /app/registrations/:registrationId/progress
+- /app/registrations/:registrationId/reports
+- /app/registrations/:registrationId/evaluation
+
+3. Student:
+- /app/topics
+- /app/registrations/my
+- /app/registrations/:registrationId/progress
+- /app/registrations/:registrationId/reports
+- /app/registrations/:registrationId/final-results
+
+Yêu cầu xử lý:
+- Nếu chưa đăng nhập: chuyển về /auth/login.
+- Nếu sai role: chuyển về /app/profile hoặc hiển thị thông báo không có quyền.
+- Không tin role từ form/request; role chỉ lấy từ user hiện tại đã lưu sau login hoặc từ API /me.
+
+Kiểm thử thủ công:
+- Chưa đăng nhập, gõ /app/users -> bị chuyển về login.
+- Student gõ /app/users -> không được vào.
+- Lecturer gõ /app/academic-periods -> không được vào.
+- Admin vào /app/users -> được vào.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK A2. Sửa và kiểm tra phân quyền endpoint workload giảng viên
+----------------------------------------------------------------
+
+Mục tiêu:
+- Endpoint workload giảng viên không được public.
+- Chỉ người có quyền mới được xem workload.
+
+Endpoint cần kiểm tra:
+- GET /api/v1/lecturers/{id}/workload
+
+Rule đề xuất:
+- Admin được xem workload của mọi giảng viên.
+- Lecturer chỉ được xem workload của chính mình.
+- Student không được xem.
+- Người chưa đăng nhập bị chặn.
+
+Công việc backend:
+- Kiểm tra router registrations có dependency auth chưa.
+- Thêm dependency get_current_user/require role nếu thiếu.
+- Nếu cần logic chi tiết thì xử lý trong service, không viết business logic trực tiếp trong router.
+- Đảm bảo response vẫn theo format chung.
+
+Test backend cần thêm:
+- Chưa đăng nhập gọi endpoint -> 401.
+- Student gọi endpoint -> 403.
+- Lecturer gọi workload của chính mình -> 200.
+- Lecturer gọi workload của giảng viên khác -> 403.
+- Admin gọi workload của bất kỳ giảng viên nào -> 200.
+
+Kiểm thử thủ công:
+- Login bằng từng role và gọi API tương ứng.
+- Đảm bảo frontend vẫn dùng được nếu có màn hình liên quan.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK A3. Hoàn thiện trang Profile người dùng
+--------------------------------------------
+
+Mục tiêu:
+- Profile hiển thị dữ liệu mới nhất từ backend.
+- Người dùng cập nhật được thông tin cá nhân.
+- Đổi mật khẩu có UX rõ ràng.
+
+Phạm vi backend hiện có:
+- GET /api/v1/users/me
+- PUT /api/v1/users/me
+- PUT /api/v1/users/me/password
+
+Công việc frontend:
+- Khi mở profile, gọi API lấy thông tin mới nhất thay vì chỉ dùng localStorage.
+- Hiển thị thông tin:
+  + Mã tài khoản/mã sinh viên/mã giảng viên.
+  + Email.
+  + Họ tên.
+  + Số điện thoại.
+  + Vai trò.
+  + Trạng thái tài khoản.
+  + Lớp nếu là sinh viên.
+  + Khoa/bộ môn nếu là giảng viên/admin.
+- Thêm form chỉnh sửa thông tin cá nhân.
+- Thêm form đổi mật khẩu.
+- Hiển thị thông báo thành công/thất bại rõ ràng.
+
+Yêu cầu UX:
+- Không cho sửa role/status từ profile.
+- Sau khi cập nhật thành công, reload lại dữ liệu user.
+- Sau khi đổi mật khẩu thành công, có thể thông báo: "Đổi mật khẩu thành công, vui lòng đăng nhập lại" hoặc ít nhất hiển thị rõ thành công.
+
+Test cần có hoặc kiểm tra lại:
+- User update được full_name/phone/class_name.
+- User không update được role/status.
+- Đổi mật khẩu đúng mật khẩu cũ -> thành công.
+- Đổi mật khẩu sai mật khẩu cũ -> thất bại.
+
+Độ ưu tiên: Cao.
+
+
+TASK A4. Đồng bộ trạng thái đề tài và đăng ký trên UI
+-----------------------------------------------------
+
+Mục tiêu:
+- Trạng thái hiển thị rõ ràng bằng tiếng Việt.
+- Màu badge thống nhất.
+- Không hiển thị thao tác không hợp lệ với trạng thái hiện tại.
+
+Trạng thái đề tài cần mapping:
+- pending_approval -> Chờ duyệt.
+- approved -> Đã duyệt.
+- rejected -> Từ chối.
+- closed -> Đã đóng.
+- cancelled -> Đã hủy.
+- completed -> Hoàn thành.
+
+Trạng thái đăng ký cần mapping:
+- pending -> Chờ duyệt.
+- approved -> Đã duyệt.
+- rejected -> Từ chối.
+- cancelled -> Đã hủy.
+- in_progress -> Đang thực hiện.
+- completed -> Hoàn thành.
+
+Công việc frontend:
+- Tạo hoặc tái sử dụng hàm mapping status label.
+- Tạo hoặc tái sử dụng hàm mapping status class/màu.
+- Áp dụng ở:
+  + Danh sách đề tài của sinh viên.
+  + Đề tài của giảng viên.
+  + Trang duyệt đăng ký.
+  + Trang đăng ký của tôi.
+- Ẩn/disable nút khi không hợp lệ.
+
+Rule UX gợi ý:
+- Đề tài đã đầy -> không cho đăng ký.
+- Sinh viên đã có đăng ký hiệu lực trong kỳ -> không cho đăng ký thêm.
+- Đăng ký pending -> sinh viên có thể hủy.
+- Đăng ký approved/in_progress/completed -> không hiện nút hủy.
+- Đề tài rejected/cancelled/closed/completed -> không cho đăng ký.
+
+Kiểm thử thủ công:
+- Tạo đề tài mới, xem badge chờ duyệt.
+- Admin duyệt, xem badge đã duyệt.
+- Sinh viên đăng ký, xem registration pending.
+- Giảng viên duyệt, xem approved.
+- Đề tài đủ số lượng, xem trạng thái/khả năng đăng ký.
+
+Độ ưu tiên: Cao.
+
+
+TASK A5. Kiểm tra lại flow đăng ký đề tài từ đầu đến cuối
+---------------------------------------------------------
+
+Mục tiêu:
+- Đảm bảo workflow chính của Member A chạy ổn định.
+
+Flow cần test:
+1. Admin tạo kỳ học.
+2. Admin mở giai đoạn đề xuất đề tài.
+3. Lecturer tạo đề tài.
+4. Admin duyệt đề tài.
+5. Admin mở giai đoạn đăng ký.
+6. Student xem danh sách đề tài.
+7. Student đăng ký đề tài.
+8. Lecturer/Admin duyệt đăng ký.
+9. Student xem đăng ký của tôi.
+10. Lecturer xem danh sách sinh viên đăng ký.
+
+Cần kiểm tra:
+- Đề tài sau khi duyệt có hiện cho sinh viên không.
+- Số lượng current_students cập nhật đúng.
+- Sinh viên không đăng ký trùng trong cùng kỳ.
+- Khi đề tài đủ số lượng thì không cho đăng ký thêm.
+- Error message hiển thị rõ ràng.
+
+Độ ưu tiên: Cao.
+
+
+B. TASK CHO MEMBER B - PHASE 1
+==============================
+
+TASK B1. Hoàn thiện chức năng Reports
+-------------------------------------
+
+Mục tiêu:
+- Chức năng nộp báo cáo rõ ràng, dễ dùng, phù hợp giai đoạn thực hiện đề tài.
+
+Công việc backend:
+- Kiểm tra validate dung lượng file hiện tại.
+- Bổ sung validate định dạng file nếu chưa có.
+- Định dạng file đề xuất:
+  + .pdf
+  + .doc
+  + .docx
+  + .zip
+- Thêm hoặc kiểm tra API tải xuống file nếu chưa có.
+- Đảm bảo sinh viên chỉ nộp/xem báo cáo của registration thuộc mình.
+- Đảm bảo giảng viên chỉ xem báo cáo của sinh viên mình hướng dẫn.
+- Admin có thể xem theo quyền quản lý nếu hệ thống yêu cầu.
+
+Công việc frontend:
+- Form upload báo cáo hiển thị rõ định dạng và dung lượng cho phép.
+- Hiển thị version/lần nộp.
+- Hiển thị ngày nộp.
+- Thêm nút tải xuống file nếu API hỗ trợ.
+- Hiển thị lỗi upload ngay trong trang/form.
+
+Test cần có hoặc kiểm tra lại:
+- Upload file hợp lệ -> thành công.
+- Upload file rỗng -> thất bại.
+- Upload file quá dung lượng -> thất bại.
+- Upload file sai định dạng -> thất bại.
+- Sinh viên khác không xem được báo cáo không thuộc mình.
+- Giảng viên không phụ trách không xem được báo cáo.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK B2. Hoàn thiện chức năng Progress
+--------------------------------------
+
+Mục tiêu:
+- Theo dõi tiến độ dễ hiểu hơn cho sinh viên và giảng viên.
+
+Công việc backend:
+- Kiểm tra rule nộp progress:
+  + Sinh viên chỉ nộp cho registration của mình.
+  + Registration phải đã được duyệt/đang thực hiện.
+  + Kỳ học phải đang trong giai đoạn thực hiện.
+- Kiểm tra rule comment:
+  + Chỉ giảng viên hướng dẫn được nhận xét.
+- Nếu có deadline milestone, có thể tính trễ hạn ở service/response thay vì thêm DB field ngay.
+
+Công việc frontend:
+- Hiển thị danh sách milestone rõ ràng.
+- Hiển thị nội dung đã nộp.
+- Hiển thị ngày nộp.
+- Hiển thị nhận xét của giảng viên.
+- Hiển thị trạng thái:
+  + Chưa nộp.
+  + Đã nộp.
+  + Đã nhận xét.
+  + Trễ hạn nếu có deadline.
+- Giảng viên có ô nhập nhận xét rõ ràng.
+
+Test cần có hoặc kiểm tra lại:
+- Sinh viên nộp progress cho registration của mình -> thành công.
+- Sinh viên nộp cho registration người khác -> bị chặn.
+- Lecturer là supervisor comment -> thành công.
+- Lecturer không phải supervisor comment -> bị chặn.
+
+Độ ưu tiên: Cao.
+
+
+TASK B3. Hoàn thiện UX Councils
+-------------------------------
+
+Mục tiêu:
+- Lập hội đồng và xếp lịch không phải nhập ID thủ công.
+- Lỗi thao tác hiển thị ngay trong modal/form.
+
+Công việc frontend:
+- Khi thêm thành viên hội đồng:
+  + Dùng dropdown/search danh sách giảng viên.
+  + Hiển thị tên, email, mã giảng viên nếu có.
+  + Không bắt người dùng nhập UUID thủ công.
+- Khi xếp lịch bảo vệ/nghiệm thu:
+  + Dùng dropdown/search danh sách registration đủ điều kiện.
+  + Hiển thị tên sinh viên, tên đề tài, giảng viên hướng dẫn.
+  + Không bắt người dùng nhập UUID đăng ký thủ công.
+- Error khi submit modal phải hiện trong modal, không hiện phía sau overlay.
+- Badge trạng thái hội đồng/lịch bảo vệ rõ ràng.
+
+Công việc backend cần kiểm tra:
+- API danh sách giảng viên có đủ dữ liệu để dropdown không.
+- API danh sách registration đủ điều kiện có đủ dữ liệu không.
+- Rule schedule:
+  + Registration phải thuộc cùng kỳ với council.
+  + Registration phải đủ điều kiện bảo vệ/nghiệm thu.
+  + Không xếp trùng registration.
+  + Không trùng thứ tự trình bày trong cùng hội đồng.
+  + Thời gian nằm trong khoảng defense/acceptance period.
+
+Test cần có hoặc kiểm tra lại:
+- Admin tạo hội đồng thành công.
+- Admin thêm giảng viên vào hội đồng thành công.
+- Thêm trùng thành viên -> báo lỗi trong modal.
+- Xếp lịch registration hợp lệ -> thành công.
+- Xếp lịch registration khác kỳ -> thất bại.
+- Xếp lịch trùng registration -> thất bại.
+- Xếp lịch ngoài thời gian cho phép -> thất bại.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK B4. Hoàn thiện Evaluation và Final Result
+----------------------------------------------
+
+Mục tiêu:
+- Luồng chấm điểm, tính kết quả và công bố kết quả rõ ràng, đúng quyền.
+
+Công việc backend:
+- Kiểm tra rule nhập điểm:
+  + Giảng viên hướng dẫn nhập điểm supervisor nếu được phép.
+  + Thành viên hội đồng nhập điểm council nếu được phân công.
+  + Admin có quyền quản lý/tính kết quả nếu rule hiện tại cho phép.
+- Kiểm tra score nằm trong khoảng 0-10.
+- Kiểm tra final result chỉ tính khi đủ điều kiện.
+- Kiểm tra publish result chỉ do Admin hoặc người có quyền.
+- Đảm bảo sinh viên chỉ xem được kết quả khi đã published.
+
+Công việc frontend:
+- Form nhập điểm dễ hiểu.
+- Hiển thị điểm supervisor/council rõ ràng.
+- Hiển thị trọng số nếu có:
+  + Supervisor weight.
+  + Council weight.
+- Hiển thị classification:
+  + Xuất sắc.
+  + Giỏi.
+  + Khá.
+  + Trung bình.
+  + Không đạt.
+- Admin có nút tính kết quả.
+- Admin có nút công bố kết quả.
+- Student chỉ thấy kết quả đã công bố.
+
+Test cần có hoặc kiểm tra lại:
+- Nhập điểm hợp lệ -> thành công.
+- Nhập điểm ngoài 0-10 -> thất bại.
+- Người không có quyền nhập điểm -> bị chặn.
+- Tính kết quả -> đúng công thức.
+- Công bố kết quả -> status published.
+- Student xem kết quả chưa published -> bị chặn hoặc không hiển thị.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK B5. Kiểm tra flow sau khi đăng ký được duyệt
+------------------------------------------------
+
+Mục tiêu:
+- Đảm bảo workflow của Member B chạy ổn định từ lúc registration approved đến lúc công bố kết quả.
+
+Flow cần test:
+1. Registration đã được duyệt.
+2. Sinh viên nộp tiến độ.
+3. Giảng viên nhận xét tiến độ.
+4. Sinh viên nộp báo cáo.
+5. Admin lập hội đồng.
+6. Admin thêm thành viên hội đồng.
+7. Admin xếp lịch bảo vệ/nghiệm thu.
+8. Giảng viên nhập điểm.
+9. Admin tính kết quả.
+10. Admin công bố kết quả.
+11. Sinh viên xem kết quả.
+
+Cần kiểm tra:
+- Không nhập ID thủ công nếu frontend đã có dropdown.
+- Các lỗi nghiệp vụ hiển thị rõ ràng.
+- Sinh viên không xem được dữ liệu người khác.
+- Giảng viên chỉ xem/chấm trong phạm vi được phân công.
+
+Độ ưu tiên: Cao.
+
+
+III. PHASE 2 - MỞ RỘNG THEO TÊN ĐỀ TÀI MỚI
+==========================================
+
+Mục tiêu Phase 2:
+- Làm rõ hệ thống hỗ trợ cả khóa luận tốt nghiệp và đề tài nghiên cứu khoa học.
+- Không tạo quy trình mới quá phức tạp.
+- Mở rộng bằng các trường phân loại nghiệp vụ và cập nhật UI tương ứng.
+
+
+A. TASK CHO MEMBER A - PHASE 2
+==============================
+
+TASK A6. Thêm loại đề tài topic_type
+------------------------------------
+
+Mục tiêu:
+- Phân biệt đề tài khóa luận tốt nghiệp và đề tài nghiên cứu khoa học.
+
+Giá trị đề xuất:
+- graduation_thesis: Khóa luận tốt nghiệp.
+- scientific_research: Nghiên cứu khoa học.
+
+Công việc backend:
+- Thêm enum TopicType nếu project chưa có.
+- Thêm field topic_type vào model topics.
+- Tạo Alembic migration.
+- Cập nhật schema create/update/response.
+- Cập nhật service tạo đề tài/sửa đề tài.
+- Cập nhật list/filter topics theo topic_type.
+- Cập nhật test backend.
+
+Công việc frontend:
+- Form tạo đề tài có dropdown loại đề tài.
+- Form sửa đề tài có loại đề tài.
+- Danh sách đề tài hiển thị badge:
+  + Khóa luận.
+  + NCKH.
+- Bộ lọc danh sách đề tài theo loại:
+  + Tất cả.
+  + Khóa luận.
+  + Nghiên cứu khoa học.
+- Trang sinh viên xem được loại đề tài trước khi đăng ký.
+
+Test cần có:
+- Lecturer tạo đề tài graduation_thesis -> thành công.
+- Lecturer tạo đề tài scientific_research -> thành công.
+- Filter topic_type trả đúng dữ liệu.
+- Response topic có topic_type.
+- UI hiển thị badge đúng.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK A7. Cập nhật luồng đăng ký theo loại đề tài
+------------------------------------------------
+
+Mục tiêu:
+- Sinh viên đăng ký đề tài vẫn dùng workflow hiện có nhưng hiểu rõ loại đề tài.
+
+Công việc backend:
+- Kiểm tra registration hiện tại có dùng được cho cả 2 loại đề tài không.
+- Không nên tạo bảng đăng ký riêng cho NCKH nếu chưa thật sự cần.
+- Tận dụng max_students để hỗ trợ đề tài NCKH có nhiều sinh viên.
+- Nếu muốn khóa luận chỉ 1 sinh viên, có thể rule UI hoặc rule nghiệp vụ tùy nhóm quyết định.
+
+Công việc frontend:
+- Trang danh sách đề tài có filter loại đề tài.
+- Card/table đề tài hiển thị:
+  + Loại đề tài.
+  + Số lượng hiện tại/tối đa.
+  + Trạng thái còn chỗ/hết chỗ.
+- Khi đăng ký thành công, đề tài đã đăng ký phải bị disable nút đăng ký hoặc ẩn khỏi danh sách khả dụng.
+
+Test cần có hoặc kiểm tra lại:
+- Sinh viên đăng ký đề tài khóa luận -> workflow như cũ.
+- Sinh viên đăng ký đề tài NCKH -> workflow như cũ.
+- Đề tài max_students > 1 cho phép nhiều sinh viên được duyệt nếu còn chỗ.
+- Đề tài hết chỗ không cho đăng ký thêm.
+
+Độ ưu tiên: Cao.
+
+
+TASK A8. Cân nhắc loại kỳ học/đợt thực hiện nếu cần
+---------------------------------------------------
+
+Mục tiêu:
+- Xem có cần phân biệt kỳ khóa luận và đợt NCKH hay không.
+
+Khuyến nghị:
+- Chưa nên thêm period_type nếu không thật sự cần.
+- Dùng academic_periods hiện có cho cả 2 loại đề tài.
+- Chỉ cần topic_type là đủ để báo cáo thể hiện hệ thống hỗ trợ cả 2 loại.
+
+Nếu nhóm vẫn muốn mở rộng:
+- Có thể thêm period_type:
+  + thesis
+  + research
+  + mixed
+
+Nhưng task này ảnh hưởng database, API và UI nên chỉ làm nếu còn thời gian và đã thống nhất.
+
+Độ ưu tiên: Thấp.
+
+
+B. TASK CHO MEMBER B - PHASE 2
+==============================
+
+TASK B6. Thêm loại báo cáo/sản phẩm report_type
+-----------------------------------------------
+
+Mục tiêu:
+- Phân biệt các loại file sinh viên nộp trong quá trình thực hiện đề tài.
+- Hỗ trợ tốt hơn cho đề tài nghiên cứu khoa học.
+
+Giá trị đề xuất:
+- progress_report: Báo cáo tiến độ.
+- final_report: Báo cáo cuối kỳ.
+- product: Sản phẩm nghiên cứu.
+- evidence: Minh chứng.
+
+Công việc backend:
+- Thêm enum ReportType nếu project chưa có.
+- Thêm field report_type vào model reports.
+- Tạo Alembic migration.
+- Cập nhật schema upload/list response.
+- Cập nhật service upload report.
+- Cập nhật list/filter report theo report_type nếu cần.
+- Cập nhật test backend.
+
+Công việc frontend:
+- Form upload có dropdown loại báo cáo/sản phẩm.
+- Danh sách report hiển thị loại file.
+- Có filter theo loại nếu danh sách nhiều.
+- Label tiếng Việt:
+  + Báo cáo tiến độ.
+  + Báo cáo cuối kỳ.
+  + Sản phẩm nghiên cứu.
+  + Minh chứng.
+
+Test cần có:
+- Upload progress_report -> thành công.
+- Upload final_report -> thành công.
+- Upload product/evidence -> thành công.
+- Response report có report_type.
+- UI hiển thị đúng loại.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK B7. Thêm loại hội đồng council_type
+----------------------------------------
+
+Mục tiêu:
+- Phân biệt hội đồng bảo vệ khóa luận và hội đồng nghiệm thu đề tài nghiên cứu khoa học.
+
+Giá trị đề xuất:
+- defense: Hội đồng bảo vệ khóa luận.
+- acceptance: Hội đồng nghiệm thu đề tài nghiên cứu khoa học.
+
+Công việc backend:
+- Thêm enum CouncilType nếu project chưa có.
+- Thêm field council_type vào model councils.
+- Tạo Alembic migration.
+- Cập nhật schema create/list response.
+- Cập nhật service tạo hội đồng.
+- Cập nhật test backend.
+
+Công việc frontend:
+- Form tạo hội đồng có dropdown loại hội đồng.
+- Danh sách hội đồng hiển thị badge:
+  + Bảo vệ khóa luận.
+  + Nghiệm thu NCKH.
+- Nếu xếp lịch cho topic_type scientific_research thì gợi ý council_type acceptance.
+- Nếu xếp lịch cho topic_type graduation_thesis thì gợi ý council_type defense.
+
+Test cần có:
+- Tạo hội đồng defense -> thành công.
+- Tạo hội đồng acceptance -> thành công.
+- Response council có council_type.
+- UI hiển thị đúng badge.
+
+Độ ưu tiên: Rất cao.
+
+
+TASK B8. Điều chỉnh Evaluation theo loại đề tài
+-----------------------------------------------
+
+Mục tiêu:
+- Không làm rubric phức tạp, chỉ hiển thị gợi ý tiêu chí đánh giá phù hợp loại đề tài.
+
+Công việc frontend:
+- Khi chấm điểm khóa luận, hiển thị gợi ý:
+  + Nội dung chuyên môn.
+  + Kỹ thuật thực hiện.
+  + Báo cáo.
+  + Bảo vệ.
+- Khi chấm điểm NCKH, hiển thị gợi ý:
+  + Tính mới.
+  + Phương pháp nghiên cứu.
+  + Sản phẩm/minh chứng.
+  + Khả năng ứng dụng.
+- Điểm vẫn là thang 0-10 như hiện tại.
+- Không tạo bảng rubric nếu chưa cần.
+
+Công việc backend:
+- Có thể không cần đổi backend nếu chỉ hiển thị gợi ý ở frontend.
+- Nếu cần lưu tiêu chí chi tiết thì phải thống nhất sau, không làm trong task này.
+
+Test/kiểm tra thủ công:
+- Registration thuộc topic khóa luận -> hiển thị gợi ý khóa luận.
+- Registration thuộc topic NCKH -> hiển thị gợi ý NCKH.
+- Nhập điểm vẫn hoạt động như cũ.
+
+Độ ưu tiên: Trung bình.
+
+
+IV. PHASE 3 - DASHBOARD, THỐNG KÊ, EXPORT
+=========================================
+
+Mục tiêu Phase 3:
+- Làm hệ thống đẹp hơn khi demo.
+- Hỗ trợ quản trị và báo cáo.
+- Chỉ làm nếu Phase 1 và Phase 2 đã ổn.
+
+
+A. TASK CHO MEMBER A - PHASE 3
+==============================
+
+TASK A9. Dashboard phần user/topic/registration
+-----------------------------------------------
+
+Mục tiêu:
+- Có trang tổng quan cho từng role, tập trung vào phần đề tài và đăng ký.
+
+Dashboard Admin:
+- Tổng số người dùng.
+- Số sinh viên.
+- Số giảng viên.
+- Số đề tài.
+- Số đề tài chờ duyệt.
+- Số đề tài đã duyệt.
+- Số đăng ký chờ duyệt.
+- Số sinh viên đã có đề tài.
+
+Dashboard Lecturer:
+- Số đề tài đã tạo.
+- Số đề tài đã được duyệt.
+- Số đề tài bị từ chối.
+- Số đăng ký đang chờ duyệt.
+- Số sinh viên đang hướng dẫn.
+
+Dashboard Student:
+- Đề tài đang đăng ký/thực hiện.
+- Trạng thái đăng ký hiện tại.
+- Giảng viên hướng dẫn.
+- Loại đề tài: khóa luận hoặc NCKH.
+
+Độ ưu tiên: Trung bình.
+
+
+TASK A10. Export danh sách đề tài và đăng ký
+--------------------------------------------
+
+Mục tiêu:
+- Hỗ trợ Admin/Giảng viên xuất danh sách phục vụ quản lý.
+
+Có thể export:
+- Danh sách đề tài.
+- Danh sách đề tài theo kỳ.
+- Danh sách đề tài theo loại.
+- Danh sách sinh viên đăng ký.
+- Danh sách sinh viên theo giảng viên hướng dẫn.
+
+Định dạng:
+- Ưu tiên Excel/CSV trước.
+- PDF nếu còn thời gian.
+
+Độ ưu tiên: Thấp - Trung bình.
+
+
+B. TASK CHO MEMBER B - PHASE 3
+==============================
+
+TASK B9. Dashboard phần progress/reports/councils/results
+---------------------------------------------------------
+
+Mục tiêu:
+- Có tổng quan cho giai đoạn thực hiện và đánh giá.
+
+Dashboard Admin:
+- Số hội đồng đã lập.
+- Số lịch bảo vệ/nghiệm thu.
+- Số kết quả đã tính.
+- Số kết quả đã công bố.
+
+Dashboard Lecturer:
+- Số tiến độ chưa nhận xét.
+- Số báo cáo mới nộp.
+- Số hội đồng được phân công.
+- Số lịch bảo vệ/nghiệm thu sắp tới.
+
+Dashboard Student:
+- Milestone/deadline gần nhất.
+- Số báo cáo đã nộp.
+- Lịch bảo vệ/nghiệm thu nếu có.
+- Kết quả cuối nếu đã công bố.
+
+Độ ưu tiên: Trung bình.
+
+
+TASK B10. Export bảng điểm, kết quả, hội đồng
+---------------------------------------------
+
+Mục tiêu:
+- Hỗ trợ xuất dữ liệu phục vụ báo cáo quản lý.
+
+Có thể export:
+- Danh sách hội đồng.
+- Lịch bảo vệ/nghiệm thu.
+- Danh sách điểm.
+- Kết quả cuối.
+- Kết quả theo kỳ.
+- Kết quả theo loại đề tài.
+
+Định dạng:
+- Ưu tiên Excel/CSV trước.
+- PDF nếu còn thời gian.
+
+Độ ưu tiên: Thấp - Trung bình.
+
+
+V. BẢNG TỔNG HỢP TASK THEO NGƯỜI
+================================
+
+1. Member A
+-----------
+
+Phase 1 - Hoàn thiện lõi:
+- A1. Hoàn thiện route guard frontend theo role. Ưu tiên: Rất cao.
+- A2. Sửa và kiểm tra phân quyền endpoint workload giảng viên. Ưu tiên: Rất cao.
+- A3. Hoàn thiện trang Profile người dùng. Ưu tiên: Cao.
+- A4. Đồng bộ trạng thái đề tài và đăng ký trên UI. Ưu tiên: Cao.
+- A5. Kiểm tra lại flow đăng ký đề tài từ đầu đến cuối. Ưu tiên: Cao.
+
+Phase 2 - Mở rộng theo đề tài mới:
+- A6. Thêm loại đề tài topic_type. Ưu tiên: Rất cao.
+- A7. Cập nhật luồng đăng ký theo loại đề tài. Ưu tiên: Cao.
+- A8. Cân nhắc loại kỳ học/đợt thực hiện nếu cần. Ưu tiên: Thấp.
+
+Phase 3 - Nếu còn thời gian:
+- A9. Dashboard phần user/topic/registration. Ưu tiên: Trung bình.
+- A10. Export danh sách đề tài và đăng ký. Ưu tiên: Thấp - Trung bình.
+
+
+2. Member B
+-----------
+
+Phase 1 - Hoàn thiện lõi:
+- B1. Hoàn thiện chức năng Reports. Ưu tiên: Rất cao.
+- B2. Hoàn thiện chức năng Progress. Ưu tiên: Cao.
+- B3. Hoàn thiện UX Councils. Ưu tiên: Rất cao.
+- B4. Hoàn thiện Evaluation và Final Result. Ưu tiên: Rất cao.
+- B5. Kiểm tra flow sau khi đăng ký được duyệt. Ưu tiên: Cao.
+
+Phase 2 - Mở rộng theo đề tài mới:
+- B6. Thêm loại báo cáo/sản phẩm report_type. Ưu tiên: Rất cao.
+- B7. Thêm loại hội đồng council_type. Ưu tiên: Rất cao.
+- B8. Điều chỉnh Evaluation theo loại đề tài. Ưu tiên: Trung bình.
+
+Phase 3 - Nếu còn thời gian:
+- B9. Dashboard phần progress/reports/councils/results. Ưu tiên: Trung bình.
+- B10. Export bảng điểm, kết quả, hội đồng. Ưu tiên: Thấp - Trung bình.
+
+
+VI. THỨ TỰ LÀM ĐỀ XUẤT
+======================
+
+Nếu thời gian còn ít, nên làm theo thứ tự ưu tiên sau:
+
+1. Member A làm A1, A2 trước.
+2. Member B làm B1, B3 trước.
+3. Member A làm A3, A4, A5.
+4. Member B làm B2, B4, B5.
+5. Sau khi hệ thống hiện tại ổn, Member A làm A6, A7.
+6. Song song, Member B làm B6, B7.
+7. Nếu còn thời gian, làm B8, A9, B9, A10, B10.
+
+Nhóm task bắt buộc nên hoàn thành để khớp tên đề tài mới:
+- A6. Thêm loại đề tài topic_type.
+- B6. Thêm loại báo cáo/sản phẩm report_type.
+- B7. Thêm loại hội đồng council_type.
+
+Nhóm task bắt buộc nên hoàn thành để hệ thống ổn định hơn:
+- A1. Route guard.
+- A2. Bảo mật endpoint workload.
+- B1. Reports.
+- B3. Councils UX.
+- B4. Evaluation/Final Result.
+
+
+VII. KẾT LUẬN PHÂN CÔNG
+=======================
+
+Member A tập trung vào phần trước khi đề tài bắt đầu thực hiện:
+- người dùng,
+- kỳ học,
+- đề tài,
+- đăng ký,
+- phân loại đề tài,
+- dashboard/export liên quan đến đề tài và đăng ký.
+
+Member B tập trung vào phần sau khi đăng ký được duyệt:
+- tiến độ,
+- báo cáo,
+- hội đồng,
+- chấm điểm,
+- kết quả cuối,
+- phân loại báo cáo,
+- phân loại hội đồng,
+- dashboard/export liên quan đến đánh giá và kết quả.
+
+Hướng làm phù hợp nhất:
+1. Hoàn thiện chắc chức năng hiện có.
+2. Sau đó mở rộng bằng 3 phần chính: topic_type, report_type, council_type.
+3. Không mở rộng quá lớn sang chat, AI, đạo văn, email thật hoặc quản lý kinh phí chi tiết nếu chưa còn nhiều thời gian.

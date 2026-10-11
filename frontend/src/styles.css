@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Surfaces */
+  --color-surface: oklch(7% 0.006 95);
+  --color-surface-deep: oklch(4% 0.004 95);
+  --color-raised-surface: oklch(11% 0.006 95);
+  --color-graphite: oklch(15% 0.008 95);
+
+  /* Gold System (Primary) */
+  --color-primary: oklch(84% 0.19 80.46);
+  --color-primary-pale: oklch(86% 0.07 84);
+  --color-primary-deep: oklch(61% 0.085 78);
+  --color-border-subtle: oklch(78% 0 0 / 0.16);
+
+  /* Secondary (Secondary/State) */
+  --color-secondary: oklch(70% 0.12 188);
+  
+  /* Typography */
+  --color-heading: oklch(91% 0 0); /* Headings */
+  --color-body: oklch(88% 0 0);
+  --color-muted: oklch(72% 0 0);
+  --color-dark-ink: oklch(14% 0.018 95); /* Chữ trên nền gold */
+
+  /* States */
+  --color-danger: oklch(58% 0.15 35);
+  --color-success: oklch(45% 0.18 145);
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+.light-theme {
+  /* Surfaces */
+  --color-surface: oklch(99% 0 0); /* Trắng tuyệt đối */
+  --color-surface-deep: oklch(96% 0 0); /* Xám nhạt */
+  --color-raised-surface: oklch(100% 0 0);
+  --color-graphite: oklch(92% 0 0);
+
+  /* Giữ nguyên Primary (Gold) nhưng có thể cho tối hơn chút nếu cần thiết, ở đây giữ nguyên */
+  
+  --color-border-subtle: oklch(85% 0 0 / 0.5);
+
+  /* Typography đảo ngược (Chữ đen) */
+  --color-heading: oklch(10% 0 0);
+  --color-body: oklch(30% 0 0);
+  --color-muted: oklch(50% 0 0);
+  --color-dark-ink: oklch(98% 0 0); /* Chữ trên nền gold giờ có thể để thành màu sáng hoặc tối */
+}
+
+@layer base {
+  html {
+    font-family: 'Albert Sans', 'Avenir Next', 'Helvetica Neue', Arial, system-ui, sans-serif;
+    color: var(--color-body);
+    background: var(--color-surface);
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-surface);
+    color: var(--color-body);
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  h1, h2 {
+    font-family: 'Alumni Sans', 'Albert Sans', sans-serif;
+    color: var(--color-heading);
+  }
+
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* =======================================================================
+     BUTTONS 
+  ======================================================================= */
+  .ks-button {
+    @apply inline-flex items-center justify-center font-sans font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 48px;
+    border-radius: var(--radius-xs);
+  }
+
+  .ks-button-primary {
+    @apply bg-primary text-dark-ink border border-transparent hover:bg-primary-pale px-8;
+  }
+
+  .ks-button-secondary {
+    @apply bg-transparent text-primary border border-border-subtle hover:border-primary px-8;
+  }
+
+  .ks-button-ghost {
+    @apply bg-transparent text-body hover:text-primary px-4;
+  }
+
+  /* =======================================================================
+     INPUTS & FORMS 
+  ======================================================================= */
+  .ks-input {
+    @apply w-full bg-surface-deep text-heading border border-border-subtle px-4 py-3 font-sans transition-colors duration-200;
+    border-radius: var(--radius-sm);
+  }
+  .ks-input:focus {
+    @apply outline-none border-primary;
+  }
+  .ks-label {
+    @apply block text-muted font-sans text-sm mb-2;
+  }
+
+  /* =======================================================================
+     CARDS & CONTAINERS 
+  ======================================================================= */
+  .ks-card {
+    @apply bg-surface-raised text-body border border-border-subtle p-6;
+    border-radius: var(--radius-sm);
+  }
+  .ks-card-header {
+    @apply mb-4 pb-4 border-b border-border-subtle;
+  }
+  .ks-card-title {
+    @apply text-heading font-sans font-medium text-lg;
+  }
+}

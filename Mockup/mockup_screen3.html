@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <!-- Cấu hình hiển thị chuẩn trên mọi thiết bị -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Màn hình 3: Trang Admin - Quản Lý & Phân Công (FR-11, FR-19)</title>
+    <!-- Import font chữ Inter hiện đại từ Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Thanh điều hướng dành cho Quản trị viên (Admin) -->
+    <header class="navbar">
+        <div class="logo">🎓 Portal NCKH & KLTN - Quản Trị Hệ Thống</div>
+        <div class="user-profile">
+            <span class="user-name">Quản Trị Viên (Admin)</span>
+            <span class="badge" style="background-color: #ef4444;">Admin</span>
+        </div>
+    </header>
+
+    <main class="container" style="max-width: 1000px;">
+        <!-- TAB CHỨC NĂNG CỦA ADMIN -->
+        <section class="card">
+            <h2>⚙️ Quản Lý Đăng Ký & Phân Công Giảng Viên Hướng Dẫn (FR-11)</h2>
+            
+            <!-- BẢNG DANH SÁCH ĐĂNG KÝ ĐỀ TÀI CỦA SINH VIÊN -->
+            <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+                <thead>
+                    <tr style="background: #e2e8f0; text-align: left;">
+                        <th style="padding: 0.75rem;">Mã Đăng Ký</th>
+                        <th style="padding: 0.75rem;">Sinh Viên</th>
+                        <th style="padding: 0.75rem;">Đề Tài</th>
+                        <th style="padding: 0.75rem;">Phân Công GVHD</th>
+                        <th style="padding: 0.75rem;">Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dòng 1: Đã phân công -->
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 0.75rem;">#REG001</td>
+                        <td style="padding: 0.75rem;">Nguyễn Văn A<br><small style="color: #64748b;">SV2026001</small></td>
+                        <td style="padding: 0.75rem;">Xây dựng Hệ thống NCKH Sinh viên</td>
+                        <td style="padding: 0.75rem;">
+                            <select style="padding: 0.4rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                                <option value="1" selected>TS. Trần Văn B</option>
+                                <option value="2">PGS.TS Nguyễn Văn C</option>
+                            </select>
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <button class="btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #16a34a;">Lưu Phân Công</button>
+                        </td>
+                    </tr>
+                    <!-- Dòng 2: Chưa phân công -->
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 0.75rem;">#REG002</td>
+                        <td style="padding: 0.75rem;">Lê Thị D<br><small style="color: #64748b;">SV2026002</small></td>
+                        <td style="padding: 0.75rem;">Ứng dụng AI trong Nhận diện Khuôn mặt</td>
+                        <td style="padding: 0.75rem;">
+                            <select style="padding: 0.4rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                                <option value="" disabled selected>-- Chọn GVHD --</option>
+                                <option value="1">TS. Trần Văn B</option>
+                                <option value="2">PGS.TS Nguyễn Văn C</option>
+                            </select>
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <button class="btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Phân Công</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- THIẾT LẬP HỘI ĐỒNG BẢO VỆ (FR-19) -->
+        <section class="card">
+            <h2>🏛️ Thành Lập Hội Đồng Bảo Vệ & Lịch Bảo Vệ (FR-19)</h2>
+            <form id="councilForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <!-- Tên hội đồng -->
+                    <div class="form-group">
+                        <label for="councilName">Tên Hội Đồng:</label>
+                        <input type="text" id="councilName" placeholder="Hội đồng Bảo vệ KLTN CNTT #01" required style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <!-- Ngày bảo vệ -->
+                    <div class="form-group">
+                        <label for="defenseDate">Ngày & Phòng Bảo Vệ:</label>
+                        <input type="datetime-local" id="defenseDate" required style="width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                </div>
+
+                <!-- Chọn các Giảng viên vào Hội đồng -->
+                <div class="form-group">
+                    <label>Thành Viên Hội Đồng (Chọn ít nhất 3 giảng viên):</label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; background: #f8fafc; padding: 0.75rem; border-radius: 6px;">
+                        <label><input type="checkbox" value="1" checked> TS. Trần Văn B (Chủ tịch)</label>
+                        <label><input type="checkbox" value="2" checked> PGS.TS Nguyễn Văn C (Ủy viên)</label>
+                        <label><input type="checkbox" value="3" checked> ThS. Phạm Văn E (Thư ký)</label>
+                    </div>
+                </div>
+
+                <!-- Nút Lưu Hội Đồng -->
+                <button type="submit" class="btn-primary" style="background-color: #8b5cf6;">➕ Tạo Hội Đồng & Phân Lịch</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

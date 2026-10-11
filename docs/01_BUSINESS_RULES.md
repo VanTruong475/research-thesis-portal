@@ -100,6 +100,7 @@ Effective registrations include:
 
 - Pending
 - Approved
+- In Progress
 
 Students may cancel:
 

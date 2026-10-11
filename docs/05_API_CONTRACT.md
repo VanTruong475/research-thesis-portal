@@ -1294,10 +1294,70 @@ GET  /api/v1/users/me
 PUT  /api/v1/users/me
 GET  /api/v1/users
 POST /api/v1/users
+POST /api/v1/users/import
 PATCH /api/v1/users/{id}/status
 ```
 
-Admin user-management endpoints depend on the final Phase 1 scope.
+### User CSV import
+
+`POST /api/v1/users/import` is Admin-only and uses `multipart/form-data`.
+
+Request field:
+
+```text
+file=<csv-file>
+```
+
+CSV columns:
+
+```text
+institutional_code,email,password,full_name,role,status,phone,class_name,department
+```
+
+Rules:
+
+- Import supports only `student` and `lecturer` roles.
+- Admin accounts are not imported through CSV in Phase 1 and must be created through the normal Admin-controlled flow.
+- `institutional_code`, `email`, `password`, `full_name`, `role`, and `status` are required.
+- `phone`, `class_name`, and `department` are optional.
+- Passwords from the CSV must be hashed before storage and must never appear in responses or logs.
+- The import is atomic: if any row is invalid, no user from that CSV is created.
+- Duplicate email or institutional code, either inside the CSV or already in the database, must be rejected.
+
+Successful response:
+
+```json
+{
+  "success": true,
+  "message": "Users imported successfully.",
+  "data": {
+    "created_count": 2,
+    "skipped_count": 0,
+    "errors": []
+  }
+}
+```
+
+Row validation error:
+
+```json
+{
+  "success": false,
+  "message": "CSV contains invalid user rows.",
+  "error": {
+    "code": "USER_IMPORT_VALIDATION_ERROR",
+    "details": {
+      "errors": [
+        {
+          "row_number": 2,
+          "field": "email",
+          "message": "Email đã tồn tại trong hệ thống."
+        }
+      ]
+    }
+  }
+}
+```
 
 ---
 
@@ -1474,7 +1534,6 @@ Do not silently change:
 The following details must be confirmed before related implementation:
 
 - Exact list of allowed report file formats.
-- Whether Admin account import is included in Phase 1.
 - Exact score range and grading scale.
 - Whether final score weight is configurable through Admin UI.
 - Whether score publication can be reverted.
